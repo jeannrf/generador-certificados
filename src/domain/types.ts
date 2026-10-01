@@ -33,6 +33,8 @@ export interface FieldBox {
   align: TextAlign;
   vAlign: TextVAlign;
   textCase: TextCase;
+  isBold?: boolean;
+  isItalic?: boolean;
 }
 
 export type IssueSeverity = 'warning' | 'error';

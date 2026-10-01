@@ -328,6 +328,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                   className="truncate leading-none select-none transition-all"
                   style={{
                     fontFamily: field.fontFamily,
+                    fontWeight: field.isBold ? 700 : 400,
+                    fontStyle: field.isItalic ? 'italic' : 'normal',
                     fontSize: `clamp(${field.minFontSize * 0.4}px, 2.2vw, ${field.maxFontSize * 0.55}px)`,
                     color: field.color,
                     textAlign: field.align,

@@ -49,13 +49,33 @@ export async function composeCertificatePdf(
   const firstPage = pages[0];
   const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-  // Seleccionar fuente estándar de pdf-lib
-  let standardFont = StandardFonts.HelveticaBold;
-  if (field.fontFamily.toLowerCase().includes('serif') || field.fontFamily.toLowerCase().includes('playfair') || field.fontFamily.toLowerCase().includes('cormorant')) {
-    standardFont = StandardFonts.TimesRomanBold;
-  } else if (field.fontFamily.toLowerCase().includes('mono')) {
-    standardFont = StandardFonts.CourierBold;
+  // Seleccionar fuente estándar de pdf-lib según familia, negrita e itálica
+  const isSerif = field.fontFamily.toLowerCase().includes('serif') ||
+    field.fontFamily.toLowerCase().includes('playfair') ||
+    field.fontFamily.toLowerCase().includes('cormorant');
+  const isMono = field.fontFamily.toLowerCase().includes('mono');
+  const isBold = field.isBold ?? true;
+  const isItalic = field.isItalic ?? false;
+
+  let standardFont = StandardFonts.Helvetica;
+
+  if (isSerif) {
+    if (isBold && isItalic) standardFont = StandardFonts.TimesRomanBoldItalic;
+    else if (isBold) standardFont = StandardFonts.TimesRomanBold;
+    else if (isItalic) standardFont = StandardFonts.TimesRomanItalic;
+    else standardFont = StandardFonts.TimesRoman;
+  } else if (isMono) {
+    if (isBold && isItalic) standardFont = StandardFonts.CourierBoldOblique;
+    else if (isBold) standardFont = StandardFonts.CourierBold;
+    else if (isItalic) standardFont = StandardFonts.CourierOblique;
+    else standardFont = StandardFonts.Courier;
+  } else {
+    if (isBold && isItalic) standardFont = StandardFonts.HelveticaBoldOblique;
+    else if (isBold) standardFont = StandardFonts.HelveticaBold;
+    else if (isItalic) standardFont = StandardFonts.HelveticaOblique;
+    else standardFont = StandardFonts.Helvetica;
   }
+
   const font = await pdfDoc.embedFont(standardFont);
 
   // Transformar texto según configuración

@@ -11,6 +11,8 @@ import {
   Sliders,
   ChevronLeft,
   Sparkles,
+  Bold,
+  Italic,
 } from 'lucide-react';
 
 interface FieldEditorStepProps {
@@ -250,6 +252,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                     className="truncate leading-none select-none transition-all"
                     style={{
                       fontFamily: field.fontFamily,
+                      fontWeight: field.isBold ? 700 : 400,
+                      fontStyle: field.isItalic ? 'italic' : 'normal',
                       fontSize: `clamp(${field.minFontSize * 0.4}px, 2.5vw, ${field.maxFontSize * 0.55}px)`,
                       color: field.color,
                       textAlign: field.align,
@@ -306,8 +310,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
               Ajustes de Tipografía
             </h3>
 
-            {/* Font Family */}
-            <div className="space-y-1.5">
+            {/* Font Family and Bold/Italic Toggles */}
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-700">Fuente tipográfica</label>
               <select
                 value={field.fontFamily}
@@ -320,6 +324,35 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   </option>
                 ))}
               </select>
+
+              {/* Bold / Italic Toggle Buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onFieldChange({ ...field, isBold: !field.isBold })}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                    field.isBold
+                      ? 'bg-brand-600 border-brand-600 text-white shadow-sm'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <Bold className="w-4 h-4 stroke-[2.5]" />
+                  <span>Negrita</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onFieldChange({ ...field, isItalic: !field.isItalic })}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                    field.isItalic
+                      ? 'bg-brand-600 border-brand-600 text-white shadow-sm'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <Italic className="w-4 h-4 stroke-[2.5]" />
+                  <span>Cursiva</span>
+                </button>
+              </div>
             </div>
 
             {/* Font Sizes */}

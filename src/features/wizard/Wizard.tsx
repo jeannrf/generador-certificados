@@ -30,6 +30,8 @@ const INITIAL_FIELD: FieldBox = {
   align: 'center',
   vAlign: 'middle',
   textCase: 'title',
+  isBold: false,
+  isItalic: false,
 };
 
 export const Wizard: React.FC = () => {
