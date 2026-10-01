@@ -95,26 +95,28 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Upload Column */}
-        <div className="lg:col-span-6 space-y-4">
-          <Card className="p-6">
-            <Dropzone
-              accept=".csv,.txt,.xlsx,.xls"
-              acceptLabel="CSV, TXT o Excel"
-              maxSizeMB={10}
-              title="Arrastra tu lista de participantes aquí"
-              description="Soporta archivos .CSV, .TXT y hojas de cálculo"
-              icon={<FileSpreadsheet className="w-8 h-8 stroke-[1.75]" />}
-              onFileSelect={handleFileSelect}
-            />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+        {/* Upload Column (Left - 50%) */}
+        <div className="flex flex-col h-full">
+          <Card className="p-6 flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <Dropzone
+                accept=".csv,.txt,.xlsx,.xls"
+                acceptLabel="CSV, TXT o Excel"
+                maxSizeMB={10}
+                title="Arrastra tu lista de participantes aquí"
+                description="Soporta archivos .CSV, .TXT y hojas de cálculo"
+                icon={<FileSpreadsheet className="w-8 h-8 stroke-[1.75]" />}
+                onFileSelect={handleFileSelect}
+              />
 
-            {error && (
-              <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+              {error && (
+                <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+            </div>
 
             {/* Demo list button & sample file downloads */}
             <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
@@ -156,8 +158,8 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
           </Card>
         </div>
 
-        {/* Column Mapping & Data Preview */}
-        <div className="lg:col-span-6 space-y-4">
+        {/* Column Mapping & Data Preview (Right - 50%) */}
+        <div className="flex flex-col h-full">
           {tableData ? (
             <Card className="p-6 space-y-5">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">

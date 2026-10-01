@@ -99,70 +99,72 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Upload Zone */}
-        <div className="lg:col-span-7 space-y-6">
-          <Card className="p-6">
-            <Dropzone
-              accept=".pdf,.png,.jpg,.jpeg"
-              acceptLabel="PDF, PNG o JPG"
-              maxSizeMB={15}
-              onFileSelect={handleFileUpload}
-            />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+        {/* Upload Zone (Left Column) */}
+        <div className="flex flex-col h-full">
+          <Card className="p-6 flex flex-col justify-between h-full">
+            <div className="space-y-6">
+              <Dropzone
+                accept=".pdf,.png,.jpg,.jpeg"
+                acceptLabel="PDF, PNG o JPG"
+                maxSizeMB={15}
+                onFileSelect={handleFileUpload}
+              />
 
-            {/* Quick Demo Templates Picker */}
-            <div className="mt-8 pt-6 border-t border-slate-100">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-brand-600" />
-                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  ¿No tienes una plantilla a mano? Prueba con estas de ejemplo:
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => loadDemo('classic')}
-                  disabled={loadingDemo}
-                  className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
-                >
-                  <div className="w-full h-12 bg-amber-50 rounded-lg border border-amber-200 mb-2 flex items-center justify-center text-amber-800 font-serif text-[11px] group-hover:scale-105 transition-transform">
-                    Diploma
-                  </div>
-                  <span className="font-semibold text-slate-800 block truncate">Clásico Dorado</span>
-                  <span className="text-[10px] text-slate-500">Formal institucional</span>
-                </button>
+              {/* Quick Demo Templates Picker */}
+              <div className="pt-5 border-t border-slate-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-brand-600" />
+                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    ¿No tienes una plantilla a mano? Prueba con estas:
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    onClick={() => loadDemo('classic')}
+                    disabled={loadingDemo}
+                    className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
+                  >
+                    <div className="w-full h-12 bg-amber-50 rounded-lg border border-amber-200 mb-2 flex items-center justify-center text-amber-800 font-serif text-[11px] group-hover:scale-105 transition-transform">
+                      Diploma
+                    </div>
+                    <span className="font-semibold text-slate-800 block truncate">Clásico Dorado</span>
+                    <span className="text-[10px] text-slate-500">Formal institucional</span>
+                  </button>
 
-                <button
-                  onClick={() => loadDemo('modern')}
-                  disabled={loadingDemo}
-                  className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
-                >
-                  <div className="w-full h-12 bg-slate-900 rounded-lg border border-violet-500/40 mb-2 flex items-center justify-center text-violet-300 font-sans text-[11px] group-hover:scale-105 transition-transform">
-                    Bootcamp
-                  </div>
-                  <span className="font-semibold text-slate-800 block truncate">Moderno Tech</span>
-                  <span className="text-[10px] text-slate-500">Eventos e IA</span>
-                </button>
+                  <button
+                    onClick={() => loadDemo('modern')}
+                    disabled={loadingDemo}
+                    className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
+                  >
+                    <div className="w-full h-12 bg-slate-900 rounded-lg border border-violet-500/40 mb-2 flex items-center justify-center text-violet-300 font-sans text-[11px] group-hover:scale-105 transition-transform">
+                      Bootcamp
+                    </div>
+                    <span className="font-semibold text-slate-800 block truncate">Moderno Tech</span>
+                    <span className="text-[10px] text-slate-500">Eventos e IA</span>
+                  </button>
 
-                <button
-                  onClick={() => loadDemo('minimal')}
-                  disabled={loadingDemo}
-                  className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
-                >
-                  <div className="w-full h-12 bg-white rounded-lg border border-slate-200 mb-2 flex items-center justify-center text-slate-700 font-sans text-[11px] group-hover:scale-105 transition-transform shadow-xs">
-                    Taller
-                  </div>
-                  <span className="font-semibold text-slate-800 block truncate">Minimalista</span>
-                  <span className="text-[10px] text-slate-500">Limpio y sutil</span>
-                </button>
+                  <button
+                    onClick={() => loadDemo('minimal')}
+                    disabled={loadingDemo}
+                    className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
+                  >
+                    <div className="w-full h-12 bg-white rounded-lg border border-slate-200 mb-2 flex items-center justify-center text-slate-700 font-sans text-[11px] group-hover:scale-105 transition-transform shadow-xs">
+                      Taller
+                    </div>
+                    <span className="font-semibold text-slate-800 block truncate">Minimalista</span>
+                    <span className="text-[10px] text-slate-500">Limpio y sutil</span>
+                  </button>
+                </div>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Template Preview Panel */}
-        <div className="lg:col-span-5">
-          <Card className="p-6 h-full flex flex-col justify-between">
-            <div>
+        {/* Template Preview Panel (Right Column - Symmetric) */}
+        <div className="flex flex-col h-full">
+          <Card className="p-6 flex flex-col justify-between h-full">
+            <div className="flex-1 flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
                   <FileText className="w-4 h-4 text-brand-600" />
@@ -171,8 +173,8 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
               </div>
 
               {template ? (
-                <div className="space-y-4">
-                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-inner group">
+                <div className="space-y-4 flex-1 flex flex-col justify-center">
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-inner group flex items-center justify-center min-h-[260px] max-h-[340px]">
                     <img
                       src={template.previewUrl}
                       alt="Plantilla cargada"
@@ -180,7 +182,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                     />
                   </div>
 
-                  <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 text-xs space-y-1.5 text-slate-600">
+                  <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 text-xs space-y-1.5 text-slate-600 mt-auto">
                     <div className="flex justify-between">
                       <span className="font-medium text-slate-500">Nombre de archivo:</span>
                       <span className="font-semibold text-slate-800 truncate max-w-[200px]">{template.name}</span>
@@ -190,26 +192,31 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                       <span className="uppercase font-semibold text-slate-800">{template.kind}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="font-medium text-slate-500">Dimensiones de página:</span>
-                      <span className="font-semibold text-slate-800">{template.widthPt} × {template.heightPt} pt (A4)</span>
+                      <span className="font-medium text-slate-500">Dimensiones:</span>
+                      <span className="font-semibold text-slate-800">{template.widthPt} × {template.heightPt} pt</span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="h-[280px] rounded-xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
-                  <FileText className="w-10 h-10 mb-2 stroke-[1.25]" />
-                  <p className="text-xs">Sube una plantilla o selecciona un diseño de ejemplo para comenzar.</p>
+                <div className="flex-1 min-h-[300px] rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-3 shadow-sm">
+                    <FileText className="w-7 h-7 stroke-[1.25]" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700">Sin plantilla cargada</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xs">
+                    Sube un archivo o selecciona un diseño de ejemplo en la columna izquierda para ver la vista previa.
+                  </p>
                 </div>
               )}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+            <div className="mt-6 pt-5 border-t border-slate-100 flex justify-end">
               <Button
                 variant="primary"
                 size="lg"
                 disabled={!template}
                 onClick={onContinue}
-                className="w-full sm:w-auto"
+                className="w-full"
               >
                 Continuar al siguiente paso
               </Button>
