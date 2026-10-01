@@ -4,7 +4,8 @@ import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Dropzone } from '../../ui/Dropzone';
 import { createDemoCertificateCanvas } from '../../shared/demoData';
-import { Sparkles, FileText } from 'lucide-react';
+import { renderPdfToPreview } from '../../infra/pdfRenderer';
+import { Sparkles, FileText, AlertCircle, Info, Loader2 } from 'lucide-react';
 
 interface TemplateStepProps {
   template: TemplateData | null;
@@ -18,50 +19,77 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
   onContinue,
 }) => {
   const [loadingDemo, setLoadingDemo] = useState(false);
+  const [isRendering, setIsRendering] = useState(false);
+  const [renderError, setRenderError] = useState<string | null>(null);
+  const [pageNotice, setPageNotice] = useState<string | null>(null);
 
   const handleFileUpload = async (file: File) => {
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
+    setRenderError(null);
+    setPageNotice(null);
+    setIsRendering(true);
 
-    if (isPdf) {
-      // Para PDF creamos un blob URL para el preview
-      const previewUrl = URL.createObjectURL(file);
-      onTemplateChange({
-        id: `tpl_${Date.now()}`,
-        name: file.name,
-        kind: 'pdf',
-        bytes,
-        mimeType: 'application/pdf',
-        widthPt: 842, // A4 horizontal por defecto
-        heightPt: 595,
-        previewUrl,
-      });
-    } else {
-      // Imagen (PNG / JPG)
-      const img = new Image();
-      const objectUrl = URL.createObjectURL(file);
-      img.onload = () => {
-        // Convertir dimensiones de píxeles a puntos PDF (a 96 DPI estándar: 1px = 0.75pt)
-        const widthPt = img.naturalWidth * 0.75;
-        const heightPt = img.naturalHeight * 0.75;
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
+
+      if (isPdf) {
+        // Renderizar el PDF a imagen de alta definición con pdf.js
+        const rendered = await renderPdfToPreview(bytes);
+
+        if (rendered.numPages > 1) {
+          setPageNotice(`El archivo tiene ${rendered.numPages} páginas. Se ha seleccionado la primera página para la plantilla.`);
+        }
 
         onTemplateChange({
           id: `tpl_${Date.now()}`,
           name: file.name,
-          kind: 'image',
+          kind: 'pdf',
           bytes,
-          mimeType: file.type || 'image/png',
-          widthPt: Math.round(widthPt),
-          heightPt: Math.round(heightPt),
-          previewUrl: objectUrl,
+          mimeType: 'application/pdf',
+          widthPt: rendered.widthPt,
+          heightPt: rendered.heightPt,
+          previewUrl: rendered.previewUrl,
         });
-      };
-      img.src = objectUrl;
+      } else {
+        // Imagen (PNG / JPG)
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          // Convertir dimensiones de píxeles a puntos PDF (a 96 DPI estándar: 1px = 0.75pt)
+          const widthPt = img.naturalWidth * 0.75;
+          const heightPt = img.naturalHeight * 0.75;
+
+          onTemplateChange({
+            id: `tpl_${Date.now()}`,
+            name: file.name,
+            kind: 'image',
+            bytes,
+            mimeType: file.type || 'image/png',
+            widthPt: Math.round(widthPt),
+            heightPt: Math.round(heightPt),
+            previewUrl: objectUrl,
+          });
+          setIsRendering(false);
+        };
+        img.onerror = () => {
+          setRenderError('No se pudo cargar la imagen seleccionada. Intenta con otro archivo.');
+          setIsRendering(false);
+        };
+        img.src = objectUrl;
+        return;
+      }
+    } catch (err) {
+      console.error('Error renderizando plantilla PDF:', err);
+      setRenderError('Ocurrió un error al procesar el archivo PDF. Verifica que no esté protegido con contraseña.');
+    } finally {
+      setIsRendering(false);
     }
   };
 
   const loadDemo = (style: 'classic' | 'modern' | 'minimal') => {
+    setRenderError(null);
+    setPageNotice(null);
     setLoadingDemo(true);
     setTimeout(() => {
       const demo = createDemoCertificateCanvas(style);
@@ -172,7 +200,15 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                 </h3>
               </div>
 
-              {template ? (
+              {isRendering ? (
+                <div className="flex-1 min-h-[300px] rounded-xl border border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-500 p-8 text-center space-y-3">
+                  <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Procesando archivo PDF...</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Renderizando vista previa en alta resolución</p>
+                  </div>
+                </div>
+              ) : template ? (
                 <div className="space-y-4 flex-1 flex flex-col justify-center">
                   <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-inner group flex items-center justify-center min-h-[260px] max-h-[340px]">
                     <img
@@ -181,6 +217,13 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                       className="w-full h-auto object-contain max-h-[320px] mx-auto block"
                     />
                   </div>
+
+                  {pageNotice && (
+                    <div className="p-2.5 bg-brand-50 border border-brand-200/80 rounded-xl text-brand-700 text-xs flex items-center gap-2">
+                      <Info className="w-4 h-4 shrink-0" />
+                      <span>{pageNotice}</span>
+                    </div>
+                  )}
 
                   <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 text-xs space-y-1.5 text-slate-600 mt-auto">
                     <div className="flex justify-between">
@@ -206,6 +249,13 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                   <p className="text-xs text-slate-400 mt-1 max-w-xs">
                     Sube un archivo o selecciona un diseño de ejemplo en la columna izquierda para ver la vista previa.
                   </p>
+                </div>
+              )}
+
+              {renderError && (
+                <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{renderError}</span>
                 </div>
               )}
             </div>
