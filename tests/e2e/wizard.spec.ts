@@ -34,7 +34,7 @@ test.describe('Generador de Certificados — Flujo E2E Completo', () => {
     await expect(page.locator('text=Carga la lista de destinatarios')).toBeVisible();
 
     // Subir archivo CSV de prueba mediante el input de archivo
-    const csvPath = path.resolve(process.cwd(), 'destinatarios_prueba.csv');
+    const csvPath = path.resolve(process.cwd(), 'samples/destinatarios_prueba.csv');
     await page.locator('input[type="file"]').setInputFiles(csvPath);
 
     // Debe detectar los registros cargados
