@@ -11,8 +11,6 @@ import {
   Sliders,
   ChevronLeft,
   Sparkles,
-  Bold,
-  Italic,
 } from 'lucide-react';
 
 interface FieldEditorStepProps {
@@ -332,7 +330,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
               </div>
             </div>
 
-            {/* Font Family and Bold/Italic Toggles */}
+            {/* Font Family */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-700">Fuente tipográfica</label>
               <select
@@ -346,34 +344,70 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
 
-              {/* Bold / Italic Toggle Buttons */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => onFieldChange({ ...field, isBold: !field.isBold })}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
-                    field.isBold
-                      ? 'bg-brand-600 border-brand-600 text-white shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <Bold className="w-4 h-4 stroke-[2.5]" />
-                  <span>Negrita</span>
-                </button>
+            {/* Compact Typography Toolbar: Style (B, I) + Alignment */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Estilo y Alineación</label>
+              <div className="flex items-center justify-between gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                {/* Bold & Italic */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    title="Negrita (Bold)"
+                    onClick={() => onFieldChange({ ...field, isBold: !field.isBold })}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm transition-all ${
+                      field.isBold
+                        ? 'bg-brand-600 text-white font-extrabold shadow-sm'
+                        : 'bg-white text-slate-700 hover:bg-slate-50 font-bold border border-slate-200'
+                    }`}
+                  >
+                    B
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => onFieldChange({ ...field, isItalic: !field.isItalic })}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
-                    field.isItalic
-                      ? 'bg-brand-600 border-brand-600 text-white shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <Italic className="w-4 h-4 stroke-[2.5]" />
-                  <span>Cursiva</span>
-                </button>
+                  <button
+                    type="button"
+                    title="Cursiva (Italic)"
+                    onClick={() => onFieldChange({ ...field, isItalic: !field.isItalic })}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm transition-all ${
+                      field.isItalic
+                        ? 'bg-brand-600 text-white font-serif italic font-bold shadow-sm'
+                        : 'bg-white text-slate-700 hover:bg-slate-50 font-serif italic font-bold border border-slate-200'
+                    }`}
+                  >
+                    I
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="w-px h-6 bg-slate-300" />
+
+                {/* Alignment Icons Only */}
+                <div className="flex items-center gap-1">
+                  {[
+                    { value: 'left' as TextAlign, label: 'Alinear a la izquierda', icon: AlignLeft },
+                    { value: 'center' as TextAlign, label: 'Centrar texto', icon: AlignCenter },
+                    { value: 'right' as TextAlign, label: 'Alinear a la derecha', icon: AlignRight },
+                  ].map((a) => {
+                    const Icon = a.icon;
+                    const isSelected = field.align === a.value;
+                    return (
+                      <button
+                        key={a.value}
+                        type="button"
+                        title={a.label}
+                        onClick={() => onFieldChange({ ...field, align: a.value })}
+                        className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all ${
+                          isSelected
+                            ? 'bg-brand-600 text-white shadow-sm'
+                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -413,48 +447,19 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
               </div>
             </div>
 
-            {/* Alignment */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Alineación Horizontal</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'left' as TextAlign, label: 'Izquierda', icon: AlignLeft },
-                  { value: 'center' as TextAlign, label: 'Centro', icon: AlignCenter },
-                  { value: 'right' as TextAlign, label: 'Derecha', icon: AlignRight },
-                ].map((a) => {
-                  const Icon = a.icon;
-                  const isSelected = field.align === a.value;
-                  return (
-                    <button
-                      key={a.value}
-                      onClick={() => onFieldChange({ ...field, align: a.value })}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-medium border transition-all ${
-                        isSelected
-                          ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-sm'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{a.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Capitalization */}
-            <div className="space-y-2">
+            {/* Capitalization: Only Normal (Title Case) and MAYÚSCULAS */}
+            <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700">Formato de Texto</label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  { value: 'title' as TextCase, label: 'Tipo Título' },
+                  { value: 'title' as TextCase, label: 'Normal' },
                   { value: 'upper' as TextCase, label: 'MAYÚSCULAS' },
-                  { value: 'original' as TextCase, label: 'Original' },
                 ].map((tc) => (
                   <button
                     key={tc.value}
+                    type="button"
                     onClick={() => onFieldChange({ ...field, textCase: tc.value })}
-                    className={`py-2 px-1 text-center rounded-xl text-xs font-medium border transition-all ${
+                    className={`py-2 px-2 text-center rounded-xl text-xs font-semibold border transition-all ${
                       field.textCase === tc.value
                         ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-sm'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
