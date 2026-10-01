@@ -62,3 +62,56 @@ export function calculateOptimalFontSize(
   // Si llegó al mínimo y aún excede, devolvemos el mínimo pero indicamos fits = false
   return { fontSize: minFontSize, fits: false };
 }
+
+// Canvas singleton para mediciones rápidas en el navegador
+let sharedCanvas: HTMLCanvasElement | null = null;
+
+/**
+ * Mide el ancho en píxeles de un texto en el navegador utilizando un Canvas 2D.
+ */
+export function measureBrowserTextWidth(
+  text: string,
+  fontSizePx: number,
+  fontFamily: string,
+  fontWeight: number | string = 400,
+  fontStyle: string = 'normal'
+): number {
+  if (typeof document === 'undefined') return text.length * fontSizePx * 0.55;
+  if (!sharedCanvas) {
+    sharedCanvas = document.createElement('canvas');
+  }
+  const ctx = sharedCanvas.getContext('2d');
+  if (!ctx) return text.length * fontSizePx * 0.55;
+
+  // En Canvas 2D, los nombres de fuentes con espacios deben tener comillas para cumplir la especificación CSS Font
+  const formattedFamily = fontFamily
+    .split(',')
+    .map((name) => {
+      const trimmed = name.trim().replace(/^['"]|['"]$/g, '');
+      return trimmed.includes(' ') ? `'${trimmed}'` : trimmed;
+    })
+    .join(', ');
+
+  ctx.font = `${fontStyle} ${fontWeight} ${fontSizePx}px ${formattedFamily}`;
+  const measured = ctx.measureText(text).width;
+  const fallbackWidth = text.length * fontSizePx * 0.55;
+  return Math.max(measured, fallbackWidth * 0.85);
+}
+
+/**
+ * Calcula el tamaño exacto en píxeles de pantalla manteniendo el tamaño de fuente constante
+ * según la escala del contenedor respecto a la plantilla.
+ */
+export function calculateScreenFontSize(
+  _text: string,
+  field: FieldBox,
+  containerWidthPx: number,
+  templateWidthPt: number
+): number {
+  if (!containerWidthPx || !templateWidthPt) {
+    return Math.max(12, field.maxFontSize * 0.5);
+  }
+
+  const scale = containerWidthPx / templateWidthPt;
+  return field.maxFontSize * scale;
+}

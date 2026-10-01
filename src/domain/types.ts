@@ -38,7 +38,7 @@ export interface FieldBox {
 }
 
 export type IssueSeverity = 'warning' | 'error';
-export type IssueCode = 'EMPTY_NAME' | 'INVALID_EMAIL' | 'DUPLICATE' | 'NAME_TOO_LONG' | 'TRIMMED';
+export type IssueCode = 'EMPTY_NAME' | 'INVALID_EMAIL' | 'DUPLICATE' | 'NAME_TOO_LONG' | 'TEXT_OVERFLOW' | 'TRIMMED';
 
 export interface Issue {
   severity: IssueSeverity;
@@ -53,6 +53,7 @@ export interface Recipient {
   email?: string;
   extra: Record<string, string>;
   issues: Issue[];
+  customField?: Partial<FieldBox>;
 }
 
 export interface ColumnMapping {
@@ -68,6 +69,38 @@ export interface GenerationProgress {
   errorMessage?: string;
   generatedCount: number;
   zipBlob?: Blob;
+  pdfBlob?: Blob;
 }
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5;
+
+export interface EmailConfig {
+  webAppUrl: string;
+  token?: string;
+  senderName: string;
+  subject: string;
+  htmlBody: string;
+}
+
+export type EmailDeliveryStatus = 'pending' | 'sending' | 'sent' | 'error' | 'skipped';
+
+export interface EmailDeliveryRecord {
+  recipientId: string;
+  name: string;
+  email: string;
+  status: EmailDeliveryStatus;
+  errorMessage?: string;
+  sentAt?: string;
+}
+
+export interface EmailSendProgress {
+  status: 'idle' | 'testing' | 'sending' | 'paused' | 'completed' | 'cancelled';
+  total: number;
+  current: number;
+  sentCount: number;
+  failedCount: number;
+  currentRecipientName?: string;
+  remainingQuota?: number;
+  records: Record<string, EmailDeliveryRecord>;
+}
+

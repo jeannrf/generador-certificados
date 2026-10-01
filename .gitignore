@@ -52,3 +52,15 @@ Thumbs.db
 # Agent & temporary scratch files
 .impeccable/
 .agents/skills/impeccable/scripts/bin/
+
+# Playwright artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Office / Excel temporary lock files
+.~lock.*#
+.~lock.*
+*.tmp
+

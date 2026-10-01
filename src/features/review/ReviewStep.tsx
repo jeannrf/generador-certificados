@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Recipient, TemplateData, FieldBox } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
 import { transformTextCase } from '../../domain/normalization';
+import { calculateScreenFontSize } from '../../domain/layout';
+import { validateRecipients } from '../../domain/validation';
+import { composeCertificatePdf } from '../../infra/pdfComposer';
+import { triggerDownload } from '../../infra/zipExporter';
+import { IndividualFieldModal } from './IndividualFieldModal';
 import {
   CheckCircle,
   AlertTriangle,
@@ -13,6 +18,8 @@ import {
   Eye,
   ChevronRight,
   Filter,
+  Sliders,
+  FileDown,
 } from 'lucide-react';
 
 interface ReviewStepProps {
@@ -36,36 +43,113 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   onBack,
   onContinue,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'valid' | 'issues'>('all');
+  const [filter, setFilter] = useState<'all' | 'valid' | 'warnings' | 'errors'>('all');
   const [previewIndex, setPreviewIndex] = useState<number>(0);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const [customizingRecipient, setCustomizingRecipient] = useState<Recipient | null>(null);
+  const [downloadingSample, setDownloadingSample] = useState<boolean>(false);
 
-  // Estadísticas
-  const totalCount = recipients.length;
-  const errorCount = recipients.filter((r) => r.issues.some((i) => i.severity === 'error')).length;
-  const warningCount = recipients.filter(
+  // Validación reactiva contra el marco y la tipografía actual
+  const validatedRecipients = useMemo(() => {
+    const raw = recipients.map((r) => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      extra: r.extra,
+      customField: r.customField,
+    }));
+    return validateRecipients(raw, {
+      field,
+      templateWidthPt: template.widthPt,
+    });
+  }, [recipients, field, template]);
+
+  // Medición subpíxel reactiva del contenedor con ResizeObserver
+  useEffect(() => {
+    if (!previewContainerRef.current) return;
+    const update = () => {
+      if (previewContainerRef.current) {
+        setContainerWidth(previewContainerRef.current.clientWidth);
+      }
+    };
+    update();
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+    observer.observe(previewContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Estadísticas en tiempo real
+  const totalCount = validatedRecipients.length;
+  const errorCount = validatedRecipients.filter((r) => r.issues.some((i) => i.severity === 'error')).length;
+  const warningCount = validatedRecipients.filter(
     (r) =>
       r.issues.some((i) => i.severity === 'warning') &&
       !r.issues.some((i) => i.severity === 'error')
   ).length;
-  const validCount = recipients.filter((r) => r.issues.length === 0).length;
+  const validCount = validatedRecipients.filter((r) => r.issues.length === 0).length;
 
   // Encontrar el nombre más largo
-  const longestRecipientIndex = recipients.reduce((maxIdx, curr, idx, arr) => {
+  const longestRecipientIndex = validatedRecipients.reduce((maxIdx, curr, idx, arr) => {
     return curr.name.length > (arr[maxIdx]?.name.length || 0) ? idx : maxIdx;
   }, 0);
 
   // Destinatario activo en la vista previa
-  const currentPreviewRecipient = recipients[previewIndex] || recipients[0];
+  const safePreviewIndex = validatedRecipients.length > 0
+    ? Math.min(Math.max(0, previewIndex), validatedRecipients.length - 1)
+    : 0;
+  const currentPreviewRecipient = validatedRecipients[safePreviewIndex];
 
-  const filteredRecipients = recipients.filter((r) => {
+  const filteredRecipients = validatedRecipients.filter((r) => {
     if (filter === 'valid') return r.issues.length === 0;
-    if (filter === 'issues') return r.issues.length > 0;
+    if (filter === 'warnings') {
+      return (
+        r.issues.some((i) => i.severity === 'warning') &&
+        !r.issues.some((i) => i.severity === 'error')
+      );
+    }
+    if (filter === 'errors') return r.issues.some((i) => i.severity === 'error');
     return true;
   });
 
+  const effectivePreviewField: FieldBox = currentPreviewRecipient?.customField
+    ? { ...field, ...currentPreviewRecipient.customField }
+    : field;
+
   const previewName = currentPreviewRecipient
-    ? transformTextCase(currentPreviewRecipient.name, field.textCase)
+    ? transformTextCase(currentPreviewRecipient.name, effectivePreviewField.textCase)
     : '';
+
+  const computedFontSize = calculateScreenFontSize(
+    previewName,
+    effectivePreviewField,
+    containerWidth,
+    template.widthPt
+  );
+
+  const handleDownloadSamplePdf = async () => {
+    if (!currentPreviewRecipient) return;
+    setDownloadingSample(true);
+    try {
+      const { pdfBytes, fileName } = await composeCertificatePdf(
+        template,
+        field,
+        currentPreviewRecipient
+      );
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+      triggerDownload(blob, `Muestra - ${fileName}`);
+    } catch (err) {
+      console.error('Error generando PDF de muestra:', err);
+    } finally {
+      setDownloadingSample(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -95,67 +179,137 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Total Lista */}
         <div
           onClick={() => setFilter('all')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
             filter === 'all'
-              ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-              : 'bg-white border-slate-200 hover:border-slate-300'
+              ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-700/20'
+              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
           }`}
         >
-          <span className="text-xs uppercase tracking-wider font-semibold opacity-80 block">
+          <span
+            className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
+              filter === 'all' ? 'text-slate-300' : 'text-slate-500'
+            }`}
+          >
             Total Lista
           </span>
-          <span className="text-2xl font-bold font-mono">{totalCount}</span>
+          <span
+            className={`text-2xl font-bold font-mono transition-colors ${
+              filter === 'all' ? 'text-white' : 'text-slate-900'
+            }`}
+          >
+            {totalCount}
+          </span>
         </div>
 
+        {/* Listos ✔ */}
         <div
           onClick={() => setFilter('valid')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
             filter === 'valid'
-              ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
-              : 'bg-white border-slate-200 hover:border-emerald-300'
+              ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-700/20'
+              : 'bg-white border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/20'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider font-semibold opacity-80 block">
+            <span
+              className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
+                filter === 'valid' ? 'text-slate-300' : 'text-slate-500'
+              }`}
+            >
               Listos ✔
             </span>
-            <CheckCircle className="w-4 h-4 text-emerald-500" />
+            <CheckCircle
+              className={`w-4 h-4 transition-colors ${
+                filter === 'valid' ? 'text-emerald-400' : 'text-emerald-500'
+              }`}
+            />
           </div>
-          <span className="text-2xl font-bold font-mono text-emerald-600">{validCount}</span>
+          <span
+            className={`text-2xl font-bold font-mono transition-colors ${
+              filter === 'valid' ? 'text-white' : 'text-emerald-600'
+            }`}
+          >
+            {validCount}
+          </span>
         </div>
 
+        {/* Advertencias ⚠ */}
         <div
-          onClick={() => setFilter('issues')}
+          onClick={() => setFilter('warnings')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-            filter === 'issues'
-              ? 'bg-amber-600 text-white border-amber-600 shadow-md'
-              : 'bg-white border-slate-200 hover:border-amber-300'
+            filter === 'warnings'
+              ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-700/20'
+              : 'bg-white border-slate-200 hover:border-amber-300 hover:bg-amber-50/20'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider font-semibold opacity-80 block">
+            <span
+              className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
+                filter === 'warnings' ? 'text-slate-300' : 'text-slate-500'
+              }`}
+            >
               Advertencias ⚠
             </span>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <AlertTriangle
+              className={`w-4 h-4 transition-colors ${
+                filter === 'warnings' ? 'text-amber-400' : 'text-amber-500'
+              }`}
+            />
           </div>
-          <span className="text-2xl font-bold font-mono text-amber-600">{warningCount}</span>
+          <span
+            className={`text-2xl font-bold font-mono transition-colors ${
+              filter === 'warnings' ? 'text-white' : 'text-amber-600'
+            }`}
+          >
+            {warningCount}
+          </span>
         </div>
 
-        <div className="p-3.5 rounded-xl border bg-white border-slate-200">
+        {/* Errores ✖ */}
+        <div
+          onClick={() => setFilter('errors')}
+          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+            filter === 'errors'
+              ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-700/20'
+              : 'bg-white border-slate-200 hover:border-rose-300 hover:bg-rose-50/20'
+          }`}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500 block">
+            <span
+              className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
+                filter === 'errors' ? 'text-slate-300' : 'text-slate-500'
+              }`}
+            >
               Errores ✖
             </span>
-            <XCircle className="w-4 h-4 text-rose-500" />
+            <XCircle
+              className={`w-4 h-4 transition-colors ${
+                filter === 'errors' ? 'text-rose-400' : 'text-rose-500'
+              }`}
+            />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold font-mono text-rose-600">{errorCount}</span>
+            <span
+              className={`text-2xl font-bold font-mono transition-colors ${
+                filter === 'errors' ? 'text-white' : 'text-rose-600'
+              }`}
+            >
+              {errorCount}
+            </span>
             {errorCount > 0 && (
               <button
-                onClick={onRemoveInvalid}
-                className="text-[11px] font-semibold text-rose-600 hover:underline hover:text-rose-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveInvalid();
+                }}
+                className={`text-[11px] font-semibold hover:underline transition-colors ${
+                  filter === 'errors'
+                    ? 'text-rose-300 hover:text-white'
+                    : 'text-rose-600 hover:text-rose-700'
+                }`}
               >
                 Descartar errores
               </button>
@@ -176,8 +330,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                   {filter === 'all'
                     ? 'Todos los registros'
                     : filter === 'valid'
-                    ? 'Solo válidos'
-                    : 'Con advertencias / errores'}
+                    ? 'Solo listos (válidos)'
+                    : filter === 'warnings'
+                    ? 'Solo advertencias'
+                    : 'Solo errores'}
                 </span>
               </div>
               <span className="text-xs text-slate-400 font-mono">
@@ -196,26 +352,38 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {filteredRecipients.map((rec) => {
+                  {filteredRecipients.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-slate-400 text-xs font-medium">
+                        No hay registros para este filtro.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredRecipients.map((rec) => {
                     const hasError = rec.issues.some((i) => i.severity === 'error');
                     const hasWarning = rec.issues.some((i) => i.severity === 'warning');
                     const isSelectedInPreview = currentPreviewRecipient?.id === rec.id;
+                    const targetIdx = validatedRecipients.findIndex((r) => r.id === rec.id);
 
                     return (
                       <tr
                         key={rec.id}
                         onClick={() => {
-                          const realIdx = recipients.findIndex((r) => r.id === rec.id);
-                          if (realIdx !== -1) setPreviewIndex(realIdx);
+                          if (targetIdx !== -1) setPreviewIndex(targetIdx);
                         }}
-                        className={`cursor-pointer transition-colors ${
+                        className={`cursor-pointer transition-all ${
                           isSelectedInPreview
-                            ? 'bg-brand-50/70 hover:bg-brand-50'
+                            ? 'bg-brand-50/90 ring-1 ring-inset ring-brand-400/50 shadow-sm'
                             : 'hover:bg-slate-50/80'
                         }`}
                       >
                         <td className="px-3 py-2 text-slate-400 font-mono text-[11px]">
-                          {rec.rowNumber}
+                          <div className="flex items-center gap-1.5">
+                            {isSelectedInPreview && (
+                              <Eye className="w-3.5 h-3.5 text-brand-600 flex-shrink-0 animate-pulse" />
+                            )}
+                            <span>{rec.rowNumber}</span>
+                          </div>
                         </td>
                         <td className="px-3 py-2 font-medium text-slate-900">
                           <input
@@ -224,16 +392,23 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                             onChange={(e) =>
                               onUpdateRecipient({ ...rec, name: e.target.value })
                             }
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-brand-500 focus:outline-none py-0.5"
+                            onFocus={() => {
+                              if (targetIdx !== -1) setPreviewIndex(targetIdx);
+                            }}
+                            onClick={() => {
+                              if (targetIdx !== -1) setPreviewIndex(targetIdx);
+                            }}
+                            placeholder="Nombre del destinatario"
+                            title="Haz clic para editar el nombre o ver en el certificado"
+                            className="w-full bg-white/70 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-md px-2 py-1 transition-all text-xs font-semibold text-slate-900 shadow-xs"
                           />
                           {rec.email && (
-                            <span className="block text-[11px] text-slate-400 font-normal">
+                            <span className="block text-[11px] text-slate-400 font-normal px-1 mt-0.5">
                               {rec.email}
                             </span>
                           )}
                           {rec.issues.length > 0 && (
-                            <span className="block text-[10px] text-amber-600 mt-0.5">
+                            <span className="block text-[10px] text-amber-600 mt-0.5 px-1 font-medium">
                               {rec.issues.map((i) => i.message).join(' • ')}
                             </span>
                           )}
@@ -254,17 +429,32 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                           )}
                         </td>
                         <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => onRemoveRecipient(rec.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                            title="Eliminar fila"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setCustomizingRecipient(rec)}
+                              className={`p-1 rounded-lg transition-colors ${
+                                rec.customField && Object.keys(rec.customField).length > 0
+                                  ? 'text-brand-600 bg-brand-50 hover:bg-brand-100 ring-1 ring-brand-300'
+                                  : 'text-slate-400 hover:text-brand-600 hover:bg-slate-100'
+                              }`}
+                              title="Ajuste individual de diseño (tamaño de fuente, posición)"
+                            >
+                              <Sliders className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onRemoveRecipient(rec.id)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                              title="Eliminar fila"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>
@@ -274,17 +464,36 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         {/* Live Preview & Longest Name Test */}
         <div className="lg:col-span-5 space-y-4">
           <Card className="p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                <Eye className="w-4 h-4 text-brand-600" />
-                Vista previa real del certificado
-              </span>
-              <div className="flex items-center gap-1">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Eye className="w-4 h-4 text-brand-600" />
+                  Vista previa real del certificado
+                </span>
+                {currentPreviewRecipient?.customField &&
+                  Object.keys(currentPreviewRecipient.customField).length > 0 && (
+                    <span className="text-[10px] bg-brand-50 text-brand-700 font-semibold px-1.5 py-0.5 rounded border border-brand-200">
+                      Personalizado
+                    </span>
+                  )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<FileDown className="w-3.5 h-3.5" />}
+                  onClick={handleDownloadSamplePdf}
+                  isLoading={downloadingSample}
+                  title="Descargar este certificado como archivo PDF de prueba"
+                >
+                  Probar PDF
+                </Button>
+                <div className="h-4 w-px bg-slate-200 mx-0.5" />
                 <button
                   onClick={() => setPreviewIndex(0)}
                   className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
-                    previewIndex === 0
-                      ? 'bg-brand-600 text-white border-brand-600'
+                    safePreviewIndex === 0
+                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -293,8 +502,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                 <button
                   onClick={() => setPreviewIndex(longestRecipientIndex)}
                   className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
-                    previewIndex === longestRecipientIndex
-                      ? 'bg-brand-600 text-white border-brand-600'
+                    safePreviewIndex === longestRecipientIndex
+                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -305,57 +514,75 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
 
             {/* Template with live stamped name */}
             <div
-              className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 shadow-md"
+              ref={previewContainerRef}
+              className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 shadow-md select-none"
               style={{ aspectRatio: `${template.widthPt} / ${template.heightPt}` }}
             >
               <img
                 src={template.previewUrl}
                 alt="Vista previa"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain pointer-events-none"
               />
 
               {/* Dynamic Name Box */}
               <div
                 style={{
-                  left: `${field.x * 100}%`,
-                  top: `${field.y * 100}%`,
-                  width: `${field.width * 100}%`,
-                  height: `${field.height * 100}%`,
+                  left: `${effectivePreviewField.x * 100}%`,
+                  top: `${effectivePreviewField.y * 100}%`,
+                  width: `${effectivePreviewField.width * 100}%`,
+                  height: `${effectivePreviewField.height * 100}%`,
                 }}
-                className="absolute flex items-center justify-center px-1 pointer-events-none"
+                className="absolute flex pointer-events-none"
               >
-                <span
-                  className="truncate leading-none select-none transition-all"
+                <div
+                  className="w-full h-full flex px-[1%] py-0.5 overflow-hidden"
                   style={{
-                    fontFamily: field.fontFamily,
-                    fontWeight: field.isBold ? 700 : 400,
-                    fontStyle: field.isItalic ? 'italic' : 'normal',
-                    fontSize: `clamp(${field.minFontSize * 0.4}px, 2.2vw, ${field.maxFontSize * 0.55}px)`,
-                    color: field.color,
-                    textAlign: field.align,
-                    width: '100%',
+                    alignItems:
+                      effectivePreviewField.vAlign === 'top'
+                        ? 'flex-start'
+                        : effectivePreviewField.vAlign === 'bottom'
+                        ? 'flex-end'
+                        : 'center',
+                    justifyContent:
+                      effectivePreviewField.align === 'left'
+                        ? 'flex-start'
+                        : effectivePreviewField.align === 'right'
+                        ? 'flex-end'
+                        : 'center',
                   }}
                 >
-                  {previewName || '—'}
-                </span>
+                  <span
+                    className="w-full block truncate leading-normal select-none transition-all py-0.5 px-0.5"
+                    style={{
+                      fontFamily: effectivePreviewField.fontFamily,
+                      fontWeight: effectivePreviewField.isBold ? 700 : 400,
+                      fontStyle: effectivePreviewField.isItalic ? 'italic' : 'normal',
+                      fontSize: `${computedFontSize}px`,
+                      color: effectivePreviewField.color,
+                      textAlign: effectivePreviewField.align,
+                    }}
+                  >
+                    {previewName || '—'}
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Navigation controls */}
             <div className="mt-3 flex items-center justify-between text-xs text-slate-600 border-t border-slate-100 pt-3">
               <button
-                disabled={previewIndex === 0}
+                disabled={safePreviewIndex === 0}
                 onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
                 className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 font-medium"
               >
                 <ChevronLeft className="w-3.5 h-3.5" /> Anterior
               </button>
               <span className="font-mono text-slate-500 font-medium">
-                {previewIndex + 1} de {recipients.length}
+                {validatedRecipients.length > 0 ? safePreviewIndex + 1 : 0} de {validatedRecipients.length}
               </span>
               <button
-                disabled={previewIndex === recipients.length - 1}
-                onClick={() => setPreviewIndex((prev) => Math.min(recipients.length - 1, prev + 1))}
+                disabled={safePreviewIndex >= validatedRecipients.length - 1}
+                onClick={() => setPreviewIndex((prev) => Math.min(validatedRecipients.length - 1, prev + 1))}
                 className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 font-medium"
               >
                 Siguiente <ChevronRight className="w-3.5 h-3.5" />
@@ -364,6 +591,23 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           </Card>
         </div>
       </div>
+
+      {/* Modal de ajuste individual para el destinatario */}
+      <IndividualFieldModal
+        isOpen={Boolean(customizingRecipient)}
+        recipient={customizingRecipient}
+        baseField={field}
+        template={template}
+        onClose={() => setCustomizingRecipient(null)}
+        onSave={(newCustomField) => {
+          if (customizingRecipient) {
+            onUpdateRecipient({
+              ...customizingRecipient,
+              customField: newCustomField,
+            });
+          }
+        }}
+      />
     </div>
   );
 };

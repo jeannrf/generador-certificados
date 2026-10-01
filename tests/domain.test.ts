@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { cleanString, toTitleCase, transformTextCase } from '../src/domain/normalization';
 import { normalizedToPdfCoords, calculateOptimalFontSize } from '../src/domain/layout';
-import { validateRecipients, generateSafeFileName } from '../src/domain/validation';
+import { validateRecipients, generateSafeFileName, formatCertificateFileName } from '../src/domain/validation';
 import { FieldBox } from '../src/domain/types';
 
 describe('Domain - Normalization', () => {
@@ -92,8 +92,32 @@ describe('Domain - Validation & File Safety', () => {
     expect(results[3].issues[0].severity).toBe('warning');
   });
 
+  it('should preserve recipient IDs and raw names during validation and edits', () => {
+    const raw = [
+      { id: 'custom-id-1', name: 'Ana María ', email: 'ana@example.com' },
+      { id: 'custom-id-2', name: 'Carlos Gomez', email: 'carlos@example.com' },
+    ];
+
+    const results = validateRecipients(raw);
+
+    expect(results[0].id).toBe('custom-id-1');
+    expect(results[0].name).toBe('Ana María ');
+    expect(results[1].id).toBe('custom-id-2');
+  });
+
   it('should sanitize file names safely', () => {
     const safe = generateSafeFileName('Ana/María: "Pérez" & <Test>?');
     expect(safe).toBe('Certificado - AnaMaría Pérez & Test.pdf');
+  });
+
+  it('should format certificate file names with custom patterns', () => {
+    const f1 = formatCertificateFileName('{nombre} - Certificado UNI', 'Juan Pérez');
+    expect(f1).toBe('Juan Pérez - Certificado UNI.pdf');
+
+    const f2 = formatCertificateFileName('[nombre] - Certificado 2026', 'María Gomez');
+    expect(f2).toBe('María Gomez - Certificado 2026.pdf');
+
+    const f3 = formatCertificateFileName('Constancia - {nombre}', 'Carlos / Silva');
+    expect(f3).toBe('Constancia - Carlos Silva.pdf');
   });
 });

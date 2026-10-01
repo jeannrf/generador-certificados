@@ -9,6 +9,7 @@ interface DropzoneProps {
   title?: string;
   description?: string;
   icon?: React.ReactNode;
+  className?: string;
 }
 
 export const Dropzone: React.FC<DropzoneProps> = ({
@@ -19,6 +20,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
   title = 'Arrastra y suelta tu archivo aquí',
   description = 'o haz clic para explorar en tu equipo',
   icon,
+  className = '',
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,13 +58,13 @@ export const Dropzone: React.FC<DropzoneProps> = ({
   };
 
   return (
-    <div className="w-full">
+    <div className={`w-full flex flex-col ${className}`}>
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
-        className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all duration-200 flex flex-col items-center justify-center ${
+        className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all duration-200 flex-1 flex flex-col items-center justify-center ${
           isDragOver
             ? 'border-brand-500 bg-brand-50/50 scale-[0.99] ring-4 ring-brand-100'
             : 'border-slate-300 hover:border-brand-400 bg-slate-50/50 hover:bg-slate-50'

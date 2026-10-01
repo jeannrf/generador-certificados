@@ -13,7 +13,7 @@ const STEPS = [
   { step: 2 as WizardStep, title: 'Posición y Estilo', description: 'Ubicación y tipografía', icon: Move },
   { step: 3 as WizardStep, title: 'Destinatarios', description: 'CSV, Excel o texto', icon: Users },
   { step: 4 as WizardStep, title: 'Revisión', description: 'Validar y vista previa', icon: CheckCircle },
-  { step: 5 as WizardStep, title: 'Generación', description: 'Descargar ZIP', icon: Download },
+  { step: 5 as WizardStep, title: 'Generación', description: 'Descarga ZIP o PDF', icon: Download },
 ];
 
 export const Stepper: React.FC<StepperProps> = ({
