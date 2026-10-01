@@ -1,6 +1,6 @@
 import React from 'react';
 import { Wizard } from './features/wizard/Wizard';
-import { Award, ShieldCheck, Sparkles } from 'lucide-react';
+import { Award } from 'lucide-react';
 
 export const App: React.FC = () => {
   return (
@@ -13,24 +13,12 @@ export const App: React.FC = () => {
               <Award className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-base text-slate-900 tracking-tight">
-                  Generador de Certificados
-                </span>
-                <span className="text-[10px] font-semibold uppercase bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full border border-brand-200">
-                  MVP v1.0
-                </span>
-              </div>
+              <span className="font-bold text-base text-slate-900 tracking-tight block">
+                Generador de Certificados
+              </span>
               <p className="text-[11px] text-slate-500 hidden sm:block">
-                Emisión masiva en PDF instantánea y sin costo
+                Emisión masiva en PDF
               </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200/80 font-medium">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>100% Local · Privacidad Garantizada</span>
             </div>
           </div>
         </div>
@@ -42,19 +30,9 @@ export const App: React.FC = () => {
       </div>
 
       {/* Minimal Footer */}
-      <footer className="bg-white border-t border-slate-200/80 py-6 mt-auto text-xs text-slate-500">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-            <span>Generación vectorial directa con pdf-lib y Web APIs.</span>
-          </div>
-          <div className="flex items-center gap-4 text-slate-400">
-            <span>Costo $0</span>
-            <span>•</span>
-            <span>Sin servidores externos</span>
-            <span>•</span>
-            <span>Listo para producción</span>
-          </div>
+      <footer className="bg-white border-t border-slate-200/80 py-4 mt-auto text-xs text-slate-400">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-center">
+          <span>Generador Automático de Certificados</span>
         </div>
       </footer>
     </div>

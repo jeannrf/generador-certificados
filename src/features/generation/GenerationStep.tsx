@@ -132,10 +132,10 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto">
       <div className="text-center max-w-2xl mx-auto">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-          Generador de Certificados en Lote
+          Generar Certificados
         </h2>
         <p className="text-sm text-slate-600 mt-1">
-          Todos los PDFs se generan a alta calidad vectorial directamente en tu navegador.
+          Se crearán los certificados en formato PDF listos para descargar en un archivo ZIP.
         </p>
       </div>
 
@@ -149,11 +149,8 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
             <div className="space-y-2 max-w-md mx-auto">
               <h3 className="text-lg font-bold text-slate-900">
-                Todo listo para emitir {validRecipients.length} certificados
+                Todo listo para generar {validRecipients.length} certificados
               </h3>
-              <p className="text-xs text-slate-500">
-                El proceso tomará solo unos segundos. No se consumen datos de servidor ni se comparten datos privados.
-              </p>
             </div>
 
             <div className="flex items-center justify-center gap-3">
@@ -179,7 +176,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 animate-pulse">
                 <Sparkles className="w-3.5 h-3.5" />
-                {progress.status === 'zipping' ? 'Empaquetando archivo ZIP...' : 'Generando PDFs en tiempo real...'}
+                {progress.status === 'zipping' ? 'Empaquetando archivo ZIP...' : 'Generando certificados...'}
               </div>
               <h3 className="text-lg font-bold text-slate-900">
                 {progress.status === 'zipping'
@@ -191,7 +188,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             <ProgressBar
               progress={percentage}
               label={`Certificado ${progress.current} de ${progress.total}`}
-              sublabel="Generado localmente en tu equipo"
             />
 
             <div>
@@ -214,7 +210,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                 ¡{progress.generatedCount} Certificados generados con éxito!
               </h3>
               <p className="text-xs text-slate-500">
-                Tu paquete ZIP está listo para ser guardado y descomprimido en tu equipo.
+                Tu paquete ZIP está listo para ser descargado.
               </p>
             </div>
 
@@ -228,13 +224,10 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                     Certificados_{Date.now()}.zip
                   </span>
                   <span className="text-[11px] text-slate-500">
-                    {progress.generatedCount} archivos PDF vectoriales
+                    {progress.generatedCount} archivos PDF
                   </span>
                 </div>
               </div>
-              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                Listo
-              </span>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">

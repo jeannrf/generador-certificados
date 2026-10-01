@@ -4,7 +4,7 @@ import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Dropzone } from '../../ui/Dropzone';
 import { createDemoCertificateCanvas } from '../../shared/demoData';
-import { Sparkles, FileText, CheckCircle2 } from 'lucide-react';
+import { Sparkles, FileText } from 'lucide-react';
 
 interface TemplateStepProps {
   template: TemplateData | null;
@@ -168,11 +168,6 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                   <FileText className="w-4 h-4 text-brand-600" />
                   Vista previa de plantilla
                 </h3>
-                {template && (
-                  <span className="text-xs bg-emerald-50 text-emerald-700 font-medium px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Lista
-                  </span>
-                )}
               </div>
 
               {template ? (
