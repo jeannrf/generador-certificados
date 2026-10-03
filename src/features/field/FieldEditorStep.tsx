@@ -299,10 +299,28 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 <button
                   type="button"
                   onClick={handleCenterField}
-                  className="text-[11px] font-semibold text-brand-700 bg-white hover:bg-brand-50 px-2 py-0.5 rounded border border-brand-200 transition-colors shadow-2xs"
+                  className="text-[11px] font-semibold text-brand-700 bg-white hover:bg-brand-50 px-2 py-0.5 rounded border border-brand-200 transition-colors shadow-2xs cursor-pointer"
                   title="Alinear automáticamente al centro horizontal del certificado"
                 >
-                  Centrar recuadro
+                  Centrar
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onFieldChange({
+                      ...field,
+                      x: 0.05,
+                      y: 0.42,
+                      width: 0.90,
+                      height: 0.13,
+                      maxFontSize: 28,
+                      isBold: true,
+                    })
+                  }
+                  className="text-[11px] font-semibold text-slate-700 bg-white hover:bg-slate-50 px-2 py-0.5 rounded border border-slate-200 transition-colors shadow-2xs cursor-pointer"
+                  title="Restablecer al tamaño estándar (28 pt, 90% de ancho)"
+                >
+                  Restablecer (28 pt)
                 </button>
                 <span className="hidden sm:inline-block font-mono bg-white px-2 py-0.5 rounded border text-slate-600">
                   X: {Math.round(field.x * 100)}% • Y: {Math.round(field.y * 100)}%

@@ -125,6 +125,8 @@ export const Wizard: React.FC = () => {
     setTemplate(newTemplate);
     if (defaultField) {
       setField((prev) => ({ ...prev, ...defaultField }));
+    } else {
+      setField((prev) => (prev.maxFontSize > 28 || prev.width < 0.88 ? INITIAL_FIELD : prev));
     }
   };
 
