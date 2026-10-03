@@ -7,7 +7,6 @@ import { composeCertificatePdf, composeCombinedCertificatePdf } from '../../infr
 import { formatCertificateFileName } from '../../domain/validation';
 import { createZipArchive, triggerDownload, FileToZip } from '../../infra/zipExporter';
 import confetti from 'canvas-confetti';
-import { clsx } from 'clsx';
 import { EmailDispatcherSection } from './EmailDispatcherSection';
 import {
   Download,
@@ -20,7 +19,6 @@ import {
   Zap,
   FileText,
   Settings2,
-  Mail,
 } from 'lucide-react';
 
 interface GenerationStepProps {
@@ -44,13 +42,17 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   );
 
   const [fileNamePattern, setFileNamePattern] = useState<string>('{nombre} - Certificado');
-  const [activeTab, setActiveTab] = useState<'download' | 'email'>('download');
   const [progress, setProgress] = useState<GenerationProgress>({
     total: validRecipients.length,
     current: 0,
     status: 'idle',
     generatedCount: 0,
   });
+
+  // Mapa de PDFs generados en memoria para reutilizar instantáneamente en la descarga y en el envío por correo
+  const [pregeneratedPdfs, setPregeneratedPdfs] = useState<
+    Record<string, { fileName: string; pdfBytes: Uint8Array }>
+  >({});
 
   const isCancelledRef = useRef(false);
 
@@ -71,6 +73,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     });
 
     const results: FileToZip[] = [];
+    const pdfsMap: Record<string, { fileName: string; pdfBytes: Uint8Array }> = {};
 
     for (let i = 0; i < validRecipients.length; i++) {
       if (isCancelledRef.current) {
@@ -95,6 +98,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           fileNamePattern
         );
         results.push({ fileName, data: pdfBytes });
+        pdfsMap[rec.id] = { fileName, pdfBytes };
       } catch (err) {
         console.error(`Error generando certificado para ${rec.name}:`, err);
       }
@@ -104,6 +108,8 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
         await new Promise((res) => setTimeout(res, 10));
       }
     }
+
+    setPregeneratedPdfs(pdfsMap);
 
     // Empaquetar ZIP y compilar PDF multipágina consolidado
     setProgress((prev) => ({ ...prev, status: 'zipping' }));
@@ -158,7 +164,10 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
   const handleDownloadCombinedPdf = () => {
     if (progress.pdfBlob) {
-      triggerDownload(progress.pdfBlob, `Certificados_Consolidados_Todas_Las_Paginas_${Date.now()}.pdf`);
+      triggerDownload(
+        progress.pdfBlob,
+        `Certificados_Consolidados_Todas_Las_Paginas_${Date.now()}.pdf`
+      );
     }
   };
 
@@ -166,56 +175,33 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
   return (
-    <div
-      className={clsx(
-        'space-y-6 animate-fadeIn mx-auto transition-all duration-300',
-        activeTab === 'email' ? 'max-w-6xl' : 'max-w-4xl'
-      )}
-    >
-      <div className="text-center max-w-2xl mx-auto space-y-3">
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-          Generar y Distribuir Certificados
-        </h2>
-        <p className="text-sm text-slate-600">
-          Descarga todos los certificados en tu equipo (ZIP / PDF) o envíalos automáticamente por correo con tu cuenta de Gmail.
-        </p>
-
-        {/* Selector de modo: Descarga Local vs Envío por Correo */}
-        <div className="flex items-center justify-center pt-2">
-          <div className="inline-flex p-1 bg-slate-200/80 rounded-2xl border border-slate-300 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setActiveTab('download')}
-              className={clsx(
-                'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all',
-                activeTab === 'download'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              )}
-            >
-              <FileArchive className="w-4 h-4 text-brand-600" />
-              <span>Descarga Local (ZIP / PDF)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('email')}
-              className={clsx(
-                'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all',
-                activeTab === 'email'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              )}
-            >
-              <Mail className="w-4 h-4 text-indigo-600" />
-              <span>Envío por Correo (Gmail)</span>
-            </button>
-          </div>
+    <div className="space-y-6 animate-fadeIn mx-auto max-w-5xl transition-all duration-300">
+      {/* Encabezado según estado */}
+      {progress.status !== 'completed' ? (
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            Generar Certificados
+          </h2>
+          <p className="text-sm text-slate-600">
+            Revisa el formato de los archivos y genera los certificados de tus {validRecipients.length} participantes.
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="text-center max-w-2xl mx-auto space-y-2 animate-fadeIn">
+          <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 border border-emerald-200 shadow-xs">
+            <CheckCircle2 className="w-8 h-8 stroke-[2.5]" />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            ¡{progress.generatedCount} Certificados generados con éxito!
+          </h2>
+          <p className="text-sm text-slate-600">
+            Descárgalos directamente en tu equipo o envíalos automáticamente por correo con Gmail.
+          </p>
+        </div>
+      )}
 
-      {activeTab === 'download' ? (
-        <Card className="p-6 sm:p-8 space-y-6">
-          {/* State: Idle */}
+      <Card className="p-6 sm:p-8 space-y-6">
+        {/* Estado 1: Idle (Antes de generar) */}
         {progress.status === 'idle' && (
           <div className="py-4 space-y-6">
             <div className="text-center space-y-2">
@@ -258,7 +244,12 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             </div>
 
             <div className="flex items-center justify-center gap-3 pt-2">
-              <Button variant="outline" size="md" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
+              <Button
+                variant="outline"
+                size="md"
+                leftIcon={<ChevronLeft className="w-4 h-4" />}
+                onClick={onBack}
+              >
                 Volver a Revisión
               </Button>
               <Button
@@ -274,13 +265,15 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           </div>
         )}
 
-        {/* State: Generating or Zipping */}
+        {/* Estado 2: Generando o Zipping */}
         {(progress.status === 'generating' || progress.status === 'zipping') && (
           <div className="py-8 space-y-6 max-w-lg mx-auto text-center">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 animate-pulse">
                 <Sparkles className="w-3.5 h-3.5" />
-                {progress.status === 'zipping' ? 'Empaquetando ZIP y PDF multipágina...' : 'Generando certificados...'}
+                {progress.status === 'zipping'
+                  ? 'Empaquetando ZIP y PDF multipágina...'
+                  : 'Generando certificados...'}
               </div>
               <h3 className="text-lg font-bold text-slate-900">
                 {progress.status === 'zipping'
@@ -302,103 +295,82 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           </div>
         )}
 
-        {/* State: Completed */}
+        {/* Estado 3: Completed (¡Certificados ya generados y listos para descargar o enviar!) */}
         {progress.status === 'completed' && (
-          <div className="py-6 space-y-6 text-center animate-fadeIn">
-            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 border border-emerald-200 shadow-md">
-              <CheckCircle2 className="w-9 h-9 stroke-[2]" />
-            </div>
-
-            <div className="space-y-1 max-w-md mx-auto">
-              <h3 className="text-xl font-bold text-slate-900">
-                ¡{progress.generatedCount} Certificados generados con éxito!
-              </h3>
-              <p className="text-xs text-slate-500">
-                Puedes descargar los certificados individuales en un ZIP o un único PDF consolidado con todas las páginas para impresión.
-              </p>
-            </div>
-
-            {/* Download Options Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto text-left">
-              {/* Option 1: ZIP */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-brand-600 shadow-xs">
-                    <FileArchive className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block">
-                      Archivo .ZIP
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      {progress.generatedCount} archivos individuales
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Download className="w-4 h-4" />}
-                  onClick={handleDownloadZip}
-                  className="w-full"
-                >
-                  Descargar ZIP
-                </Button>
+          <div className="space-y-8 animate-fadeIn">
+            {/* 1. Opciones de descarga en tu equipo */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wide">
+                <Download className="w-4 h-4 text-brand-600" />
+                <span>1. Descargar en tu equipo</span>
               </div>
 
-              {/* Option 2: Single Combined Multipage PDF */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-emerald-600 shadow-xs">
-                    <FileText className="w-5 h-5" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Opción A: Archivo ZIP */}
+                <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-brand-600 shadow-xs shrink-0">
+                      <FileArchive className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-slate-900 block">
+                        Archivo .ZIP
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {progress.generatedCount} certificados individuales en PDF
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block">
-                      PDF Consolidado
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      Un solo PDF ({progress.generatedCount} páginas)
-                    </span>
-                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Download className="w-4 h-4" />}
+                    onClick={handleDownloadZip}
+                    className="w-full justify-center shadow-xs"
+                  >
+                    Descargar Archivo ZIP
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Download className="w-4 h-4" />}
-                  onClick={handleDownloadCombinedPdf}
-                  className="w-full bg-white hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
-                >
-                  Descargar PDF Único
-                </Button>
+
+                {/* Opción B: PDF Consolidado todas las páginas */}
+                <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-emerald-600 shadow-xs shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-slate-900 block">
+                        PDF Consolidado
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        Un solo PDF con todas las páginas ({progress.generatedCount} págs)
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Download className="w-4 h-4" />}
+                    onClick={handleDownloadCombinedPdf}
+                    className="w-full justify-center bg-white hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+                  >
+                    Descargar PDF Único
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {/* Banner de invitación a enviar por correo */}
-            <div className="p-4 bg-indigo-50/70 border border-indigo-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left max-w-xl mx-auto">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-2xs border border-indigo-100 shrink-0">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900">
-                    ¿Quieres enviarlos por correo a los participantes?
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    Conéctalo con tu cuenta de Gmail sin intermediarios.
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setActiveTab('email')}
-                className="bg-indigo-600 hover:bg-indigo-700 shrink-0"
-              >
-                Ir a Enviar por Correo
-              </Button>
-            </div>
+            {/* 2. Envío por correo (ahora sí, porque ya están generados) */}
+            <EmailDispatcherSection
+              recipients={validRecipients}
+              template={template}
+              field={field}
+              fileNamePattern={fileNamePattern}
+              pregeneratedCertificates={pregeneratedPdfs}
+            />
 
-            <div className="pt-2">
+            {/* Botón para reiniciar lote */}
+            <div className="pt-6 border-t border-slate-200 text-center">
               <Button
                 variant="outline"
                 size="md"
@@ -411,7 +383,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           </div>
         )}
 
-        {/* State: Cancelled or Error */}
+        {/* Estado 4: Cancelado o Error */}
         {(progress.status === 'cancelled' || progress.status === 'error') && (
           <div className="py-6 space-y-4 text-center">
             <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto text-rose-600 border border-rose-200">
@@ -430,14 +402,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           </div>
         )}
       </Card>
-      ) : (
-        <EmailDispatcherSection
-          recipients={validRecipients}
-          template={template}
-          field={field}
-          fileNamePattern={fileNamePattern}
-        />
-      )}
     </div>
   );
 };

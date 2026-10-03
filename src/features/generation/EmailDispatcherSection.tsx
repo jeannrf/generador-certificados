@@ -12,7 +12,6 @@ import { Button } from '../../ui/Button';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { Badge } from '../../ui/Badge';
 import {
-  pingAppsScript,
   sendEmailViaScript,
   uint8ArrayToBase64,
   loadEmailConfigFromStorage,
@@ -25,7 +24,6 @@ import {
 } from '../../domain/email';
 import { composeCertificatePdf } from '../../infra/pdfComposer';
 import { triggerDownload } from '../../infra/zipExporter';
-import { EmailModalCode } from './EmailModalCode';
 import {
   Mail,
   Send,
@@ -34,7 +32,6 @@ import {
   Download,
   Settings,
   Flame,
-  Check,
   Pause,
   Play,
   RotateCcw,
@@ -45,6 +42,7 @@ interface EmailDispatcherSectionProps {
   template: TemplateData;
   field: FieldBox;
   fileNamePattern: string;
+  pregeneratedCertificates?: Record<string, { fileName: string; pdfBytes: Uint8Array }>;
 }
 
 export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
@@ -52,19 +50,11 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   template,
   field,
   fileNamePattern,
+  pregeneratedCertificates,
 }) => {
-  // Configuración cargada desde localStorage
+  // Configuración cargada desde localStorage (abierta por defecto)
   const [config, setConfig] = useState<EmailConfig>(loadEmailConfigFromStorage());
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
-
-  // Estado de prueba de conexión
-  const [isPinging, setIsPinging] = useState(false);
-  const [pingResult, setPingResult] = useState<{
-    ok: boolean;
-    quota?: number;
-    message?: string;
-  } | null>(null);
+  const [isConfigOpen, setIsConfigOpen] = useState(true);
 
   // Sección chiquita requerida: "pon tu correo y prueba"
   const [testEmail, setTestEmail] = useState('');
@@ -95,39 +85,6 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   useEffect(() => {
     saveEmailConfigToStorage(config);
   }, [config]);
-
-  // Probar conexión y obtener cuota
-  const handleTestConnection = async () => {
-    if (!config.webAppUrl.trim()) {
-      setPingResult({
-        ok: false,
-        message: 'Ingresa primero la URL de la Web App de Apps Script.',
-      });
-      return;
-    }
-
-    setIsPinging(true);
-    setPingResult(null);
-
-    const res = await pingAppsScript(config.webAppUrl, config.token);
-    setIsPinging(false);
-
-    if (res.ok) {
-      setPingResult({
-        ok: true,
-        quota: res.remainingQuota,
-        message: `¡Conexión exitosa! Cuota disponible: ${res.remainingQuota ?? 'N/A'} correos.`,
-      });
-      if (res.remainingQuota !== undefined) {
-        setSendProgress((prev) => ({ ...prev, remainingQuota: res.remainingQuota }));
-      }
-    } else {
-      setPingResult({
-        ok: false,
-        message: res.error || 'Error al conectar con el script.',
-      });
-    }
-  };
 
   // Enviar correo de prueba unitario ("pon tu correo y prueba")
   const handleSendTestEmail = async () => {
@@ -200,13 +157,6 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           type: 'success',
           text: `¡Certificado de prueba enviado con éxito a ${testEmail.trim()}! Revisa tu bandeja de entrada o spam.`,
         });
-        if (result.remainingQuota !== undefined) {
-          setPingResult({
-            ok: true,
-            quota: result.remainingQuota,
-            message: `Cuota restante: ${result.remainingQuota} correos`,
-          });
-        }
       } else {
         setTestFeedback({
           type: 'error',
@@ -280,13 +230,14 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
       }));
 
       try {
-        // Generar PDF para este destinatario
-        const { fileName, pdfBytes } = await composeCertificatePdf(
+        // Obtener PDF pregenerado o generar si no existe
+        const pregenerated = pregeneratedCertificates?.[rec.id];
+        const { fileName, pdfBytes } = pregenerated || (await composeCertificatePdf(
           template,
           field,
           rec,
           fileNamePattern
-        );
+        ));
 
         const base64Pdf = uint8ArrayToBase64(pdfBytes);
         const subject = interpolateEmailVariables(config.subject, rec);
@@ -388,11 +339,6 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
   return (
     <div className="mt-8 pt-8 border-t border-slate-200 space-y-6">
-      <EmailModalCode
-        isOpen={isScriptModalOpen}
-        onClose={() => setIsScriptModalOpen(false)}
-      />
-
       {/* Header de la sección de correo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -437,7 +383,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Columna Izquierda: Remitente, Asunto y Opciones Avanzadas */}
+            {/* Columna Izquierda: Remitente y Asunto */}
             <div className="space-y-3.5">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
@@ -467,34 +413,6 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   Variables disponibles: <code className="text-slate-600 font-semibold">{'{nombre}'}</code>, <code className="text-slate-600 font-semibold">{'{correo}'}</code> y columnas del Excel.
                 </span>
               </div>
-
-              {/* Opciones Avanzadas (Google Apps Script / Servidor personalizado) */}
-              <details className="text-xs border border-slate-200 rounded-xl bg-white p-3 space-y-2">
-                <summary className="font-semibold text-slate-700 cursor-pointer select-none">
-                  Opciones avanzadas (Google Apps Script personalizado)
-                </summary>
-                <div className="pt-2 space-y-2 text-slate-600">
-                  <p className="text-[11px] text-slate-500">
-                    Opcional: Si prefieres enviar desde tu propio Gmail institucional en vez del servidor de Vercel, pega aquí tu Web App URL.
-                  </p>
-                  <input
-                    type="url"
-                    value={config.webAppUrl}
-                    onChange={(e) => setConfig({ ...config, webAppUrl: e.target.value })}
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    className="w-full text-xs font-mono rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-slate-900"
-                  />
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsScriptModalOpen(true)}
-                      className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 underline"
-                    >
-                      Ver código de Google Apps Script y guía
-                    </button>
-                  </div>
-                </div>
-              </details>
             </div>
 
             {/* Columna Derecha: Mensaje del Correo */}
@@ -510,31 +428,6 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                 className="w-full flex-1 min-h-[175px] text-xs font-mono rounded-xl border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 resize-y leading-relaxed"
               />
             </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-            <div className="text-xs">
-              {pingResult && (
-                <span
-                  className={
-                    pingResult.ok
-                      ? 'text-emerald-700 font-medium inline-flex items-center gap-1'
-                      : 'text-rose-600 font-medium inline-flex items-center gap-1'
-                  }
-                >
-                  {pingResult.ok ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                  {pingResult.message}
-                </span>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              isLoading={isPinging}
-              onClick={handleTestConnection}
-            >
-              Probar Conexión del Servidor
-            </Button>
           </div>
         </Card>
       )}
@@ -592,7 +485,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   )}
                   <span className="leading-snug text-xs">{testFeedback.text}</span>
                 </div>
-                {testFeedback.type === 'error' && !config.webAppUrl && (
+                {testFeedback.type === 'error' && !isConfigOpen && (
                   <button
                     type="button"
                     onClick={() => setIsConfigOpen(true)}
