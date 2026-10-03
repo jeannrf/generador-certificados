@@ -92,6 +92,36 @@ describe('Domain - Validation & File Safety', () => {
     expect(results[3].issues[0].severity).toBe('warning');
   });
 
+  it('should detect text overflow warning for names that exceed field box width', () => {
+    const raw = [
+      { name: 'Luis Fabiano de Jesus Vargas Mauro' },
+    ];
+    const field: FieldBox = {
+      id: 'f1',
+      name: 'Nombre',
+      source: { type: 'column', column: 'nombre' },
+      x: 0.15,
+      y: 0.42,
+      width: 0.70, // Marco de 70%
+      height: 0.13,
+      fontFamily: 'Playfair Display, serif',
+      maxFontSize: 46, // 46 pt provoca desborde en 70%
+      minFontSize: 20,
+      color: '#000000',
+      align: 'center',
+      vAlign: 'middle',
+      textCase: 'title',
+      isBold: true,
+    };
+
+    const results = validateRecipients(raw, { field, templateWidthPt: 841.89 });
+
+    expect(results[0].issues.length).toBeGreaterThan(0);
+    const overflowIssue = results[0].issues.find((i) => i.code === 'TEXT_OVERFLOW');
+    expect(overflowIssue).toBeDefined();
+    expect(overflowIssue?.severity).toBe('warning');
+  });
+
   it('should preserve recipient IDs and raw names during validation and edits', () => {
     const raw = [
       { id: 'custom-id-1', name: 'Ana María ', email: 'ana@example.com' },

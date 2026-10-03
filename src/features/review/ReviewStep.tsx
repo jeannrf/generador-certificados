@@ -485,6 +485,23 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             </div>
 
             {/* Template with live stamped name */}
+            {currentPreviewRecipient?.issues.some((i) => i.code === 'TEXT_OVERFLOW') && (
+              <div className="mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-center justify-between gap-2 shadow-2xs animate-fadeIn">
+                <div className="flex items-center gap-1.5 font-medium">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    {currentPreviewRecipient.issues.find((i) => i.code === 'TEXT_OVERFLOW')?.message}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCustomizingRecipient(currentPreviewRecipient)}
+                  className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
+                >
+                  Ajustar
+                </button>
+              </div>
+            )}
             <div
               ref={previewContainerRef}
               className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 shadow-md select-none"
@@ -524,7 +541,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                   }}
                 >
                   <span
-                    className="w-full block truncate leading-normal select-none transition-all py-0.5 px-0.5"
+                    className="w-full block leading-normal select-none transition-all py-0.5 px-0.5 whitespace-nowrap overflow-visible"
                     style={{
                       fontFamily: effectivePreviewField.fontFamily,
                       fontWeight: effectivePreviewField.isBold ? 700 : 400,

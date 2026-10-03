@@ -67,23 +67,33 @@ export function calculateOptimalFontSize(
 let sharedCanvas: HTMLCanvasElement | null = null;
 
 /**
- * Mide el ancho en píxeles de un texto en el navegador utilizando un Canvas 2D.
+ * Mide el ancho en puntos PDF de un texto utilizando Canvas 2D en el navegador o una estimación tipográfica robusta.
  */
 export function measureBrowserTextWidth(
   text: string,
-  fontSizePx: number,
+  fontSizePt: number,
   fontFamily: string,
   fontWeight: number | string = 400,
   fontStyle: string = 'normal'
 ): number {
-  if (typeof document === 'undefined') return text.length * fontSizePx * 0.55;
+  const isBold = fontWeight === 700 || fontWeight === 'bold' || String(fontWeight).includes('bold');
+  const upperCount = (text.match(/[A-ZÁÉÍÓÚÑ]/g) || []).length;
+  const lowerCount = text.length - upperCount;
+
+  // Factores realistas de ancho tipográfico por carácter en puntos PDF
+  const charFactor = isBold ? 0.52 : 0.48;
+  const upperFactor = isBold ? 0.68 : 0.60;
+  const estimatedPt = (lowerCount * charFactor + upperCount * upperFactor) * fontSizePt;
+
+  if (typeof document === 'undefined') return estimatedPt;
   if (!sharedCanvas) {
     sharedCanvas = document.createElement('canvas');
   }
   const ctx = sharedCanvas.getContext('2d');
-  if (!ctx) return text.length * fontSizePx * 0.55;
+  if (!ctx) return estimatedPt;
 
-  // En Canvas 2D, los nombres de fuentes con espacios deben tener comillas para cumplir la especificación CSS Font
+  // En Canvas 2D, 1pt = 1.3333px a 96 DPI
+  const fontSizePx = fontSizePt * (96 / 72);
   const formattedFamily = fontFamily
     .split(',')
     .map((name) => {
@@ -93,17 +103,19 @@ export function measureBrowserTextWidth(
     .join(', ');
 
   ctx.font = `${fontStyle} ${fontWeight} ${fontSizePx}px ${formattedFamily}`;
-  const measured = ctx.measureText(text).width;
-  const fallbackWidth = text.length * fontSizePx * 0.55;
-  return Math.max(measured, fallbackWidth * 0.85);
+  const measuredPx = ctx.measureText(text).width;
+  const measuredPt = measuredPx * (72 / 96);
+
+  // Devolver el máximo entre la medición y la estimación para evitar falsos negativos en fuentes aún no cargadas
+  return Math.max(measuredPt, estimatedPt);
 }
 
 /**
  * Calcula el tamaño exacto en píxeles de pantalla manteniendo el tamaño de fuente constante
- * según la escala del contenedor respecto a la plantilla.
+ * o autoescalando suavemente si el nombre es muy largo para que quepa sin cortarse ni mostrar puntos suspensivos.
  */
 export function calculateScreenFontSize(
-  _text: string,
+  text: string,
   field: FieldBox,
   containerWidthPx: number,
   templateWidthPt: number
@@ -113,5 +125,20 @@ export function calculateScreenFontSize(
   }
 
   const scale = containerWidthPx / templateWidthPt;
+  const boxWidthPt = field.width * templateWidthPt;
+  const fontWeight = field.isBold ? 700 : 400;
+  const fontStyle = field.isItalic ? 'italic' : 'normal';
+
+  if (text && text.trim().length > 0) {
+    const optimal = calculateOptimalFontSize(
+      text,
+      field.maxFontSize,
+      field.minFontSize || 14,
+      boxWidthPt,
+      (t, size) => measureBrowserTextWidth(t, size, field.fontFamily, fontWeight, fontStyle)
+    );
+    return optimal.fontSize * scale;
+  }
+
   return field.maxFontSize * scale;
 }

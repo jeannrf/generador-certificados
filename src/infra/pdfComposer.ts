@@ -1,7 +1,7 @@
 import { PDFDocument, rgb, StandardFonts, PDFPage } from 'pdf-lib';
 import { FieldBox, TemplateData, Recipient } from '../domain/types';
 import { transformTextCase } from '../domain/normalization';
-import { normalizedToPdfCoords } from '../domain/layout';
+import { normalizedToPdfCoords, calculateOptimalFontSize } from '../domain/layout';
 import { formatCertificateFileName } from '../domain/validation';
 
 /**
@@ -57,7 +57,17 @@ function drawRecipientText(
   const { width: pageWidth, height: pageHeight } = page.getSize();
   const transformedText = transformTextCase(name, field.textCase);
   const coords = normalizedToPdfCoords(field, pageWidth, pageHeight);
-  const fontSize = field.maxFontSize;
+
+  // Autoajuste exacto usando las métricas reales de la fuente PDF
+  const targetWidthPt = Math.max(10, coords.widthPt - 8);
+  const optimal = calculateOptimalFontSize(
+    transformedText,
+    field.maxFontSize,
+    field.minFontSize || 14,
+    targetWidthPt,
+    (txt, sz) => font.widthOfTextAtSize(txt, sz)
+  );
+  const fontSize = optimal.fontSize;
 
   const textWidth = font.widthOfTextAtSize(transformedText, fontSize);
   const textHeight = font.heightAtSize(fontSize);

@@ -1,6 +1,6 @@
 import { Recipient, Issue, FieldBox } from './types';
 import { cleanString, transformTextCase } from './normalization';
-import { measureBrowserTextWidth } from './layout';
+import { measureBrowserTextWidth, calculateOptimalFontSize } from './layout';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -62,11 +62,27 @@ export function validateRecipients(
         );
 
         if (textWidthAtSize > targetWidthPt) {
-          issues.push({
-            severity: 'warning',
-            code: 'TEXT_OVERFLOW',
-            message: 'El nombre es muy largo y desborda el marco delimitado',
-          });
+          const optimal = calculateOptimalFontSize(
+            transformedText,
+            field.maxFontSize,
+            field.minFontSize || 14,
+            targetWidthPt,
+            (t, sz) => measureBrowserTextWidth(t, sz, field.fontFamily, fontWeight, fontStyle)
+          );
+
+          if (!optimal.fits) {
+            issues.push({
+              severity: 'warning',
+              code: 'TEXT_OVERFLOW',
+              message: `El nombre es muy largo y desborda el marco delimitado (incluso al tamaño mínimo de ${field.minFontSize || 14} pt)`,
+            });
+          } else {
+            issues.push({
+              severity: 'warning',
+              code: 'TEXT_OVERFLOW',
+              message: `Nombre largo: desborda ${field.maxFontSize} pt (se ajusta automáticamente a ${optimal.fontSize} pt)`,
+            });
+          }
         }
       }
 
