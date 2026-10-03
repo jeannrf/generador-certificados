@@ -130,7 +130,7 @@ export const EmailModalCode: React.FC<EmailModalCodeProps> = ({ isOpen, onClose 
                 Código para Google Apps Script
               </h3>
               <p className="text-xs text-slate-500">
-                Pega este script en tu Google Drive para enviar correos gratis con tu Gmail
+                Pega este script en tu Google Drive para enviar correos directamente con tu Gmail
               </p>
             </div>
           </div>

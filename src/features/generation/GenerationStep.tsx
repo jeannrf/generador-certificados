@@ -166,7 +166,12 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
     progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto">
+    <div
+      className={clsx(
+        'space-y-6 animate-fadeIn mx-auto transition-all duration-300',
+        activeTab === 'email' ? 'max-w-6xl' : 'max-w-4xl'
+      )}
+    >
       <div className="text-center max-w-2xl mx-auto space-y-3">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
           Generar y Distribuir Certificados
@@ -203,9 +208,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             >
               <Mail className="w-4 h-4 text-indigo-600" />
               <span>Envío por Correo (Gmail)</span>
-              <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-bold">
-                Gratis
-              </span>
             </button>
           </div>
         </div>
@@ -235,7 +237,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                 <span>Formato de nombre de los archivos PDF</span>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <input
                   type="text"
                   value={fileNamePattern}
@@ -244,31 +246,14 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                   className="w-full text-xs font-semibold rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 />
 
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[11px] text-slate-400">Atajos rápidos:</span>
-                  {[
-                    '{nombre} - Certificado UNI',
-                    'Certificado - {nombre}',
-                    '[nombre] - Certificado 2026',
-                    'Constancia - {nombre}',
-                  ].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setFileNamePattern(preset)}
-                      className="text-[11px] font-medium bg-white hover:bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200 transition-colors"
-                    >
-                      {preset}
-                    </button>
-                  ))}
+                <div className="space-y-1 pt-0.5">
+                  <span className="text-xs font-medium text-slate-500 block">
+                    Ejemplo de archivo resultante:
+                  </span>
+                  <p className="font-mono text-xs font-bold text-brand-700 break-all">
+                    {sampleFileName}
+                  </p>
                 </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-200/70 text-xs flex items-center justify-between text-slate-600">
-                <span className="text-slate-500 font-medium">Ejemplo de archivo resultante:</span>
-                <span className="font-mono text-[11px] font-bold text-brand-700 truncate max-w-[260px]">
-                  {sampleFileName}
-                </span>
               </div>
             </div>
 
@@ -399,7 +384,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                     ¿Quieres enviarlos por correo a los participantes?
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    Conéctalo con tu cuenta de Gmail gratis y sin intermediarios.
+                    Conéctalo con tu cuenta de Gmail sin intermediarios.
                   </p>
                 </div>
               </div>

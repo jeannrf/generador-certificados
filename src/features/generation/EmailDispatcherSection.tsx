@@ -142,9 +142,10 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
     const validation = validateEmailConfig(config);
     if (!validation.isValid) {
+      setIsConfigOpen(true);
       setTestFeedback({
         type: 'error',
-        text: validation.errors[0] || 'Configura la URL de Google Apps Script primero.',
+        text: 'Debes configurar la URL de la Web App de Google Apps Script para poder enviar correos.',
       });
       return;
     }
@@ -402,9 +403,6 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               Envío Automático por Correo (Gmail)
-              <Badge variant="brand" size="sm">
-                Fase 2 Gratis
-              </Badge>
             </h3>
             <p className="text-xs text-slate-500">
               Envía los certificados adjuntos a cada destinatario usando tu propia cuenta de Gmail.
@@ -446,71 +444,63 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">
-                URL de la Web App (termina en /exec)
-              </label>
-              <input
-                type="url"
-                value={config.webAppUrl}
-                onChange={(e) => setConfig({ ...config, webAppUrl: e.target.value })}
-                placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                className="w-full text-xs font-mono rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Columna Izquierda: URL, Remitente y Asunto */}
+            <div className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  URL de la Web App (termina en /exec)
+                </label>
+                <input
+                  type="url"
+                  value={config.webAppUrl}
+                  onChange={(e) => setConfig({ ...config, webAppUrl: e.target.value })}
+                  placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                  className="w-full text-xs font-mono rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  Nombre del Remitente
+                </label>
+                <input
+                  type="text"
+                  value={config.senderName}
+                  onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
+                  placeholder="Ej: Emisión de Certificados Software Week"
+                  className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  Asunto del Correo
+                </label>
+                <input
+                  type="text"
+                  value={config.subject}
+                  onChange={(e) => setConfig({ ...config, subject: e.target.value })}
+                  placeholder="Tu Certificado — {nombre}"
+                  className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                />
+                <span className="text-[11px] text-slate-400 block pt-0.5">
+                  Variables disponibles: <code className="text-slate-600 font-semibold">{'{nombre}'}</code>, <code className="text-slate-600 font-semibold">{'{correo}'}</code> y columnas del Excel.
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">
-                Token Secreto (Opcional si lo configuraste en el script)
-              </label>
-              <input
-                type="password"
-                value={config.token || ''}
-                onChange={(e) => setConfig({ ...config, token: e.target.value })}
-                placeholder="Ej: mi-clave-secreta-2026"
-                className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">
-                Nombre del Remitente
-              </label>
-              <input
-                type="text"
-                value={config.senderName}
-                onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
-                placeholder="Ej: Universidad Nacional de Ingeniería"
-                className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              />
-            </div>
-
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">
-                Asunto del Correo
-              </label>
-              <input
-                type="text"
-                value={config.subject}
-                onChange={(e) => setConfig({ ...config, subject: e.target.value })}
-                placeholder="Tu Certificado Oficial — {nombre}"
-                className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              />
-              <span className="text-[11px] text-slate-400">
-                Variables disponibles: <code>{'{nombre}'}</code>, <code>{'{correo}'}</code> y cualquier columna del Excel.
-              </span>
-            </div>
-
-            <div className="space-y-1 sm:col-span-2">
+            {/* Columna Derecha: Mensaje del Correo */}
+            <div className="space-y-1 flex flex-col">
               <label className="text-xs font-semibold text-slate-700">
                 Mensaje del Correo (HTML o texto con formato)
               </label>
               <textarea
-                rows={3}
+                rows={8}
                 value={config.htmlBody}
                 onChange={(e) => setConfig({ ...config, htmlBody: e.target.value })}
-                className="w-full text-xs font-sans rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                placeholder="<p>Hola <strong>{nombre}</strong>,</p>..."
+                className="w-full flex-1 min-h-[175px] text-xs font-mono rounded-xl border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 resize-y leading-relaxed"
               />
             </div>
           </div>
@@ -542,186 +532,214 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         </Card>
       )}
 
-      {/* SECCIÓN CHIQUITA REQUERIDA POR EL USUARIO: "Pon tu correo y prueba" */}
-      <div className="p-4 bg-gradient-to-r from-amber-50/80 to-amber-100/40 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-        <div className="space-y-0.5">
-          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-            <Flame className="w-4 h-4 text-amber-600" />
-            Pon tu correo y prueba:
-          </span>
-          <p className="text-[11px] text-slate-600">
-            Envíate un certificado de muestra para confirmar que el diseño y el correo llegan perfectamente.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <input
-            type="email"
-            value={testEmail}
-            onChange={(e) => setTestEmail(e.target.value)}
-            placeholder="tu.correo@ejemplo.com"
-            className="flex-1 sm:w-64 text-xs rounded-xl border border-amber-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 shadow-2xs"
-          />
-          <Button
-            variant="primary"
-            size="sm"
-            isLoading={isSendingTest}
-            leftIcon={<Send className="w-3.5 h-3.5" />}
-            onClick={handleSendTestEmail}
-            className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
-          >
-            Enviar prueba
-          </Button>
-        </div>
-      </div>
-
-      {/* Retroalimentación del envío de prueba */}
-      {testFeedback && (
-        <div
-          className={`p-3 rounded-xl text-xs flex items-center gap-2 animate-fadeIn ${
-            testFeedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-rose-50 text-rose-800 border border-rose-200'
-          }`}
-        >
-          {testFeedback.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-          )}
-          <span>{testFeedback.text}</span>
-        </div>
-      )}
-
-      {/* Envío Masivo Card */}
-      <Card className="p-5 sm:p-6 border border-slate-200 space-y-4">
-        {sendProgress.status === 'idle' && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-slate-900">
-                Envío Masivo de Certificados
-              </h4>
-              <p className="text-xs text-slate-600">
-                {recipientsWithEmail.length} de {recipients.length} personas tienen correo electrónico asignado.
-              </p>
+      {/* Grid de 2 bloques en paralelo: Prueba Individual vs Envío Masivo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+        {/* Bloque Izquierdo: Prueba Individual */}
+        <Card className="p-5 sm:p-6 border border-slate-200 flex flex-col justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shrink-0">
+                <Flame className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-bold text-slate-900">Envío de Prueba Individual</h4>
             </div>
-
-            <Button
-              variant="primary"
-              size="md"
-              leftIcon={<Send className="w-4 h-4" />}
-              onClick={handleStartMassEmail}
-              disabled={recipientsWithEmail.length === 0}
-              className="bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20"
-            >
-              Enviar {recipientsWithEmail.length} Certificados por Correo
-            </Button>
+            <p className="text-xs text-slate-500">
+              Envíate un certificado de muestra para confirmar que el diseño y el correo llegan perfectamente antes del despacho masivo.
+            </p>
           </div>
-        )}
 
-        {(sendProgress.status === 'sending' || sendProgress.status === 'paused') && (
-          <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-800 flex items-center gap-2">
-                {sendProgress.status === 'paused' ? 'Envíos en pausa' : 'Enviando certificados...'}
-                <span className="font-normal text-slate-500 font-mono">
-                  {sendProgress.currentRecipientName}
-                </span>
-              </span>
-              <span className="font-medium text-slate-600">
-                {sendProgress.current} de {sendProgress.total}
-              </span>
+          <div className="space-y-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="tu.correo@ejemplo.com"
+                className="flex-1 text-xs rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              />
+              <Button
+                variant="primary"
+                size="md"
+                isLoading={isSendingTest}
+                leftIcon={<Send className="w-3.5 h-3.5" />}
+                onClick={handleSendTestEmail}
+                className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 px-4 py-2.5 text-xs font-semibold shadow-xs"
+              >
+                Enviar prueba
+              </Button>
             </div>
 
-            <ProgressBar
-              progress={progressPercent}
-              label={`Enviando... ${sendProgress.sentCount} exitosos, ${sendProgress.failedCount} con error`}
-            />
-
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center gap-2 text-xs">
-                <Badge variant="success" size="sm">
-                  Enviados: {sendProgress.sentCount}
-                </Badge>
-                {sendProgress.failedCount > 0 && (
-                  <Badge variant="error" size="sm">
-                    Fallidos: {sendProgress.failedCount}
-                  </Badge>
-                )}
-                {sendProgress.remainingQuota !== undefined && (
-                  <span className="text-[11px] text-slate-400">
-                    Cuota restante: {sendProgress.remainingQuota}
-                  </span>
+            {testFeedback && (
+              <div
+                className={`p-3 rounded-xl text-xs flex items-center justify-between gap-2 animate-fadeIn border ${
+                  testFeedback.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {testFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  )}
+                  <span className="leading-snug text-xs">{testFeedback.text}</span>
+                </div>
+                {testFeedback.type === 'error' && !config.webAppUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setIsConfigOpen(true)}
+                    className="font-semibold bg-rose-200/80 hover:bg-rose-300 text-rose-950 px-2.5 py-1 rounded-lg transition-colors cursor-pointer text-xs shrink-0"
+                  >
+                    Configurar
+                  </button>
                 )}
               </div>
+            )}
+          </div>
+        </Card>
 
-              <div className="flex items-center gap-2">
+        {/* Bloque Derecho: Envío Masivo */}
+        <Card className="p-5 sm:p-6 border border-slate-200 flex flex-col justify-between gap-4">
+          {sendProgress.status === 'idle' && (
+            <>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Send className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900">Envío Masivo de Certificados</h4>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {recipientsWithEmail.length} de {recipients.length} personas tienen correo electrónico asignado.
+                </p>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  leftIcon={<Send className="w-4 h-4" />}
+                  onClick={handleStartMassEmail}
+                  disabled={recipientsWithEmail.length === 0}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20 justify-center py-2.5 text-xs font-semibold"
+                >
+                  Enviar {recipientsWithEmail.length} Certificados por Correo
+                </Button>
+              </div>
+            </>
+          )}
+
+          {(sendProgress.status === 'sending' || sendProgress.status === 'paused') && (
+            <div className="space-y-3.5 my-auto">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5 truncate max-w-[240px]">
+                  {sendProgress.status === 'paused' ? 'Envíos en pausa' : 'Enviando certificados...'}
+                  <span className="font-normal text-slate-500 font-mono truncate text-[11px]">
+                    {sendProgress.currentRecipientName}
+                  </span>
+                </span>
+                <span className="font-bold text-indigo-600 shrink-0">
+                  {sendProgress.current} de {sendProgress.total}
+                </span>
+              </div>
+
+              <ProgressBar
+                progress={progressPercent}
+                label={`Progreso: ${sendProgress.sentCount} exitosos, ${sendProgress.failedCount} fallidos`}
+              />
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Badge variant="success" size="sm">
+                    {sendProgress.sentCount} ok
+                  </Badge>
+                  {sendProgress.failedCount > 0 && (
+                    <Badge variant="error" size="sm">
+                      {sendProgress.failedCount} err
+                    </Badge>
+                  )}
+                  {sendProgress.remainingQuota !== undefined && (
+                    <span className="text-[11px] text-slate-400 hidden sm:inline">
+                      Cuota: {sendProgress.remainingQuota}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={sendProgress.status === 'paused' ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                    onClick={handleTogglePause}
+                  >
+                    {sendProgress.status === 'paused' ? 'Reanudar' : 'Pausar'}
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={handleCancelSend}>
+                    Detener
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(sendProgress.status === 'completed' || sendProgress.status === 'cancelled') && (
+            <div className="space-y-3.5 my-auto">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                  sendProgress.status === 'completed'
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                    : 'bg-amber-50 text-amber-600 border-amber-200'
+                }`}>
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-sm font-bold text-slate-900 truncate">
+                    {sendProgress.status === 'completed'
+                      ? '¡Envío masivo finalizado!'
+                      : 'Proceso detenido'}
+                  </h4>
+                  <p className="text-xs text-slate-600">
+                    Se enviaron con éxito {sendProgress.sentCount} correos.
+                    {sendProgress.failedCount > 0 && ` (${sendProgress.failedCount} con error).`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                 <Button
                   variant="outline"
                   size="sm"
-                  leftIcon={sendProgress.status === 'paused' ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                  onClick={handleTogglePause}
+                  leftIcon={<Download className="w-4 h-4" />}
+                  onClick={handleDownloadCsvReport}
+                  className="flex-1 justify-center text-xs"
                 >
-                  {sendProgress.status === 'paused' ? 'Reanudar' : 'Pausar'}
+                  Reporte CSV
                 </Button>
-                <Button variant="danger" size="sm" onClick={handleCancelSend}>
-                  Detener
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<RotateCcw className="w-4 h-4" />}
+                  onClick={() =>
+                    setSendProgress({
+                      status: 'idle',
+                      total: recipientsWithEmail.length,
+                      current: 0,
+                      sentCount: 0,
+                      failedCount: 0,
+                      records: {},
+                    })
+                  }
+                  className="flex-1 justify-center text-xs text-slate-600 hover:text-slate-900"
+                >
+                  Reiniciar
                 </Button>
               </div>
             </div>
-          </div>
-        )}
-
-        {(sendProgress.status === 'completed' || sendProgress.status === 'cancelled') && (
-          <div className="space-y-4 py-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-900">
-                  {sendProgress.status === 'completed'
-                    ? '¡Envío masivo finalizado!'
-                    : 'Proceso detenido'}
-                </h4>
-                <p className="text-xs text-slate-600">
-                  Se enviaron con éxito {sendProgress.sentCount} correos.
-                  {sendProgress.failedCount > 0 && ` (${sendProgress.failedCount} presentaron error).`}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<Download className="w-4 h-4" />}
-                onClick={handleDownloadCsvReport}
-              >
-                Descargar Reporte de Envíos (.CSV)
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<RotateCcw className="w-4 h-4" />}
-                onClick={() =>
-                  setSendProgress({
-                    status: 'idle',
-                    total: recipientsWithEmail.length,
-                    current: 0,
-                    sentCount: 0,
-                    failedCount: 0,
-                    records: {},
-                  })
-                }
-              >
-                Reiniciar Módulo de Envío
-              </Button>
-            </div>
-          </div>
-        )}
-      </Card>
+          )}
+        </Card>
+      </div>
     </div>
   );
 };
