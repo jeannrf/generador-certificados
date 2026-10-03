@@ -111,37 +111,54 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Upload Column (Left - 33% / 4 cols) */}
-        <div className="lg:col-span-4 flex flex-col h-full">
-          <Card className="p-5 sm:p-6 flex flex-col justify-between h-full space-y-4">
-            <div className="flex-1 flex flex-col">
-              <Dropzone
-                accept=".xlsx,.xls,.csv"
-                acceptLabel="Excel o CSV"
-                maxSizeMB={10}
-                title="Arrastra tu archivo Excel aquí"
-                description="Archivos Excel (.xlsx, .xls) o CSV"
-                icon={<FileSpreadsheet className="w-7 h-7 stroke-[1.75]" />}
-                onFileSelect={handleFileSelect}
-                className="h-full flex-1"
-              />
+        <div className="lg:col-span-4 flex flex-col space-y-4">
+          <Card className="p-4 sm:p-5 flex flex-col space-y-3">
+            <Dropzone
+              accept=".xlsx,.xls,.csv"
+              acceptLabel="Excel o CSV"
+              maxSizeMB={10}
+              title="Arrastra tu archivo Excel aquí"
+              description="o haz clic para explorar en tu equipo"
+              icon={<FileSpreadsheet className="w-6 h-6 stroke-[1.75]" />}
+              onFileSelect={handleFileSelect}
+              compact
+              hideBadge
+            />
 
-              {error && (
-                <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Subtle Footnote about supported formats */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                Excel (.xlsx, .xls) o CSV (Máx. 10 MB)
-              </span>
-              <span className="text-[10px] text-slate-400">100% privado</span>
-            </div>
+            {error && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
           </Card>
+
+          {/* Tarjeta de requisitos de formato del archivo */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 text-xs">
+            <div className="flex items-center gap-2 font-bold text-slate-800">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Formato admitido del Excel</span>
+            </div>
+            <p className="text-[12px] text-slate-600 leading-relaxed">
+              Para que el sistema funcione correctamente, tu archivo debe incluir al menos:
+            </p>
+            <div className="space-y-2 pt-1 text-[11px] text-slate-600">
+              <div className="flex items-start gap-2.5 bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-brand-500 mt-1 shrink-0" />
+                <div>
+                  <strong className="text-slate-900 block text-xs">Columna de Nombres</strong>
+                  <span className="text-slate-500">Obligatoria para personalizar el texto en cada certificado.</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 mt-1 shrink-0" />
+                <div>
+                  <strong className="text-slate-900 block text-xs">Columna de Correos</strong>
+                  <span className="text-slate-500">Necesaria si vas a enviar los certificados por correo electrónico.</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Column Mapping & Data Preview (Right - 67% / 8 cols) */}
@@ -281,7 +298,6 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
 
               <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
                 <span>Total cargado: {tableData.rows.length} filas</span>
-                <span>Listo para la fase de revisión</span>
               </div>
             </Card>
           ) : (
