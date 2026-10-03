@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ ok: false, error: 'Método no permitido. Use POST.' });
   }
 
-  const user = process.env.GMAIL_USER || process.env.EMAIL_USER;
+  const user = process.env.GMAIL_USER || process.env.GEMAIL_USER || process.env.EMAIL_USER;
   const pass = (process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS || '').replace(/\s+/g, '');
 
   const body = req.body || {};

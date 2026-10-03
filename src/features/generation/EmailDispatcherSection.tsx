@@ -713,6 +713,19 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                 </div>
               </div>
 
+              {sendProgress.failedCount > 0 && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-fadeIn">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <span className="font-semibold block">Motivo del error:</span>
+                    <span className="text-[11px] leading-relaxed text-rose-700 block">
+                      {Object.values(sendProgress.records).find((r) => r.status === 'error')?.errorMessage ||
+                        'Error de conexión con el servicio de correo.'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                 <Button
                   variant="outline"
