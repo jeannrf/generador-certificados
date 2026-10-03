@@ -12,6 +12,8 @@ import {
   Sliders,
   ChevronLeft,
   Sparkles,
+  Minus,
+  Plus,
 } from 'lucide-react';
 
 interface FieldEditorStepProps {
@@ -448,30 +450,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 className="w-full text-xs font-semibold text-slate-900 bg-white border border-brand-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none shadow-xs"
                 placeholder="Jeanpier Alexander Robles Fabian"
               />
-              <div className="flex items-center gap-1.5 pt-1">
-                <span className="text-[10px] text-slate-500">Ejemplos:</span>
-                <button
-                  type="button"
-                  onClick={() => setSampleName('Jeanpier Alexander Robles Fabian')}
-                  className="text-[10px] font-medium text-brand-700 bg-white hover:bg-brand-100 px-1.5 py-0.5 rounded border border-brand-200"
-                >
-                  Principal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSampleName('Ana Pérez')}
-                  className="text-[10px] font-medium text-slate-700 bg-white hover:bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"
-                >
-                  Corto
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSampleName('José Núñez')}
-                  className="text-[10px] font-medium text-slate-700 bg-white hover:bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"
-                >
-                  Tildes
-                </button>
-              </div>
+
             </div>
 
             {/* Font Family */}
@@ -598,39 +577,76 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
               </div>
             </div>
 
-            {/* Font Sizes */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-700">Tamaño Máx.</span>
-                  <span className="font-mono text-brand-600">{field.maxFontSize} pt</span>
+            {/* Font Size (Manual input + Slider + / - buttons) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <label className="font-semibold text-slate-700">Tamaño de fuente</label>
+                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 shadow-xs focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500">
+                  <input
+                    type="number"
+                    min={10}
+                    max={100}
+                    value={field.maxFontSize}
+                    onChange={(e) => {
+                      const val = Math.max(8, Math.min(120, Number(e.target.value) || 12));
+                      onFieldChange({
+                        ...field,
+                        maxFontSize: val,
+                        minFontSize: Math.min(val, field.minFontSize),
+                      });
+                    }}
+                    className="w-10 text-xs font-bold text-brand-700 text-right focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="text-[11px] font-semibold text-slate-400">pt</span>
                 </div>
-                <input
-                  type="range"
-                  min="20"
-                  max="80"
-                  value={field.maxFontSize}
-                  onChange={(e) =>
-                    onFieldChange({ ...field, maxFontSize: Number(e.target.value) })
-                  }
-                  className="w-full accent-brand-600"
-                />
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-700">Tamaño Mín.</span>
-                  <span className="font-mono text-slate-500">{field.minFontSize} pt</span>
-                </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = Math.max(10, field.maxFontSize - 1);
+                    onFieldChange({
+                      ...field,
+                      maxFontSize: nextVal,
+                      minFontSize: Math.min(nextVal, field.minFontSize),
+                    });
+                  }}
+                  className="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg transition-colors shadow-xs"
+                  title="Reducir 1 pt"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
                 <input
                   type="range"
                   min="12"
-                  max="40"
-                  value={field.minFontSize}
-                  onChange={(e) =>
-                    onFieldChange({ ...field, minFontSize: Number(e.target.value) })
-                  }
-                  className="w-full accent-brand-600"
+                  max="72"
+                  value={field.maxFontSize}
+                  onChange={(e) => {
+                    const nextVal = Number(e.target.value);
+                    onFieldChange({
+                      ...field,
+                      maxFontSize: nextVal,
+                      minFontSize: Math.min(nextVal, field.minFontSize),
+                    });
+                  }}
+                  className="flex-1 accent-brand-600 cursor-pointer"
                 />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = Math.min(90, field.maxFontSize + 1);
+                    onFieldChange({
+                      ...field,
+                      maxFontSize: nextVal,
+                      minFontSize: Math.min(nextVal, field.minFontSize),
+                    });
+                  }}
+                  className="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg transition-colors shadow-xs"
+                  title="Aumentar 1 pt"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 

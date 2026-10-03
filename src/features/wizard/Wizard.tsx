@@ -20,18 +20,18 @@ const INITIAL_FIELD: FieldBox = {
   id: 'field_name',
   name: 'Nombre del Destinatario',
   source: { type: 'column', column: 'nombre' },
-  x: 0.15,
-  y: 0.44,
-  width: 0.7,
-  height: 0.14,
+  x: 0.08,
+  y: 0.42,
+  width: 0.84,
+  height: 0.13,
   fontFamily: 'Playfair Display, Georgia, serif',
-  maxFontSize: 44,
+  maxFontSize: 30,
   minFontSize: 22,
   color: '#0f172a',
   align: 'center',
   vAlign: 'middle',
   textCase: 'title',
-  isBold: false,
+  isBold: true,
   isItalic: false,
 };
 
@@ -238,6 +238,10 @@ export const Wizard: React.FC = () => {
             onContinue={() => {
               if (tableData) syncRecipients(tableData, mapping);
               unlockStep(4);
+            }}
+            onClearData={() => {
+              setTableData(null);
+              setRecipients([]);
             }}
           />
         )}

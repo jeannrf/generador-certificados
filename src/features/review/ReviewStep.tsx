@@ -184,22 +184,18 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           onClick={() => setFilter('all')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
             filter === 'all'
-              ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-700/20'
+              ? 'bg-slate-100 border-slate-400 shadow-xs ring-2 ring-slate-300/80'
               : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
           }`}
         >
           <span
             className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
-              filter === 'all' ? 'text-slate-300' : 'text-slate-500'
+              filter === 'all' ? 'text-slate-800' : 'text-slate-500'
             }`}
           >
             Total Lista
           </span>
-          <span
-            className={`text-2xl font-bold font-mono transition-colors ${
-              filter === 'all' ? 'text-white' : 'text-slate-900'
-            }`}
-          >
+          <span className="text-2xl font-bold font-mono text-slate-900 transition-colors">
             {totalCount}
           </span>
         </div>
@@ -209,29 +205,21 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           onClick={() => setFilter('valid')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
             filter === 'valid'
-              ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-700/20'
+              ? 'bg-slate-100 border-emerald-500 shadow-xs ring-2 ring-emerald-500/20'
               : 'bg-white border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/20'
           }`}
         >
           <div className="flex items-center justify-between">
             <span
               className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
-                filter === 'valid' ? 'text-slate-300' : 'text-slate-500'
+                filter === 'valid' ? 'text-emerald-800' : 'text-slate-500'
               }`}
             >
               Listos ✔
             </span>
-            <CheckCircle
-              className={`w-4 h-4 transition-colors ${
-                filter === 'valid' ? 'text-emerald-400' : 'text-emerald-500'
-              }`}
-            />
+            <CheckCircle className="w-4 h-4 text-emerald-500 transition-colors" />
           </div>
-          <span
-            className={`text-2xl font-bold font-mono transition-colors ${
-              filter === 'valid' ? 'text-white' : 'text-emerald-600'
-            }`}
-          >
+          <span className="text-2xl font-bold font-mono text-emerald-600 transition-colors">
             {validCount}
           </span>
         </div>
@@ -241,29 +229,21 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           onClick={() => setFilter('warnings')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
             filter === 'warnings'
-              ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-700/20'
+              ? 'bg-slate-100 border-amber-500 shadow-xs ring-2 ring-amber-500/20'
               : 'bg-white border-slate-200 hover:border-amber-300 hover:bg-amber-50/20'
           }`}
         >
           <div className="flex items-center justify-between">
             <span
               className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
-                filter === 'warnings' ? 'text-slate-300' : 'text-slate-500'
+                filter === 'warnings' ? 'text-amber-800' : 'text-slate-500'
               }`}
             >
               Advertencias ⚠
             </span>
-            <AlertTriangle
-              className={`w-4 h-4 transition-colors ${
-                filter === 'warnings' ? 'text-amber-400' : 'text-amber-500'
-              }`}
-            />
+            <AlertTriangle className="w-4 h-4 text-amber-500 transition-colors" />
           </div>
-          <span
-            className={`text-2xl font-bold font-mono transition-colors ${
-              filter === 'warnings' ? 'text-white' : 'text-amber-600'
-            }`}
-          >
+          <span className="text-2xl font-bold font-mono text-amber-600 transition-colors">
             {warningCount}
           </span>
         </div>
@@ -273,30 +253,22 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           onClick={() => setFilter('errors')}
           className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
             filter === 'errors'
-              ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-700/20'
+              ? 'bg-slate-100 border-rose-500 shadow-xs ring-2 ring-rose-500/20'
               : 'bg-white border-slate-200 hover:border-rose-300 hover:bg-rose-50/20'
           }`}
         >
           <div className="flex items-center justify-between">
             <span
               className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
-                filter === 'errors' ? 'text-slate-300' : 'text-slate-500'
+                filter === 'errors' ? 'text-rose-800' : 'text-slate-500'
               }`}
             >
               Errores ✖
             </span>
-            <XCircle
-              className={`w-4 h-4 transition-colors ${
-                filter === 'errors' ? 'text-rose-400' : 'text-rose-500'
-              }`}
-            />
+            <XCircle className="w-4 h-4 text-rose-500 transition-colors" />
           </div>
           <div className="flex items-baseline justify-between">
-            <span
-              className={`text-2xl font-bold font-mono transition-colors ${
-                filter === 'errors' ? 'text-white' : 'text-rose-600'
-              }`}
-            >
+            <span className="text-2xl font-bold font-mono text-rose-600 transition-colors">
               {errorCount}
             </span>
             {errorCount > 0 && (
@@ -481,12 +453,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  leftIcon={<FileDown className="w-3.5 h-3.5" />}
+                  leftIcon={<FileDown className="w-3.5 h-3.5 text-brand-600" />}
                   onClick={handleDownloadSamplePdf}
                   isLoading={downloadingSample}
-                  title="Descargar este certificado como archivo PDF de prueba"
+                  title="Descargar este certificado como archivo PDF para ver el resultado real"
                 >
-                  Probar PDF
+                  Descargar PDF
                 </Button>
                 <div className="h-4 w-px bg-slate-200 mx-0.5" />
                 <button
@@ -507,7 +479,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  Más largo 🔥
+                  Más largo
                 </button>
               </div>
             </div>

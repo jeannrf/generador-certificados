@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { TemplateData, FieldBox } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
+import { Badge } from '../../ui/Badge';
 import { Dropzone } from '../../ui/Dropzone';
-import { createDemoCertificateCanvas } from '../../shared/demoData';
 import { renderPdfToPreview } from '../../infra/pdfRenderer';
-import { Sparkles, FileText, AlertCircle, Info, Loader2 } from 'lucide-react';
+import { FileText, AlertCircle, Info, Loader2, UploadCloud, CheckCircle2, Layout } from 'lucide-react';
 
 interface TemplateStepProps {
   template: TemplateData | null;
@@ -18,7 +18,6 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
   onTemplateChange,
   onContinue,
 }) => {
-  const [loadingDemo, setLoadingDemo] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [pageNotice, setPageNotice] = useState<string | null>(null);
@@ -87,34 +86,6 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
     }
   };
 
-  const loadDemo = (style: 'classic' | 'modern' | 'minimal') => {
-    setRenderError(null);
-    setPageNotice(null);
-    setLoadingDemo(true);
-    setTimeout(() => {
-      const demo = createDemoCertificateCanvas(style);
-      const names = {
-        classic: 'Diploma de Reconocimiento Clásico.png',
-        modern: 'Certificado Tech & IA Moderno.png',
-        minimal: 'Constancia Minimalista.png',
-      };
-
-      onTemplateChange(
-        {
-          id: `tpl_demo_${style}`,
-          name: names[style],
-          kind: 'image',
-          bytes: demo.bytes,
-          mimeType: 'image/png',
-          widthPt: demo.widthPt,
-          heightPt: demo.heightPt,
-          previewUrl: demo.previewUrl,
-        },
-        demo.defaultField
-      );
-      setLoadingDemo(false);
-    }, 150);
-  };
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -127,71 +98,68 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-        {/* Upload Zone (Left Column) */}
-        <div className="flex flex-col h-full">
-          <Card className="p-6 flex flex-col justify-between h-full">
-            <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+        {/* Upload Zone (Left Column - 5 cols) */}
+        <div className="lg:col-span-5 flex flex-col h-full">
+          <Card className="p-5 sm:p-6 flex flex-col justify-between h-full space-y-5">
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                  <UploadCloud className="w-4 h-4 text-brand-600" />
+                  {template ? 'Cargar otra plantilla' : 'Cargar plantilla'}
+                </h3>
+                {template && (
+                  <Badge variant="success" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>
+                    Plantilla cargada
+                  </Badge>
+                )}
+              </div>
+
               <Dropzone
                 accept=".pdf,.png,.jpg,.jpeg"
                 acceptLabel="PDF, PNG o JPG"
                 maxSizeMB={15}
+                title={template ? '¿Quieres reemplazar tu diseño?' : 'Arrastra y suelta tu archivo aquí'}
+                description={template ? 'Arrastra o haz clic para sustituir el archivo actual' : 'o haz clic para explorar en tu equipo'}
                 onFileSelect={handleFileUpload}
               />
+            </div>
 
-              {/* Quick Demo Templates Picker */}
-              <div className="pt-5 border-t border-slate-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-brand-600" />
-                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    ¿No tienes una plantilla a mano? Prueba con estas:
-                  </span>
+            {/* Guía y recomendaciones de diseño */}
+            <div className="pt-4 border-t border-slate-100 space-y-2.5">
+              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Recomendaciones para tu diseño
+              </span>
+
+              <div className="space-y-2">
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
+                  <Layout className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-semibold text-slate-800 block">Deja libre el espacio del nombre</span>
+                    <span className="text-[11px] text-slate-500 leading-relaxed">
+                      Diseña la plantilla sin el nombre del participante; en el Paso 2 lo ubicarás con precisión.
+                    </span>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => loadDemo('classic')}
-                    disabled={loadingDemo}
-                    className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
-                  >
-                    <div className="w-full h-12 bg-amber-50 rounded-lg border border-amber-200 mb-2 flex items-center justify-center text-amber-800 font-serif text-[11px] group-hover:scale-105 transition-transform">
-                      Diploma
-                    </div>
-                    <span className="font-semibold text-slate-800 block truncate">Clásico Dorado</span>
-                    <span className="text-[10px] text-slate-500">Formal institucional</span>
-                  </button>
 
-                  <button
-                    onClick={() => loadDemo('modern')}
-                    disabled={loadingDemo}
-                    className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
-                  >
-                    <div className="w-full h-12 bg-slate-900 rounded-lg border border-violet-500/40 mb-2 flex items-center justify-center text-violet-300 font-sans text-[11px] group-hover:scale-105 transition-transform">
-                      Bootcamp
-                    </div>
-                    <span className="font-semibold text-slate-800 block truncate">Moderno Tech</span>
-                    <span className="text-[10px] text-slate-500">Eventos e IA</span>
-                  </button>
-
-                  <button
-                    onClick={() => loadDemo('minimal')}
-                    disabled={loadingDemo}
-                    className="p-3 text-left rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/40 transition-all text-xs font-medium group"
-                  >
-                    <div className="w-full h-12 bg-white rounded-lg border border-slate-200 mb-2 flex items-center justify-center text-slate-700 font-sans text-[11px] group-hover:scale-105 transition-transform shadow-xs">
-                      Taller
-                    </div>
-                    <span className="font-semibold text-slate-800 block truncate">Minimalista</span>
-                    <span className="text-[10px] text-slate-500">Limpio y sutil</span>
-                  </button>
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
+                  <FileText className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-semibold text-slate-800 block">Formato PDF vectorial recomendado</span>
+                    <span className="text-[11px] text-slate-500 leading-relaxed">
+                      Los archivos PDF garantizan gráficos y textos nítidos al imprimir o descargar en alta resolución.
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Template Preview Panel (Right Column - Symmetric) */}
-        <div className="flex flex-col h-full">
-          <Card className="p-6 flex flex-col justify-between h-full">
+        {/* Template Preview Panel (Right Column - 7 cols) */}
+        <div className="lg:col-span-7 flex flex-col h-full">
+          <Card className="p-5 sm:p-6 flex flex-col justify-between h-full space-y-4">
             <div className="flex-1 flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
@@ -210,11 +178,11 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                 </div>
               ) : template ? (
                 <div className="space-y-4 flex-1 flex flex-col justify-center">
-                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-inner group flex items-center justify-center min-h-[260px] max-h-[340px]">
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-inner group flex items-center justify-center min-h-[260px] max-h-[360px]">
                     <img
                       src={template.previewUrl}
                       alt="Plantilla cargada"
-                      className="w-full h-auto object-contain max-h-[320px] mx-auto block"
+                      className="w-full h-auto object-contain max-h-[350px] mx-auto block"
                     />
                   </div>
 
@@ -228,7 +196,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                   <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 text-xs space-y-1.5 text-slate-600 mt-auto">
                     <div className="flex justify-between">
                       <span className="font-medium text-slate-500">Nombre de archivo:</span>
-                      <span className="font-semibold text-slate-800 truncate max-w-[200px]">{template.name}</span>
+                      <span className="font-semibold text-slate-800 truncate max-w-[280px]">{template.name}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium text-slate-500">Formato:</span>
@@ -247,7 +215,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                   </div>
                   <p className="text-sm font-semibold text-slate-700">Sin plantilla cargada</p>
                   <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                    Sube un archivo o selecciona un diseño de ejemplo en la columna izquierda para ver la vista previa.
+                    Sube tu plantilla en PDF o imagen en la columna izquierda para ver la vista previa aquí.
                   </p>
                 </div>
               )}
