@@ -15,6 +15,10 @@ import { GenerationStep } from '../generation/GenerationStep';
 import { ParsedTableData } from '../../infra/parsers';
 import { validateRecipients } from '../../domain/validation';
 import { saveSession, loadSession, clearSession } from '../../infra/storage';
+import {
+  SimplePrerequisiteModal,
+  PrerequisiteNoticeModalInfo,
+} from '../../ui/SimplePrerequisiteModal';
 
 const INITIAL_FIELD: FieldBox = {
   id: 'field_name',
@@ -45,12 +49,14 @@ export const Wizard: React.FC = () => {
   const [tableData, setTableData] = useState<ParsedTableData | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping>({ nameColumn: '' });
   const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [prereqModal, setPrereqModal] = useState<PrerequisiteNoticeModalInfo | null>(null);
 
   // Restaurar sesión al cargar la página (ante F5)
   useEffect(() => {
     let isMounted = true;
     loadSession().then((saved) => {
       if (!isMounted || !saved) return;
+      let hasValidTemplate = false;
       if (saved.template) {
         // Ignorar plantillas demo antiguas que hayan quedado guardadas en el navegador
         const tpl = saved.template as TemplateData;
@@ -58,6 +64,7 @@ export const Wizard: React.FC = () => {
           setTemplate(null);
         } else {
           setTemplate(tpl);
+          hasValidTemplate = true;
         }
       }
       if (saved.field) {
@@ -77,8 +84,15 @@ export const Wizard: React.FC = () => {
       if (saved.tableData) setTableData(saved.tableData);
       if (saved.mapping) setMapping(saved.mapping);
       if (saved.recipients && saved.recipients.length > 0) setRecipients(saved.recipients);
-      if (saved.maxStepUnlocked) setMaxStepUnlocked(saved.maxStepUnlocked as WizardStepType);
-      if (saved.currentStep) setCurrentStep(saved.currentStep as WizardStepType);
+
+      if (!hasValidTemplate) {
+        // Si no hay plantilla válida, forzar inicio en Paso 1
+        setMaxStepUnlocked(1);
+        setCurrentStep(1);
+      } else {
+        if (saved.maxStepUnlocked) setMaxStepUnlocked(saved.maxStepUnlocked as WizardStepType);
+        if (saved.currentStep) setCurrentStep(saved.currentStep as WizardStepType);
+      }
     });
     return () => {
       isMounted = false;
@@ -120,6 +134,35 @@ export const Wizard: React.FC = () => {
       setMaxStepUnlocked(step);
     }
   };
+
+  const handleStepClick = (targetStep: WizardStepType) => {
+    if (targetStep >= 2 && !template) {
+      setPrereqModal({
+        title: 'Plantilla requerida',
+        message: 'Para configurar la posición o revisar los certificados, primero debes subir tu diseño de plantilla en el Paso 1.',
+      });
+      return;
+    }
+    if ((targetStep === 4 || targetStep === 5) && recipients.length === 0) {
+      setPrereqModal({
+        title: 'Destinatarios requeridos',
+        message: 'Para revisar o generar certificados, primero debes importar tu lista de destinatarios en el Paso 3.',
+      });
+      return;
+    }
+    setCurrentStep(targetStep);
+  };
+
+  // Redirección y aviso si por alguna razón se llega a un paso sin sus requisitos
+  useEffect(() => {
+    if (currentStep >= 2 && !template) {
+      setCurrentStep(1);
+      setPrereqModal({
+        title: 'Plantilla requerida',
+        message: 'Para configurar la posición y estilo del texto, primero debes subir tu plantilla en el Paso 1.',
+      });
+    }
+  }, [currentStep, template]);
 
   const handleTemplateChange = (newTemplate: TemplateData, defaultField?: Partial<FieldBox>) => {
     setTemplate(newTemplate);
@@ -226,7 +269,7 @@ export const Wizard: React.FC = () => {
     <div className="flex-1 flex flex-col">
       <Stepper
         currentStep={currentStep}
-        onStepClick={(s) => setCurrentStep(s)}
+        onStepClick={handleStepClick}
         maxStepUnlocked={maxStepUnlocked}
       />
 
@@ -235,7 +278,16 @@ export const Wizard: React.FC = () => {
           <TemplateStep
             template={template}
             onTemplateChange={handleTemplateChange}
-            onRemoveTemplate={() => setTemplate(null)}
+            onRemoveTemplate={() => {
+              setTemplate(null);
+              setMaxStepUnlocked(1);
+            }}
+            onRequireTemplate={() => {
+              setPrereqModal({
+                title: 'Plantilla requerida',
+                message: 'Para continuar al Paso 2, primero debes subir el diseño de tu certificado (PDF o imagen).',
+              });
+            }}
             onContinue={() => unlockStep(2)}
           />
         )}
@@ -291,6 +343,13 @@ export const Wizard: React.FC = () => {
           />
         )}
       </main>
+
+      {/* Modal simple y compacto para requisitos previos */}
+      <SimplePrerequisiteModal
+        isOpen={prereqModal !== null}
+        info={prereqModal}
+        onClose={() => setPrereqModal(null)}
+      />
     </div>
   );
 };

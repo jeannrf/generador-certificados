@@ -11,6 +11,7 @@ interface TemplateStepProps {
   template: TemplateData | null;
   onTemplateChange: (template: TemplateData, defaultField?: Partial<FieldBox>) => void;
   onRemoveTemplate?: () => void;
+  onRequireTemplate?: () => void;
   onContinue: () => void;
 }
 
@@ -18,6 +19,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
   template,
   onTemplateChange,
   onRemoveTemplate,
+  onRequireTemplate,
   onContinue,
 }) => {
   const [isRendering, setIsRendering] = useState(false);
@@ -245,9 +247,14 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
               <Button
                 variant="primary"
                 size="lg"
-                disabled={!template}
-                onClick={onContinue}
-                className="w-full"
+                onClick={() => {
+                  if (!template) {
+                    onRequireTemplate?.();
+                  } else {
+                    onContinue();
+                  }
+                }}
+                className={`w-full ${!template ? 'opacity-85 hover:opacity-100 cursor-pointer shadow-xs' : ''}`}
               >
                 Continuar al siguiente paso
               </Button>

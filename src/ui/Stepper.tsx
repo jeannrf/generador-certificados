@@ -19,7 +19,7 @@ const STEPS = [
 export const Stepper: React.FC<StepperProps> = ({
   currentStep,
   onStepClick,
-  maxStepUnlocked = 1,
+  maxStepUnlocked: _maxStepUnlocked = 1,
 }) => {
   return (
     <div className="w-full bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-subtle backdrop-blur-md bg-white/90">
@@ -29,16 +29,13 @@ export const Stepper: React.FC<StepperProps> = ({
             {STEPS.map((s, idx) => {
               const isCompleted = s.step < currentStep;
               const isCurrent = s.step === currentStep;
-              const isClickable = s.step <= maxStepUnlocked && onStepClick;
               const Icon = s.icon;
 
               return (
                 <li key={s.step} className="flex-1 relative">
                   <div
-                    onClick={() => isClickable && onStepClick(s.step)}
-                    className={`group flex items-center gap-3 transition-all duration-200 ${
-                      isClickable ? 'cursor-pointer' : 'cursor-default'
-                    }`}
+                    onClick={() => onStepClick && onStepClick(s.step)}
+                    className="group flex items-center gap-3 transition-all duration-200 cursor-pointer"
                   >
                     {/* Circle Icon Indicator */}
                     <div
