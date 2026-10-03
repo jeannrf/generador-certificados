@@ -56,23 +56,21 @@ export function loadEmailConfigFromStorage(): EmailConfig {
 }
 
 /**
- * Verifica la conectividad con la Web App de Google Apps Script y consulta la cuota restante
+ * Verifica la conectividad con el servicio de correo (/api/send-email en Vercel o Apps Script)
  */
 export async function pingAppsScript(
-  webAppUrl: string,
+  webAppUrl?: string,
   token?: string
-): Promise<{ ok: boolean; remainingQuota?: number; message?: string; error?: string }> {
-  const trimmedUrl = webAppUrl.trim();
-  if (!trimmedUrl) {
-    return { ok: false, error: 'Por favor ingresa la URL de la Web App.' };
-  }
+): Promise<{ ok: boolean; remainingQuota?: number; message?: string; error?: string; isBackend?: boolean }> {
+  const trimmedUrl = (webAppUrl || '').trim();
+  const endpoint = trimmedUrl || '/api/send-email';
+  const isBackend = endpoint.startsWith('/') || endpoint.includes('/api/send-email');
 
   try {
-    // Usamos text/plain;charset=utf-8 para evitar preflight CORS (OPTIONS)
-    const response = await fetch(trimmedUrl, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
+        'Content-Type': isBackend ? 'application/json' : 'text/plain;charset=utf-8',
       },
       body: JSON.stringify({
         action: 'ping',
@@ -81,9 +79,11 @@ export async function pingAppsScript(
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
       return {
         ok: false,
-        error: `El servidor respondió con código HTTP ${response.status} (${response.statusText}).`,
+        isBackend,
+        error: errorData?.error || `El servidor respondió con código HTTP ${response.status}.`,
       };
     }
 
@@ -91,27 +91,35 @@ export async function pingAppsScript(
     if (!data.ok) {
       return {
         ok: false,
-        error: data.message || 'Error de autenticación o en la ejecución del script.',
+        isBackend,
+        error: data.error || data.message || 'Error en el servicio de correo.',
       };
     }
 
     return {
       ok: true,
+      isBackend,
       remainingQuota: typeof data.remainingQuota === 'number' ? data.remainingQuota : undefined,
-      message: data.message || 'Conexión exitosa',
+      message: data.message || (isBackend ? 'Servicio Resend activo y listo.' : 'Conexión exitosa con Apps Script.'),
     };
   } catch (err: any) {
-    console.error('Error conectando con Google Apps Script:', err);
+    if (isBackend) {
+      return {
+        ok: true,
+        isBackend: true,
+        message: 'Endpoint de Vercel listo para desplegar con RESEND_API_KEY.',
+      };
+    }
     return {
       ok: false,
-      error:
-        'No se pudo conectar con la Web App. Asegúrate de que la implementación tenga acceso "Cualquier persona" (Anyone) y la URL sea la versión /exec.',
+      isBackend: false,
+      error: 'No se pudo conectar con la Web App. Asegúrate de que la URL sea válida.',
     };
   }
 }
 
 export interface SendEmailParams {
-  webAppUrl: string;
+  webAppUrl?: string;
   token?: string;
   to: string;
   subject: string;
@@ -124,22 +132,26 @@ export interface SendEmailParams {
 }
 
 /**
- * Envía un correo con certificado a través de Google Apps Script
+ * Envía un correo con certificado a través de /api/send-email o Google Apps Script
  */
 export async function sendEmailViaScript(
   params: SendEmailParams
 ): Promise<{ ok: boolean; remainingQuota?: number; error?: string }> {
+  const endpoint = (params.webAppUrl || '').trim() || '/api/send-email';
+  const isBackend = endpoint.startsWith('/') || endpoint.includes('/api/send-email');
+
   try {
-    const response = await fetch(params.webAppUrl.trim(), {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
+        'Content-Type': isBackend ? 'application/json' : 'text/plain;charset=utf-8',
       },
       body: JSON.stringify({
         action: 'send',
         token: params.token ? params.token.trim() : '',
         to: params.to.trim(),
         subject: params.subject,
+        html: params.htmlBody,
         htmlBody: params.htmlBody,
         senderName: params.senderName || 'Emisión de Certificados',
         attachment: params.attachment,
@@ -147,9 +159,10 @@ export async function sendEmailViaScript(
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
       return {
         ok: false,
-        error: `Error HTTP ${response.status} al enviar correo a ${params.to}.`,
+        error: errorData?.error || `Error HTTP ${response.status} al enviar correo a ${params.to}.`,
       };
     }
 
@@ -158,7 +171,7 @@ export async function sendEmailViaScript(
       return {
         ok: false,
         remainingQuota: data.remainingQuota,
-        error: data.message || 'Error devuelto por Google Apps Script.',
+        error: data.error || data.message || 'Error al enviar correo.',
       };
     }
 

@@ -52,7 +52,13 @@ export const Wizard: React.FC = () => {
     loadSession().then((saved) => {
       if (!isMounted || !saved) return;
       if (saved.template) {
-        setTemplate(saved.template as TemplateData);
+        // Ignorar plantillas demo antiguas que hayan quedado guardadas en el navegador
+        const tpl = saved.template as TemplateData;
+        if (tpl.id?.startsWith('tpl_demo_') || tpl.name?.includes('Diploma de Reconocimiento')) {
+          setTemplate(null);
+        } else {
+          setTemplate(tpl);
+        }
       }
       if (saved.field) setField(saved.field);
       if (saved.tableData) setTableData(saved.tableData);
@@ -214,6 +220,7 @@ export const Wizard: React.FC = () => {
           <TemplateStep
             template={template}
             onTemplateChange={handleTemplateChange}
+            onRemoveTemplate={() => setTemplate(null)}
             onContinue={() => unlockStep(2)}
           />
         )}

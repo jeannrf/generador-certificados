@@ -31,7 +31,6 @@ import {
   Send,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
   Download,
   Settings,
   Flame,
@@ -402,10 +401,10 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              Envío Automático por Correo (Gmail)
+              Envío Automático de Certificados por Correo
             </h3>
             <p className="text-xs text-slate-500">
-              Envía los certificados adjuntos a cada destinatario usando tu propia cuenta de Gmail.
+              Despacha los certificados en PDF adjuntos a cada destinatario automáticamente con un solo clic.
             </p>
           </div>
         </div>
@@ -414,18 +413,10 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           <Button
             variant="outline"
             size="sm"
-            leftIcon={<HelpCircle className="w-4 h-4 text-brand-600" />}
-            onClick={() => setIsScriptModalOpen(true)}
-          >
-            Ver Script y Guía
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<Settings className="w-4 h-4" />}
+            leftIcon={<Settings className="w-4 h-4 text-brand-600" />}
             onClick={() => setIsConfigOpen(!isConfigOpen)}
           >
-            {isConfigOpen ? 'Ocultar Ajustes' : 'Configurar'}
+            {isConfigOpen ? 'Cerrar Ajustes' : 'Personalizar Mensaje'}
           </Button>
         </div>
       </div>
@@ -435,31 +426,19 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         <Card className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 animate-fadeIn">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-              Credenciales de Google Apps Script
+              Personalización del Correo
             </span>
-            {pingResult?.quota !== undefined && (
-              <Badge variant="success" size="sm">
-                Cuota: {pingResult.quota} correos
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                Backend de Vercel listo
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Columna Izquierda: URL, Remitente y Asunto */}
+            {/* Columna Izquierda: Remitente, Asunto y Opciones Avanzadas */}
             <div className="space-y-3.5">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">
-                  URL de la Web App (termina en /exec)
-                </label>
-                <input
-                  type="url"
-                  value={config.webAppUrl}
-                  onChange={(e) => setConfig({ ...config, webAppUrl: e.target.value })}
-                  placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                  className="w-full text-xs font-mono rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                />
-              </div>
-
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
                   Nombre del Remitente
@@ -468,7 +447,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   type="text"
                   value={config.senderName}
                   onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
-                  placeholder="Ej: Emisión de Certificados Software Week"
+                  placeholder="Ej: Emisión de Certificados UNI"
                   className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 />
               </div>
@@ -488,6 +467,34 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   Variables disponibles: <code className="text-slate-600 font-semibold">{'{nombre}'}</code>, <code className="text-slate-600 font-semibold">{'{correo}'}</code> y columnas del Excel.
                 </span>
               </div>
+
+              {/* Opciones Avanzadas (Google Apps Script / Servidor personalizado) */}
+              <details className="text-xs border border-slate-200 rounded-xl bg-white p-3 space-y-2">
+                <summary className="font-semibold text-slate-700 cursor-pointer select-none">
+                  Opciones avanzadas (Google Apps Script personalizado)
+                </summary>
+                <div className="pt-2 space-y-2 text-slate-600">
+                  <p className="text-[11px] text-slate-500">
+                    Opcional: Si prefieres enviar desde tu propio Gmail institucional en vez del servidor de Vercel, pega aquí tu Web App URL.
+                  </p>
+                  <input
+                    type="url"
+                    value={config.webAppUrl}
+                    onChange={(e) => setConfig({ ...config, webAppUrl: e.target.value })}
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    className="w-full text-xs font-mono rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-slate-900"
+                  />
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsScriptModalOpen(true)}
+                      className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 underline"
+                    >
+                      Ver código de Google Apps Script y guía
+                    </button>
+                  </div>
+                </div>
+              </details>
             </div>
 
             {/* Columna Derecha: Mensaje del Correo */}
@@ -526,7 +533,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
               isLoading={isPinging}
               onClick={handleTestConnection}
             >
-              Probar Conexión con Gmail
+              Probar Conexión del Servidor
             </Button>
           </div>
         </Card>
