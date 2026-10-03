@@ -20,13 +20,13 @@ const INITIAL_FIELD: FieldBox = {
   id: 'field_name',
   name: 'Nombre del Destinatario',
   source: { type: 'column', column: 'nombre' },
-  x: 0.08,
+  x: 0.05,
   y: 0.42,
-  width: 0.84,
+  width: 0.90,
   height: 0.13,
   fontFamily: 'Playfair Display, Georgia, serif',
-  maxFontSize: 30,
-  minFontSize: 22,
+  maxFontSize: 28,
+  minFontSize: 20,
   color: '#0f172a',
   align: 'center',
   vAlign: 'middle',
@@ -60,7 +60,20 @@ export const Wizard: React.FC = () => {
           setTemplate(tpl);
         }
       }
-      if (saved.field) setField(saved.field);
+      if (saved.field) {
+        const f = saved.field as FieldBox;
+        if (f.maxFontSize > 28 || f.width < 0.88) {
+          setField({
+            ...f,
+            maxFontSize: 28,
+            x: 0.05,
+            width: 0.90,
+            isBold: true,
+          });
+        } else {
+          setField(f);
+        }
+      }
       if (saved.tableData) setTableData(saved.tableData);
       if (saved.mapping) setMapping(saved.mapping);
       if (saved.recipients && saved.recipients.length > 0) setRecipients(saved.recipients);
