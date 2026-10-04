@@ -99,7 +99,7 @@ export default defineConfig({
             if (id.includes('pdf-lib') || id.includes('pdfjs-dist') || id.includes('@pdf-lib')) {
               return 'vendor-pdf';
             }
-            if (id.includes('xlsx') || id.includes('read-excel-file')) {
+            if (id.includes('xlsx')) {
               return 'vendor-excel';
             }
             if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
