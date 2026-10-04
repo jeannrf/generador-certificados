@@ -100,14 +100,14 @@ export async function pingAppsScript(
       ok: true,
       isBackend,
       remainingQuota: typeof data.remainingQuota === 'number' ? data.remainingQuota : undefined,
-      message: data.message || (isBackend ? 'Servicio Resend activo y listo.' : 'Conexión exitosa con Apps Script.'),
+      message: data.message || (isBackend ? 'Servicio de correo Gmail SMTP activo y listo.' : 'Conexión exitosa con Apps Script.'),
     };
   } catch (err: any) {
     if (isBackend) {
       return {
         ok: true,
         isBackend: true,
-        message: 'Endpoint de Vercel listo para desplegar con RESEND_API_KEY.',
+        message: 'Endpoint de Vercel listo para enviar con credenciales Gmail en .env.local o Vercel.',
       };
     }
     return {

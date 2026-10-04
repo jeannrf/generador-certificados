@@ -63,7 +63,17 @@ export const Wizard: React.FC = () => {
         if (tpl.id?.startsWith('tpl_demo_') || tpl.name?.includes('Diploma de Reconocimiento')) {
           setTemplate(null);
         } else {
-          setTemplate(tpl);
+          let restoredPreviewUrl = tpl.previewUrl;
+          if (tpl.kind === 'image' && tpl.bytes && tpl.bytes.length > 0) {
+            try {
+              restoredPreviewUrl = URL.createObjectURL(
+                new Blob([tpl.bytes as unknown as BlobPart], { type: tpl.mimeType || 'image/png' })
+              );
+            } catch (err) {
+              console.warn('No se pudo regenerar ObjectURL para la plantilla de imagen:', err);
+            }
+          }
+          setTemplate({ ...tpl, previewUrl: restoredPreviewUrl });
           hasValidTemplate = true;
         }
       }
@@ -187,11 +197,16 @@ export const Wizard: React.FC = () => {
   };
 
   const syncRecipients = (data: ParsedTableData, currentMap: ColumnMapping) => {
-    const raw = data.rows.map((row) => ({
-      name: row[currentMap.nameColumn] || '',
-      email: currentMap.emailColumn ? row[currentMap.emailColumn] : undefined,
-      extra: row,
-    }));
+    const raw = data.rows.map((row, idx) => {
+      const existing = recipients[idx];
+      return {
+        id: existing?.id,
+        name: row[currentMap.nameColumn] || '',
+        email: currentMap.emailColumn ? row[currentMap.emailColumn] : undefined,
+        extra: row,
+        customField: existing?.customField,
+      };
+    });
     const validated = validateRecipients(raw, {
       field,
       templateWidthPt: template?.widthPt,

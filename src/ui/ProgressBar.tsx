@@ -30,7 +30,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           )}
         </div>
       )}
-      <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/60 p-0.5">
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(clamped)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={label || 'Progreso de la tarea'}
+        className="h-3 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/60 p-0.5"
+      >
         <div
           className="h-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-500 rounded-full transition-all duration-300 ease-out shadow-sm"
           style={{ width: `${clamped}%` }}
