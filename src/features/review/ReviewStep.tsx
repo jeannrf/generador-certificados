@@ -162,7 +162,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             Verifica los nombres antes de generar los PDFs y prueba cómo queda el nombre más largo.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
             Atrás
           </Button>
@@ -171,8 +171,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             size="sm"
             disabled={validCount + warningCount === 0}
             onClick={onContinue}
+            className="flex-1 sm:flex-none justify-center"
           >
-            Continuar a Generación ({validCount + warningCount})
+            <span className="hidden sm:inline">Continuar a Generación</span>
+            <span className="sm:hidden">Continuar</span> ({validCount + warningCount})
           </Button>
         </div>
       </div>

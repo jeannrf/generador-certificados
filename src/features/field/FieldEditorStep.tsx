@@ -293,7 +293,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs text-slate-500 font-medium">
               <span className="flex items-center gap-1.5">
                 <Move className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-                Arrastra o usa las <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-300 text-slate-700 text-[10px]">Flechas</kbd> (1px) / <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-300 text-slate-700 text-[10px]">Shift+Flechas</kbd> (10px)
+                <span className="hidden sm:inline">Arrastra o usa las <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-300 text-slate-700 text-[10px]">Flechas</kbd> (1px) / <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-300 text-slate-700 text-[10px]">Shift+Flechas</kbd> (10px)</span>
+                <span className="sm:hidden font-medium text-slate-600">Arrastra para ubicar el nombre</span>
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -403,22 +404,22 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'nw')}
                   title="Redimensionar esquina superior izquierda"
-                  className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform"
+                  className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'ne')}
                   title="Redimensionar esquina superior derecha"
-                  className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nesw-resize shadow-sm hover:scale-125 transition-transform"
+                  className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nesw-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'sw')}
                   title="Redimensionar esquina inferior izquierda"
-                  className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nesw-resize shadow-sm hover:scale-125 transition-transform"
+                  className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nesw-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'se')}
                   title="Redimensionar esquina inferior derecha"
-                  className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform"
+                  className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
                 />
 
                 {/* Edge Resize Handles (Top, Bottom, Left, Right) */}

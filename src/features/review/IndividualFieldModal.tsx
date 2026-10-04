@@ -311,19 +311,25 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-50/70">
           <Button
             variant="outline"
             size="sm"
             leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
             onClick={handleResetToDefault}
             disabled={!hasCustomOverrides}
+            className="w-full sm:w-auto justify-center"
           >
             Restablecer a global
           </Button>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onClose}>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="flex-1 sm:flex-none justify-center"
+            >
               Cancelar
             </Button>
             <Button
@@ -331,6 +337,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
               size="sm"
               leftIcon={<Check className="w-3.5 h-3.5" />}
               onClick={handleSave}
+              className="flex-1 sm:flex-none justify-center"
             >
               Guardar Ajuste
             </Button>

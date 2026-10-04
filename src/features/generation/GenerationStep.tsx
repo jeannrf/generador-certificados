@@ -243,12 +243,13 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-3 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-3 pt-2 w-full">
               <Button
                 variant="outline"
                 size="md"
                 leftIcon={<ChevronLeft className="w-4 h-4" />}
                 onClick={onBack}
+                className="w-full sm:w-auto justify-center"
               >
                 Volver a Revisión
               </Button>
@@ -257,7 +258,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                 size="lg"
                 leftIcon={<Sparkles className="w-5 h-5" />}
                 onClick={startGeneration}
-                className="px-8 shadow-md"
+                className="w-full sm:w-auto px-8 shadow-md justify-center"
               >
                 Comenzar Generación
               </Button>

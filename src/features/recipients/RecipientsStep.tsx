@@ -75,7 +75,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
             Sube tu archivo de Excel con los nombres de las personas a quienes se emitirá el certificado.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
@@ -92,8 +92,10 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
               XLSX.writeFile(wb, 'Plantilla_Ejemplo_Destinatarios.xlsx');
             }}
             title="Descargar archivo Excel (.xlsx) de ejemplo con columnas preparadas"
+            className="flex-1 sm:flex-none justify-center"
           >
-            Descargar Plantilla Excel
+            <span className="hidden sm:inline">Descargar Plantilla Excel</span>
+            <span className="sm:hidden">Plantilla Excel</span>
           </Button>
           <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
             Atrás
@@ -103,6 +105,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
             size="sm"
             disabled={!tableData || !mapping.nameColumn}
             onClick={onContinue}
+            className="flex-1 sm:flex-none justify-center"
           >
             Revisar Destinatarios
           </Button>
