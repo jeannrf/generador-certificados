@@ -43,6 +43,33 @@ export function interpolateEmailVariables(
 }
 
 /**
+ * Convierte texto normal a HTML de correo electrónico automáticamente.
+ * Si el usuario ya usó etiquetas HTML (como <p>, <br>, <strong>), las respeta intactas.
+ * Si escribió texto plano con saltos de línea, los transforma en párrafos y espaciados limpios.
+ */
+export function ensureHtmlEmailBody(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return '<p></p>';
+
+  // Si contiene etiquetas HTML conocidas, se respeta tal cual
+  const hasHtml = /<\/?(p|div|br|strong|b|em|i|ul|ol|li|span|h[1-6]|table|a)\b/i.test(trimmed);
+  if (hasHtml) {
+    return trimmed;
+  }
+
+  // Convertir saltos dobles en párrafos y saltos simples en <br/>
+  const paragraphs = trimmed
+    .split(/\n\s*\n/)
+    .map(
+      (p) =>
+        `<p style="margin: 0 0 12px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b;">${p.replace(/\n/g, '<br/>')}</p>`
+    )
+    .join('');
+
+  return paragraphs;
+}
+
+/**
  * Valida la configuración de la conexión antes de enviar correos
  */
 export function validateEmailConfig(config: Partial<EmailConfig>): {

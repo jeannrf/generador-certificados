@@ -151,3 +151,37 @@ describe('Domain - Validation & File Safety', () => {
     expect(f3).toBe('Constancia - Carlos Silva.pdf');
   });
 });
+
+describe('Domain - Column Detection', () => {
+  it('should detect name and email columns by header keywords', async () => {
+    const { detectColumns } = await import('../src/infra/parsers');
+    const headers = ['ID', 'Nombre Completo', 'Correo Electrónico', 'DNI'];
+    const detected = detectColumns(headers);
+    expect(detected.nameCol).toBe('Nombre Completo');
+    expect(detected.emailCol).toBe('Correo Electrónico');
+  });
+
+  it('should detect email column by row content if header name is not standard', async () => {
+    const { detectColumns } = await import('../src/infra/parsers');
+    const headers = ['Estudiante', 'Contacto', 'Tipo'];
+    const rows = [
+      { Estudiante: 'Juan Perez', Contacto: 'juan@uni.pe', Tipo: 'Institucional' },
+      { Estudiante: 'Maria Soto', Contacto: 'maria@gmail.com', Tipo: 'Personal' },
+    ];
+    const detected = detectColumns(headers, rows);
+    expect(detected.nameCol).toBe('Estudiante');
+    expect(detected.emailCol).toBe('Contacto');
+  });
+
+  it('should not detect email column if rows do not contain emails', async () => {
+    const { detectColumns } = await import('../src/infra/parsers');
+    const headers = ['Estudiante', 'Tipo', 'Nota'];
+    const rows = [
+      { Estudiante: 'Juan Perez', Tipo: 'Institucional', Nota: '20' },
+      { Estudiante: 'Maria Soto', Tipo: 'Personal', Nota: '18' },
+    ];
+    const detected = detectColumns(headers, rows);
+    expect(detected.nameCol).toBe('Estudiante');
+    expect(detected.emailCol).toBeUndefined();
+  });
+});

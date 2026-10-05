@@ -15,6 +15,21 @@ export type TextCase = 'original' | 'title' | 'upper';
 export type TextAlign = 'left' | 'center' | 'right';
 export type TextVAlign = 'top' | 'middle' | 'bottom';
 
+export interface FontOption {
+  label: string;
+  value: string;
+}
+
+export const FONT_OPTIONS: FontOption[] = [
+  { label: 'Playfair Display (Serif Elegante)', value: 'Playfair Display, Georgia, serif' },
+  { label: 'Times New Roman (Clásico Formal)', value: '"Times New Roman", Times, serif' },
+  { label: 'Cormorant Garamond (Clásico)', value: 'Cormorant Garamond, Georgia, serif' },
+  { label: 'Plus Jakarta Sans (Moderno)', value: 'Plus Jakarta Sans, sans-serif' },
+  { label: 'Montserrat (Geométrico)', value: 'Montserrat, sans-serif' },
+  { label: 'Poppins (Amigable)', value: 'Poppins, sans-serif' },
+  { label: 'Monospace (Técnico)', value: 'monospace' },
+];
+
 /**
  * Coordenadas NORMALIZADAS (0 a 1) relativas al ancho y alto de la plantilla.
  */
