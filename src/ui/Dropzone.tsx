@@ -72,8 +72,8 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           compact ? 'p-5 sm:p-6' : 'p-8 sm:p-12'
         } text-center transition-all duration-200 flex-1 flex flex-col items-center justify-center ${
           isDragOver
-            ? 'border-brand-500 bg-brand-50/50 scale-[0.99] ring-4 ring-brand-100'
-            : 'border-slate-300 hover:border-brand-400 bg-slate-50/50 hover:bg-slate-50'
+            ? 'border-[#208077] bg-[#f0faf9] scale-[0.99] ring-4 ring-[#b2e5df]/50'
+            : 'border-slate-300 hover:border-[#208077] bg-slate-50/50 hover:bg-slate-50'
         }`}
       >
         <input
@@ -89,14 +89,14 @@ export const Dropzone: React.FC<DropzoneProps> = ({
             compact ? 'w-12 h-12 mb-3' : 'w-16 h-16 mb-4'
           } rounded-2xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 ${
             isDragOver
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/30'
-              : 'bg-white text-brand-600 shadow-card border border-slate-200'
+              ? 'bg-[#208077] text-white shadow-md'
+              : 'bg-white text-[#208077] shadow-sm border border-slate-200'
           }`}
         >
           {icon || <UploadCloud className={compact ? 'w-6 h-6 stroke-[1.75]' : 'w-8 h-8 stroke-[1.75]'} />}
         </div>
 
-        <h3 className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-slate-900 group-hover:text-brand-600 transition-colors`}>
+        <h3 className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-slate-900 group-hover:text-[#208077] transition-colors`}>
           {title}
         </h3>
         <p className={`${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'} text-slate-500 max-w-sm`}>{description}</p>

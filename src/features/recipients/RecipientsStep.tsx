@@ -147,14 +147,14 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
             </p>
             <div className="space-y-2 pt-1 text-[11px] text-slate-600">
               <div className="flex items-start gap-2.5 bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-brand-500 mt-1 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[#208077] mt-1 shrink-0" />
                 <div>
                   <strong className="text-slate-900 block text-xs">Columna de Nombres</strong>
                   <span className="text-slate-500">Obligatoria para personalizar el texto en cada certificado.</span>
                 </div>
               </div>
               <div className="flex items-start gap-2.5 bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 mt-1 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[#208077] mt-1 shrink-0" />
                 <div>
                   <strong className="text-slate-900 block text-xs">Columna de Correos</strong>
                   <span className="text-slate-500">Necesaria si vas a enviar los certificados por correo electrónico.</span>
@@ -195,7 +195,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-[#208077] bg-[#f0faf9] hover:bg-[#b2e5df]/40 border border-[#b2e5df] rounded-lg transition-colors shadow-2xs cursor-pointer"
                       title="Seleccionar otro archivo Excel o CSV"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
@@ -222,7 +222,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                     <select
                       value={mapping.nameColumn}
                       onChange={(e) => onMappingChange({ ...mapping, nameColumn: e.target.value })}
-                      className="w-full text-xs font-semibold rounded-xl border border-brand-300 bg-brand-50/50 p-2.5 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:bg-white"
+                      className="w-full text-xs font-semibold rounded-xl border border-[#b2e5df] bg-[#f0faf9] p-2.5 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:bg-white"
                     >
                       {tableData.headers.map((h) => (
                         <option key={h} value={h}>
@@ -241,7 +241,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                       onChange={(e) =>
                         onMappingChange({ ...mapping, emailColumn: e.target.value || undefined })
                       }
-                      className="w-full text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:bg-white"
+                      className="w-full text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#208077] focus:bg-white"
                     >
                       <option value="">-- Ninguna --</option>
                       {tableData.headers.map((h) => (
@@ -267,7 +267,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                             <th
                               key={h}
                               className={`px-3 py-2 text-left ${
-                                h === mapping.nameColumn ? 'bg-brand-50 text-brand-700 font-bold' : ''
+                                h === mapping.nameColumn ? 'bg-[#f0faf9] text-[#208077] font-bold' : ''
                               }`}
                             >
                               {h}
@@ -285,7 +285,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                               <td
                                 key={h}
                                 className={`px-3 py-1.5 truncate max-w-[160px] ${
-                                  h === mapping.nameColumn ? 'font-medium text-slate-900 bg-brand-50/40' : 'text-slate-600'
+                                  h === mapping.nameColumn ? 'font-medium text-slate-900 bg-[#f0faf9]/80' : 'text-slate-600'
                                 }`}
                               >
                                 {row[h] || '—'}

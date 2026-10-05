@@ -300,7 +300,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-slate-400" />
                 <span className="text-xs font-bold text-slate-700">Filtro actual:</span>
-                <span className="text-xs font-semibold text-brand-600 uppercase">
+                <span className="text-xs font-semibold text-[#208077] uppercase">
                   {filter === 'all'
                     ? 'Todos los registros'
                     : filter === 'valid'
@@ -347,14 +347,14 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                         }}
                         className={`cursor-pointer transition-all ${
                           isSelectedInPreview
-                            ? 'bg-brand-50/90 ring-1 ring-inset ring-brand-400/50 shadow-sm'
+                            ? 'bg-[#f0faf9] ring-1 ring-inset ring-[#208077]/40 shadow-sm'
                             : 'hover:bg-slate-50/80'
                         }`}
                       >
                         <td className="px-3 py-2 text-slate-400 font-mono text-[11px]">
                           <div className="flex items-center gap-1.5">
                             {isSelectedInPreview && (
-                              <Eye className="w-3.5 h-3.5 text-brand-600 flex-shrink-0 animate-pulse" />
+                              <Eye className="w-3.5 h-3.5 text-[#208077] flex-shrink-0 animate-pulse" />
                             )}
                             <span>{rec.rowNumber}</span>
                           </div>
@@ -374,7 +374,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                             }}
                             placeholder="Nombre del destinatario"
                             title="Haz clic para editar el nombre o ver en el certificado"
-                            className="w-full bg-white/70 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-md px-2 py-1 transition-all text-xs font-semibold text-slate-900 shadow-xs"
+                            className="w-full bg-white/70 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-[#208077] focus:ring-2 focus:ring-[#208077]/20 rounded-md px-2 py-1 transition-all text-xs font-semibold text-slate-900 shadow-xs"
                           />
                           {rec.email && (
                             <span className="block text-[11px] text-slate-400 font-normal px-1 mt-0.5">
@@ -409,8 +409,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                               onClick={() => setCustomizingRecipient(rec)}
                               className={`p-1 rounded-lg transition-colors ${
                                 rec.customField && Object.keys(rec.customField).length > 0
-                                  ? 'text-brand-600 bg-brand-50 hover:bg-brand-100 ring-1 ring-brand-300'
-                                  : 'text-slate-400 hover:text-brand-600 hover:bg-slate-100'
+                                  ? 'text-[#208077] bg-[#f0faf9] hover:bg-[#b2e5df]/40 ring-1 ring-[#b2e5df]'
+                                  : 'text-slate-400 hover:text-[#208077] hover:bg-slate-100'
                               }`}
                               title="Ajuste individual de diseño (tamaño de fuente, posición)"
                             >
@@ -441,12 +441,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <Eye className="w-4 h-4 text-brand-600" />
+                  <Eye className="w-4 h-4 text-[#208077]" />
                   Vista previa real del certificado
                 </span>
                 {currentPreviewRecipient?.customField &&
                   Object.keys(currentPreviewRecipient.customField).length > 0 && (
-                    <span className="text-[10px] bg-brand-50 text-brand-700 font-semibold px-1.5 py-0.5 rounded border border-brand-200">
+                    <span className="text-[10px] bg-[#f0faf9] text-[#208077] font-semibold px-1.5 py-0.5 rounded border border-[#b2e5df]">
                       Personalizado
                     </span>
                   )}
@@ -455,7 +455,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  leftIcon={<FileDown className="w-3.5 h-3.5 text-brand-600" />}
+                  leftIcon={<FileDown className="w-3.5 h-3.5 text-[#208077]" />}
                   onClick={handleDownloadSamplePdf}
                   isLoading={downloadingSample}
                   title="Descargar este certificado como archivo PDF para ver el resultado real"
@@ -467,7 +467,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                   onClick={() => setPreviewIndex(0)}
                   className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
                     safePreviewIndex === 0
-                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                      ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -477,7 +477,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                   onClick={() => setPreviewIndex(longestRecipientIndex)}
                   className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
                     safePreviewIndex === longestRecipientIndex
-                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                      ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >

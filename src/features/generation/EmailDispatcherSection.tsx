@@ -342,7 +342,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
       {/* Header de la sección de correo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-[#f0faf9] border border-[#b2e5df] flex items-center justify-center text-[#208077] shadow-xs">
             <Mail className="w-5 h-5" />
           </div>
           <div>
@@ -359,7 +359,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           <Button
             variant="outline"
             size="sm"
-            leftIcon={<Settings className="w-4 h-4 text-brand-600" />}
+            leftIcon={<Settings className="w-4 h-4 text-[#208077]" />}
             onClick={() => setIsConfigOpen(!isConfigOpen)}
           >
             {isConfigOpen ? 'Cerrar Ajustes' : 'Personalizar Mensaje'}
@@ -394,7 +394,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   value={config.senderName}
                   onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
                   placeholder="Ej: Emisión de Certificados UNI"
-                  className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
                 />
               </div>
 
@@ -407,7 +407,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   value={config.subject}
                   onChange={(e) => setConfig({ ...config, subject: e.target.value })}
                   placeholder="Tu Certificado — {nombre}"
-                  className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
                 />
                 <span className="text-[11px] text-slate-400 block pt-0.5">
                   Variables disponibles: <code className="text-slate-600 font-semibold">{'{nombre}'}</code>, <code className="text-slate-600 font-semibold">{'{correo}'}</code> y columnas del Excel.
@@ -425,7 +425,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                 value={config.htmlBody}
                 onChange={(e) => setConfig({ ...config, htmlBody: e.target.value })}
                 placeholder="<p>Hola <strong>{nombre}</strong>,</p>..."
-                className="w-full flex-1 min-h-[175px] text-xs font-mono rounded-xl border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 resize-y leading-relaxed"
+                className="w-full flex-1 min-h-[175px] text-xs font-mono rounded-xl border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077] resize-y leading-relaxed"
               />
             </div>
           </div>
@@ -455,7 +455,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
                 placeholder="tu.correo@ejemplo.com"
-                className="flex-1 text-xs rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                className="flex-1 text-xs rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
               />
               <Button
                 variant="primary"
@@ -505,7 +505,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
             <>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#f0faf9] border border-[#b2e5df] text-[#208077] flex items-center justify-center shrink-0">
                     <Send className="w-4 h-4" />
                   </div>
                   <h4 className="text-sm font-bold text-slate-900">Envío Masivo de Certificados</h4>
@@ -522,7 +522,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   leftIcon={<Send className="w-4 h-4" />}
                   onClick={handleStartMassEmail}
                   disabled={recipientsWithEmail.length === 0}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20 justify-center py-2.5 text-xs font-semibold"
+                  className="w-full bg-[#208077] hover:bg-[#18655e] shadow-sm justify-center py-2.5 text-xs font-semibold"
                 >
                   Enviar {recipientsWithEmail.length} Certificados por Correo
                 </Button>
@@ -539,7 +539,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                     {sendProgress.currentRecipientName}
                   </span>
                 </span>
-                <span className="font-bold text-indigo-600 shrink-0">
+                <span className="font-bold text-[#208077] shrink-0">
                   {sendProgress.current} de {sendProgress.total}
                 </span>
               </div>

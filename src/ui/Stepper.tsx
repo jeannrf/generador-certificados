@@ -43,7 +43,7 @@ export const Stepper: React.FC<StepperProps> = ({
                         isCompleted
                           ? 'bg-emerald-500 text-white shadow-emerald-500/20 shadow-md'
                           : isCurrent
-                          ? 'bg-brand-600 text-white shadow-brand-500/30 shadow-lg ring-4 ring-brand-100 scale-105'
+                          ? 'bg-[#208077] text-white shadow-sm ring-4 ring-[#b2e5df]/60 scale-105'
                           : 'bg-slate-100 text-slate-400 border border-slate-200'
                       }`}
                     >
@@ -59,7 +59,7 @@ export const Stepper: React.FC<StepperProps> = ({
                       <span
                         className={`text-xs font-semibold tracking-wide uppercase ${
                           isCurrent
-                            ? 'text-brand-600'
+                            ? 'text-[#208077]'
                             : isCompleted
                             ? 'text-emerald-700'
                             : 'text-slate-400'
