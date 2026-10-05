@@ -21,6 +21,7 @@ import {
   interpolateEmailVariables,
   validateEmailConfig,
   buildDeliveryReportCsv,
+  ensureHtmlEmailBody,
 } from '../../domain/email';
 import { composeCertificatePdf } from '../../infra/pdfComposer';
 import { triggerDownload } from '../../infra/zipExporter';
@@ -35,6 +36,8 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Eye,
+  Paperclip,
 } from 'lucide-react';
 
 interface EmailDispatcherSectionProps {
@@ -55,6 +58,27 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   // Configuración cargada desde localStorage (abierta por defecto)
   const [config, setConfig] = useState<EmailConfig>(loadEmailConfigFromStorage());
   const [isConfigOpen, setIsConfigOpen] = useState(true);
+  const [emailViewMode, setEmailViewMode] = useState<'write' | 'preview'>('write');
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const insertVariable = (varName: string) => {
+    if (!textareaRef.current) {
+      setConfig((prev) => ({ ...prev, htmlBody: prev.htmlBody + ` {${varName}}` }));
+      return;
+    }
+    const el = textareaRef.current;
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const text = config.htmlBody;
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    const updated = `${before}{${varName}}${after}`;
+    setConfig((prev) => ({ ...prev, htmlBody: updated }));
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + varName.length + 2, start + varName.length + 2);
+    }, 10);
+  };
 
   // Sección chiquita requerida: "pon tu correo y prueba"
   const [testEmail, setTestEmail] = useState('');
@@ -144,7 +168,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         token: config.token,
         to: testEmail.trim(),
         subject: interpolatedSubject,
-        htmlBody: interpolatedBody,
+        htmlBody: ensureHtmlEmailBody(interpolatedBody),
         senderName: config.senderName,
         attachment: {
           filename: fileName,
@@ -241,7 +265,9 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
         const base64Pdf = uint8ArrayToBase64(pdfBytes);
         const subject = interpolateEmailVariables(config.subject, rec);
-        const htmlBody = interpolateEmailVariables(config.htmlBody, rec, { escapeForHtml: false });
+        const htmlBody = ensureHtmlEmailBody(
+          interpolateEmailVariables(config.htmlBody, rec, { escapeForHtml: false })
+        );
 
         // Enviar vía Apps Script
         const result = await sendEmailViaScript({
@@ -374,15 +400,9 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
             <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
               Personalización del Correo
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                Backend de Vercel listo
-              </span>
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
             {/* Columna Izquierda: Remitente y Asunto */}
             <div className="space-y-3.5">
               <div className="space-y-1">
@@ -417,16 +437,115 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
             {/* Columna Derecha: Mensaje del Correo */}
             <div className="space-y-1 flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">
-                Mensaje del Correo (HTML o texto con formato)
-              </label>
-              <textarea
-                rows={8}
-                value={config.htmlBody}
-                onChange={(e) => setConfig({ ...config, htmlBody: e.target.value })}
-                placeholder="<p>Hola <strong>{nombre}</strong>,</p>..."
-                className="w-full flex-1 min-h-[175px] text-xs font-mono rounded-xl border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077] resize-y leading-relaxed"
-              />
+              <div className="flex items-center justify-between flex-wrap gap-2 pb-0.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  Mensaje del Correo
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-400 font-medium mr-0.5 hidden sm:inline">Insertar:</span>
+                  <button
+                    type="button"
+                    onClick={() => insertVariable('nombre')}
+                    className="text-[10px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer shadow-2xs"
+                    title="Insertar {nombre} en la posición del cursor"
+                  >
+                    + {'{nombre}'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertVariable('correo')}
+                    className="text-[10px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer shadow-2xs"
+                    title="Insertar {correo} en la posición del cursor"
+                  >
+                    + {'{correo}'}
+                  </button>
+                  <div className="h-3.5 w-px bg-slate-200 mx-0.5" />
+                  <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setEmailViewMode('write')}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+                        emailViewMode === 'write'
+                          ? 'bg-[#208077] text-white font-semibold shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Escribir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEmailViewMode('preview')}
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                        emailViewMode === 'preview'
+                          ? 'bg-[#208077] text-white font-semibold shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Eye className="w-3 h-3" />
+                      Vista previa
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {emailViewMode === 'write' ? (
+                <>
+                  <textarea
+                    ref={textareaRef}
+                    rows={7}
+                    value={config.htmlBody}
+                    onChange={(e) => setConfig({ ...config, htmlBody: e.target.value })}
+                    placeholder="Hola {nombre},&#10;&#10;¡Felicitaciones! Adjuntamos tu certificado oficial en formato PDF...&#10;&#10;Saludos cordiales,&#10;Comité Organizador"
+                    className="w-full flex-1 min-h-[175px] text-xs font-sans rounded-xl border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077] resize-y leading-relaxed shadow-2xs"
+                  />
+                  <span className="text-[11px] text-slate-500 leading-snug pt-0.5 flex items-start gap-1">
+                    <span>💡</span>
+                    <span>
+                      Escribe texto normal con saltos de línea (Enter). <strong>No necesitas saber HTML</strong>: el sistema le da formato elegante automáticamente al enviar.
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <div className="w-full min-h-[195px] rounded-xl border border-slate-200 bg-white p-4 text-xs shadow-2xs flex flex-col justify-between animate-fadeIn">
+                  <div className="space-y-3">
+                    <div className="border-b border-slate-100 pb-2 text-[11px] text-slate-500 space-y-1">
+                      <p>
+                        <strong className="text-slate-700">De:</strong> {config.senderName || 'Emisión de Certificados'}
+                      </p>
+                      <p>
+                        <strong className="text-slate-700">Asunto:</strong>{' '}
+                        {interpolateEmailVariables(
+                          config.subject,
+                          recipients.length > 0
+                            ? recipients[0]
+                            : { id: 's', rowNumber: 1, name: 'Jeanpier Robles', email: 'jeanpier@uni.pe', extra: {}, issues: [] }
+                        )}
+                      </p>
+                    </div>
+                    <div
+                      className="text-xs text-slate-800 leading-relaxed font-sans"
+                      dangerouslySetInnerHTML={{
+                        __html: ensureHtmlEmailBody(
+                          interpolateEmailVariables(
+                            config.htmlBody,
+                            recipients.length > 0
+                              ? recipients[0]
+                              : { id: 's', rowNumber: 1, name: 'Jeanpier Robles', email: 'jeanpier@uni.pe', extra: {}, issues: [] },
+                            { escapeForHtml: true }
+                          )
+                        ),
+                      }}
+                    />
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg">
+                    <Paperclip className="w-3.5 h-3.5 text-[#208077]" />
+                    <span className="font-semibold text-slate-800">Archivo adjunto:</span>
+                    <span className="font-mono text-slate-500 truncate">
+                      Certificado - {recipients.length > 0 ? recipients[0].name : 'Destinatario'}.pdf
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Card>

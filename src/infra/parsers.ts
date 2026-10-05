@@ -97,7 +97,10 @@ export function parseTXT(fileContent: string): ParsedTableData {
 /**
  * Sugiere automáticamente qué columnas corresponden al nombre y al correo.
  */
-export function detectColumns(headers: string[]): { nameCol?: string; emailCol?: string } {
+export function detectColumns(
+  headers: string[],
+  rows?: Record<string, string>[]
+): { nameCol?: string; emailCol?: string } {
   const nameKeywords = ['nombre', 'name', 'participante', 'destinatario', 'alumno', 'asistente', 'estudiante', 'full name', 'persona'];
   const emailKeywords = ['correo', 'email', 'e-mail', 'mail', 'correo electronico', 'dirección de correo'];
 
@@ -111,6 +114,22 @@ export function detectColumns(headers: string[]): { nameCol?: string; emailCol?:
     }
     if (!emailCol && emailKeywords.some((kw) => lower.includes(kw))) {
       emailCol = h;
+    }
+  }
+
+  // Si no se encontró columna de correo por palabra clave en cabeceras, inspeccionar contenido de filas
+  if (!emailCol && rows && rows.length > 0) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    for (const h of headers) {
+      if (h === nameCol) continue;
+      const values = rows.map((r) => r[h]?.trim()).filter((v): v is string => Boolean(v));
+      if (values.length > 0) {
+        const matches = values.filter((v) => emailRegex.test(v)).length;
+        if (matches / values.length >= 0.4) {
+          emailCol = h;
+          break;
+        }
+      }
     }
   }
 

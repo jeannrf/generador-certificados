@@ -1,15 +1,19 @@
 import { EmailConfig } from '../../domain/types';
 
-const STORAGE_KEY = 'cert_email_config_v1';
+const STORAGE_KEY = 'cert_email_config_v2';
+const OLD_STORAGE_KEY = 'cert_email_config_v1';
 
 export const DEFAULT_EMAIL_CONFIG: EmailConfig = {
   webAppUrl: '',
   token: '',
   senderName: 'Emisión de Certificados',
   subject: 'Tu Certificado — {nombre}',
-  htmlBody: `<p>Hola <strong>{nombre}</strong>,</p>
-<p>¡Felicitaciones! Adjuntamos tu certificado oficial en formato PDF.</p>
-<p>Saludos cordiales,<br/>Comité Organizador</p>`,
+  htmlBody: `Hola {nombre},
+
+¡Felicitaciones! Adjuntamos tu certificado oficial en formato PDF.
+
+Saludos cordiales,
+Comité Organizador`,
 };
 
 /**
@@ -48,6 +52,25 @@ export function loadEmailConfigFromStorage(): EmailConfig {
     if (raw) {
       const parsed = JSON.parse(raw);
       return { ...DEFAULT_EMAIL_CONFIG, ...parsed };
+    }
+
+    // Migración desde v1 si existía:
+    const oldRaw = localStorage.getItem(OLD_STORAGE_KEY);
+    if (oldRaw) {
+      const oldParsed = JSON.parse(oldRaw);
+      // Si el htmlBody anterior contenía el viejo default HTML rígido, reemplazarlo por el texto limpio
+      const isOldDefaultHtml =
+        oldParsed.htmlBody &&
+        oldParsed.htmlBody.includes('<p>Hola <strong>{nombre}</strong>,</p>') &&
+        oldParsed.htmlBody.includes('Comité Organizador</p>');
+
+      const migrated = {
+        ...DEFAULT_EMAIL_CONFIG,
+        ...oldParsed,
+        htmlBody: isOldDefaultHtml ? DEFAULT_EMAIL_CONFIG.htmlBody : oldParsed.htmlBody,
+      };
+      saveEmailConfigToStorage(migrated);
+      return migrated;
     }
   } catch (err) {
     console.warn('Error leyendo configuración de correo desde localStorage:', err);

@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { ColumnMapping } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Dropzone } from '../../ui/Dropzone';
 import { parseCSV, parseTXT, parseExcel, detectColumns, ParsedTableData } from '../../infra/parsers';
-import { ChevronLeft, FileSpreadsheet, AlertCircle, CheckCircle2, Download, RefreshCw, Trash2 } from 'lucide-react';
+import { ChevronLeft, FileSpreadsheet, AlertCircle, AlertTriangle, CheckCircle2, Download, RefreshCw, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface RecipientsStepProps {
@@ -52,7 +52,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
         return;
       }
 
-      const detected = detectColumns(parsed.headers);
+      const detected = detectColumns(parsed.headers, parsed.rows);
       const newMapping: ColumnMapping = {
         nameColumn: detected.nameCol || parsed.headers[0],
         emailColumn: detected.emailCol,
@@ -63,6 +63,52 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
       setError(`Error al leer el archivo: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
+
+  // Validación de advertencia si la columna seleccionada como correo no parece contener correos
+  const emailWarning = useMemo(() => {
+    if (!tableData || !mapping.emailColumn) return null;
+
+    const col = mapping.emailColumn;
+    const values = tableData.rows
+      .map((r) => r[col]?.trim())
+      .filter((v): v is string => Boolean(v));
+
+    if (values.length === 0) {
+      return `La columna "${col}" no tiene datos en ningún registro.`;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validEmails = values.filter((v) => emailRegex.test(v));
+    const validRatio = validEmails.length / values.length;
+
+    // Si menos del 40% de los registros tienen formato de correo
+    if (validRatio < 0.4) {
+      const sampleValue = values[0];
+      return `Los registros de esta columna no tienen formato de correo electrónico${sampleValue ? ` (ej. "${sampleValue}")` : ''}. Es probable que no sea la columna correcta.`;
+    }
+
+    return null;
+  }, [tableData, mapping.emailColumn]);
+
+  // Validación si la columna seleccionada como nombre parece contener correos
+  const nameWarning = useMemo(() => {
+    if (!tableData || !mapping.nameColumn) return null;
+
+    const col = mapping.nameColumn;
+    const values = tableData.rows
+      .map((r) => r[col]?.trim())
+      .filter((v): v is string => Boolean(v));
+
+    if (values.length === 0) return null;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailMatches = values.filter((v) => emailRegex.test(v)).length;
+    if (emailMatches / values.length >= 0.5) {
+      return `Esta columna parece contener correos electrónicos en lugar de nombres de personas.`;
+    }
+
+    return null;
+  }, [tableData, mapping.nameColumn]);
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -114,8 +160,8 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Upload Column (Left - 33% / 4 cols) */}
-        <div className="lg:col-span-4 flex flex-col space-y-4">
-          <Card className="p-4 sm:p-5 flex flex-col space-y-3">
+        <div className="lg:col-span-4 flex flex-col gap-4 h-full">
+          <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-center">
             <Dropzone
               accept=".xlsx,.xls,.csv"
               acceptLabel="Excel o CSV"
@@ -126,10 +172,11 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
               onFileSelect={handleFileSelect}
               compact
               hideBadge
+              className="flex-1 h-full"
             />
 
             {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2 mt-3 shrink-0">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -137,7 +184,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
           </Card>
 
           {/* Tarjeta de requisitos de formato del archivo */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 text-xs">
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 text-xs shrink-0">
             <div className="flex items-center gap-2 font-bold text-slate-800">
               <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>Formato admitido del Excel</span>
@@ -168,8 +215,8 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
         <div className="lg:col-span-8 flex flex-col h-full">
           {tableData ? (
             <Card className="p-6 flex flex-col justify-between h-full space-y-5">
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="space-y-4 flex-1 flex flex-col min-h-0">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 shrink-0">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span className="text-sm font-bold text-slate-900">
@@ -214,7 +261,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                 </div>
 
                 {/* Mapping Selectors */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 block">
                       Columna de Nombres <span className="text-rose-500">*</span>
@@ -222,7 +269,11 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                     <select
                       value={mapping.nameColumn}
                       onChange={(e) => onMappingChange({ ...mapping, nameColumn: e.target.value })}
-                      className="w-full text-xs font-semibold rounded-xl border border-[#b2e5df] bg-[#f0faf9] p-2.5 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:bg-white"
+                      className={`w-full text-xs font-semibold rounded-xl border p-2.5 focus:ring-2 focus:ring-[#208077] focus:bg-white transition-colors ${
+                        nameWarning
+                          ? 'border-amber-400 bg-amber-50/50 text-slate-900'
+                          : 'border-[#b2e5df] bg-[#f0faf9] text-slate-900'
+                      }`}
                     >
                       {tableData.headers.map((h) => (
                         <option key={h} value={h}>
@@ -230,6 +281,13 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                         </option>
                       ))}
                     </select>
+
+                    {nameWarning && (
+                      <div className="p-2 bg-amber-50 border border-amber-200/90 rounded-lg text-amber-800 text-[11px] flex items-start gap-1.5 mt-1 animate-fadeIn">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="leading-snug">{nameWarning}</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -241,7 +299,11 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                       onChange={(e) =>
                         onMappingChange({ ...mapping, emailColumn: e.target.value || undefined })
                       }
-                      className="w-full text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#208077] focus:bg-white"
+                      className={`w-full text-xs font-medium rounded-xl border p-2.5 focus:ring-2 focus:ring-[#208077] focus:bg-white transition-colors ${
+                        emailWarning
+                          ? 'border-amber-400 bg-amber-50/50 text-slate-800'
+                          : 'border-slate-200 bg-slate-50 text-slate-800'
+                      }`}
                     >
                       <option value="">-- Ninguna --</option>
                       {tableData.headers.map((h) => (
@@ -250,24 +312,34 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                         </option>
                       ))}
                     </select>
+
+                    {emailWarning && (
+                      <div className="p-2 bg-amber-50 border border-amber-200/90 rounded-lg text-amber-800 text-[11px] flex items-start gap-1.5 mt-1 animate-fadeIn">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="leading-snug">{emailWarning}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Data Preview Table */}
-                <div className="space-y-2">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                    Primeras filas del archivo:
-                  </span>
-                  <div className="overflow-x-auto rounded-xl border border-slate-200 max-h-56">
+                <div className="space-y-2 flex-1 flex flex-col min-h-0">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider shrink-0">
+                    <span>Vista previa del archivo ({tableData.rows.length} filas):</span>
+                    <span className="text-[11px] font-normal normal-case text-slate-400">
+                      Desplaza para revisar todos los registros
+                    </span>
+                  </div>
+                  <div className="overflow-auto rounded-xl border border-slate-200 flex-1 min-h-[220px] max-h-72 sm:max-h-80 shadow-xs">
                     <table className="min-w-full divide-y divide-slate-200 text-xs">
-                      <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0">
+                      <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10 shadow-xs">
                         <tr>
-                          <th className="px-3 py-2 text-left w-12">#</th>
+                          <th className="px-3 py-2 text-left w-12 bg-slate-50">#</th>
                           {tableData.headers.map((h) => (
                             <th
                               key={h}
-                              className={`px-3 py-2 text-left ${
-                                h === mapping.nameColumn ? 'bg-[#f0faf9] text-[#208077] font-bold' : ''
+                              className={`px-3 py-2 text-left bg-slate-50 ${
+                                h === mapping.nameColumn ? 'text-[#208077] font-bold' : ''
                               }`}
                             >
                               {h}
@@ -276,15 +348,15 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
-                        {tableData.rows.slice(0, 5).map((row, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/80">
+                        {tableData.rows.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                             <td className="px-3 py-1.5 text-slate-400 font-mono text-[11px]">
                               {idx + 1}
                             </td>
                             {tableData.headers.map((h) => (
                               <td
                                 key={h}
-                                className={`px-3 py-1.5 truncate max-w-[160px] ${
+                                className={`px-3 py-1.5 truncate max-w-[180px] ${
                                   h === mapping.nameColumn ? 'font-medium text-slate-900 bg-[#f0faf9]/80' : 'text-slate-600'
                                 }`}
                               >

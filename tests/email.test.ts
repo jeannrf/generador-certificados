@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { interpolateEmailVariables, validateEmailConfig, buildDeliveryReportCsv } from '../src/domain/email';
+import {
+  interpolateEmailVariables,
+  validateEmailConfig,
+  buildDeliveryReportCsv,
+  ensureHtmlEmailBody,
+} from '../src/domain/email';
 import { uint8ArrayToBase64 } from '../src/infra/email/googleAppsScript';
 import { Recipient, EmailDeliveryRecord } from '../src/domain/types';
 
@@ -80,5 +85,19 @@ describe('Domain - Email Interpolation & Validation', () => {
     const testBytes = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
     const b64 = uint8ArrayToBase64(testBytes);
     expect(b64).toBe(btoa('Hello'));
+  });
+
+  it('should convert plain text to elegant HTML paragraphs without requiring HTML knowledge', () => {
+    const plainText = `Hola Juan,\n\nAdjuntamos tu certificado.\n\nSaludos cordiales,\nComité`;
+    const html = ensureHtmlEmailBody(plainText);
+    expect(html).toContain('<p style="');
+    expect(html).toContain('Hola Juan,');
+    expect(html).toContain('Saludos cordiales,<br/>Comité');
+  });
+
+  it('should preserve custom HTML if user provided it', () => {
+    const customHtml = '<div class="banner"><h1>Bienvenido</h1><p>Texto</p></div>';
+    const html = ensureHtmlEmailBody(customHtml);
+    expect(html).toBe(customHtml);
   });
 });
