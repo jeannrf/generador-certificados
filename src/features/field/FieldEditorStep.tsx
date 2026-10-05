@@ -36,7 +36,7 @@ const FONT_OPTIONS = [
 const PRESET_COLORS = [
   '#0f172a', // Slate Dark
   '#1e3a8a', // Navy Blue
-  '#7c3aed', // Brand Violet
+  '#208077', // Brand Verde UniCertified
   '#d97706', // Gold / Amber
   '#047857', // Emerald Green
   '#0284c7', // Sky Blue
@@ -292,7 +292,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
           <Card className="p-4 sm:p-6 overflow-hidden bg-slate-900/5">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs text-slate-500 font-medium">
               <span className="flex items-center gap-1.5">
-                <Move className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                <Move className="w-3.5 h-3.5 text-[#208077] shrink-0" />
                 <span className="hidden sm:inline">Arrastra o usa las <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-300 text-slate-700 text-[10px]">Flechas</kbd> (1px) / <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-300 text-slate-700 text-[10px]">Shift+Flechas</kbd> (10px)</span>
                 <span className="sm:hidden font-medium text-slate-600">Arrastra para ubicar el nombre</span>
               </span>
@@ -300,7 +300,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 <button
                   type="button"
                   onClick={handleCenterField}
-                  className="text-[11px] font-semibold text-brand-700 bg-white hover:bg-brand-50 px-2 py-0.5 rounded border border-brand-200 transition-colors shadow-2xs cursor-pointer"
+                  className="text-[11px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] px-2 py-0.5 rounded border border-[#b2e5df] transition-colors shadow-2xs cursor-pointer"
                   title="Alinear automáticamente al centro horizontal del certificado"
                 >
                   Centrar
@@ -363,8 +363,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   width: `${field.width * 100}%`,
                   height: `${field.height * 100}%`,
                 }}
-                className={`absolute cursor-move border-2 border-brand-500 bg-brand-500/10 rounded-sm flex transition-shadow ${
-                  isDragging ? 'shadow-2xl ring-4 ring-brand-300/60 bg-brand-500/20' : 'hover:border-brand-600'
+                className={`absolute cursor-move border-2 border-[#208077] bg-[#208077]/10 rounded-sm flex transition-shadow ${
+                  isDragging ? 'shadow-2xl ring-4 ring-[#b2e5df]/60 bg-[#208077]/20' : 'hover:border-[#18655e]'
                 }`}
               >
                 {/* Live Name Text inside box */}
@@ -404,44 +404,44 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'nw')}
                   title="Redimensionar esquina superior izquierda"
-                  className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
+                  className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-[#208077] rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'ne')}
                   title="Redimensionar esquina superior derecha"
-                  className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nesw-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
+                  className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-[#208077] rounded-full cursor-nesw-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'sw')}
                   title="Redimensionar esquina inferior izquierda"
-                  className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nesw-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
+                  className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-[#208077] rounded-full cursor-nesw-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'se')}
                   title="Redimensionar esquina inferior derecha"
-                  className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-brand-600 rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
+                  className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-[#208077] rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform after:absolute after:-inset-2.5 after:content-['']"
                 />
 
                 {/* Edge Resize Handles (Top, Bottom, Left, Right) */}
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'n')}
                   title="Ajustar altura (superior)"
-                  className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-white border border-brand-500 rounded-full cursor-ns-resize shadow-xs hover:bg-brand-100 hover:scale-110 transition-transform"
+                  className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-white border border-[#208077] rounded-full cursor-ns-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 's')}
                   title="Ajustar altura (inferior)"
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-white border border-brand-500 rounded-full cursor-ns-resize shadow-xs hover:bg-brand-100 hover:scale-110 transition-transform"
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-white border border-[#208077] rounded-full cursor-ns-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'w')}
                   title="Ajustar ancho (izquierda)"
-                  className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-6 bg-white border border-brand-500 rounded-full cursor-ew-resize shadow-xs hover:bg-brand-100 hover:scale-110 transition-transform"
+                  className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-6 bg-white border border-[#208077] rounded-full cursor-ew-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'e')}
                   title="Ajustar ancho (derecha)"
-                  className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-6 bg-white border border-brand-500 rounded-full cursor-ew-resize shadow-xs hover:bg-brand-100 hover:scale-110 transition-transform"
+                  className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-6 bg-white border border-[#208077] rounded-full cursor-ew-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
               </div>
             </div>
@@ -452,21 +452,21 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
         <div className="lg:col-span-4 space-y-5">
           <Card className="p-5 space-y-5">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Sliders className="w-4 h-4 text-brand-600" />
+              <Sliders className="w-4 h-4 text-[#208077]" />
               Ajustes de Tipografía
             </h3>
 
             {/* Test Text Input (Placed prominently at the top of the sidebar) */}
-            <div className="space-y-2 bg-brand-50/50 p-3 rounded-xl border border-brand-200/70">
+            <div className="space-y-2 bg-[#f0faf9] p-3 rounded-xl border border-[#b2e5df]">
               <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-brand-600" />
+                <Sparkles className="w-3.5 h-3.5 text-[#208077]" />
                 Texto de prueba en vivo
               </label>
               <input
                 type="text"
                 value={sampleName}
                 onChange={(e) => setSampleName(e.target.value)}
-                className="w-full text-xs font-semibold text-slate-900 bg-white border border-brand-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none shadow-xs"
+                className="w-full text-xs font-semibold text-slate-900 bg-white border border-[#b2e5df] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#208077] focus:outline-none shadow-xs"
                 placeholder="Jeanpier Alexander Robles Fabian"
               />
 
@@ -478,7 +478,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
               <select
                 value={field.fontFamily}
                 onChange={(e) => onFieldChange({ ...field, fontFamily: e.target.value })}
-                className="w-full text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-800 focus:ring-2 focus:ring-brand-500 focus:bg-white"
+                className="w-full text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#208077] focus:bg-white"
               >
                 {FONT_OPTIONS.map((f) => (
                   <option key={f.value} value={f.value}>
@@ -513,7 +513,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                     onClick={() => onFieldChange({ ...field, isBold: !field.isBold })}
                     className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm transition-all ${
                       field.isBold
-                        ? 'bg-brand-600 text-white font-extrabold shadow-sm'
+                        ? 'bg-[#208077] text-white font-extrabold shadow-sm'
                         : 'bg-white text-slate-700 hover:bg-slate-50 font-bold border border-slate-200'
                     }`}
                   >
@@ -526,7 +526,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                     onClick={() => onFieldChange({ ...field, isItalic: !field.isItalic })}
                     className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm transition-all ${
                       field.isItalic
-                        ? 'bg-brand-600 text-white font-serif italic font-bold shadow-sm'
+                        ? 'bg-[#208077] text-white font-serif italic font-bold shadow-sm'
                         : 'bg-white text-slate-700 hover:bg-slate-50 font-serif italic font-bold border border-slate-200'
                     }`}
                   >
@@ -584,7 +584,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                         onClick={() => onFieldChange({ ...field, align: a.value })}
                         className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all ${
                           isSelected
-                            ? 'bg-brand-600 text-white shadow-sm'
+                            ? 'bg-[#208077] text-white shadow-sm'
                             : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                         }`}
                       >
@@ -600,7 +600,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <label className="font-semibold text-slate-700">Tamaño de fuente</label>
-                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 shadow-xs focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500">
+                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 shadow-xs focus-within:ring-2 focus-within:ring-[#208077] focus-within:border-[#208077]">
                   <input
                     type="number"
                     min={10}
@@ -614,7 +614,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                         minFontSize: Math.min(val, field.minFontSize),
                       });
                     }}
-                    className="w-10 text-xs font-bold text-brand-700 text-right focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-10 text-xs font-bold text-[#208077] text-right focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   <span className="text-[11px] font-semibold text-slate-400">pt</span>
                 </div>
@@ -649,7 +649,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                       minFontSize: Math.min(nextVal, field.minFontSize),
                     });
                   }}
-                  className="flex-1 accent-brand-600 cursor-pointer"
+                  className="flex-1 accent-[#208077] cursor-pointer"
                 />
                 <button
                   type="button"
@@ -687,7 +687,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                       style={{ backgroundColor: c }}
                       className={`w-6 h-6 rounded-lg border border-slate-300 transition-transform ${
                         field.color.toLowerCase() === c.toLowerCase()
-                          ? 'scale-125 ring-2 ring-brand-500 ring-offset-1'
+                          ? 'scale-125 ring-2 ring-[#208077] ring-offset-1'
                           : 'hover:scale-110'
                       }`}
                     />

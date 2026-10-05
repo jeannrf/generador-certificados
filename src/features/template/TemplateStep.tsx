@@ -109,7 +109,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
-                  <UploadCloud className="w-4 h-4 text-brand-600" />
+                  <UploadCloud className="w-4 h-4 text-[#208077]" />
                   {template ? 'Cargar otra plantilla' : 'Cargar plantilla'}
                 </h3>
                 {template && (
@@ -138,7 +138,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
 
               <div className="space-y-2">
                 <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <Layout className="w-4 h-4 text-brand-600 shrink-0 mt-0.5" />
+                  <Layout className="w-4 h-4 text-[#208077] shrink-0 mt-0.5" />
                   <div className="text-xs">
                     <span className="font-semibold text-slate-800 block">Deja libre el espacio del nombre</span>
                     <span className="text-[11px] text-slate-500 leading-relaxed">
@@ -148,7 +148,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                 </div>
 
                 <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <FileText className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <FileText className="w-4 h-4 text-[#208077] shrink-0 mt-0.5" />
                   <div className="text-xs">
                     <span className="font-semibold text-slate-800 block">Formato PDF vectorial recomendado</span>
                     <span className="text-[11px] text-slate-500 leading-relaxed">
@@ -167,7 +167,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
             <div className="flex-1 flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-brand-600" />
+                  <FileText className="w-4 h-4 text-[#208077]" />
                   Vista previa de plantilla
                 </h3>
                 {template && onRemoveTemplate && (
@@ -185,7 +185,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
 
               {isRendering ? (
                 <div className="flex-1 min-h-[300px] rounded-xl border border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-500 p-8 text-center space-y-3">
-                  <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-[#208077] animate-spin" />
                   <div>
                     <p className="text-sm font-semibold text-slate-800">Procesando archivo PDF...</p>
                     <p className="text-xs text-slate-400 mt-0.5">Renderizando vista previa en alta resolución</p>
@@ -202,7 +202,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                   </div>
 
                   {pageNotice && (
-                    <div className="p-2.5 bg-brand-50 border border-brand-200/80 rounded-xl text-brand-700 text-xs flex items-center gap-2">
+                    <div className="p-2.5 bg-[#f0faf9] border border-[#b2e5df] rounded-xl text-[#208077] text-xs flex items-center gap-2">
                       <Info className="w-4 h-4 shrink-0" />
                       <span>{pageNotice}</span>
                     </div>
