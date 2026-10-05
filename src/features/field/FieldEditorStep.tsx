@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { TemplateData, FieldBox, TextAlign } from '../../domain/types';
+import { TemplateData, FieldBox, TextAlign, FONT_OPTIONS } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { transformTextCase } from '../../domain/normalization';
@@ -23,15 +23,6 @@ interface FieldEditorStepProps {
   onBack: () => void;
   onContinue: () => void;
 }
-
-const FONT_OPTIONS = [
-  { label: 'Playfair Display (Serif Elegante)', value: 'Playfair Display, Georgia, serif' },
-  { label: 'Cormorant Garamond (Clásico)', value: 'Cormorant Garamond, Georgia, serif' },
-  { label: 'Plus Jakarta Sans (Moderno)', value: 'Plus Jakarta Sans, sans-serif' },
-  { label: 'Montserrat (Geométrico)', value: 'Montserrat, sans-serif' },
-  { label: 'Poppins (Amigable)', value: 'Poppins, sans-serif' },
-  { label: 'Monospace (Técnico)', value: 'monospace' },
-];
 
 const PRESET_COLORS = [
   '#0f172a', // Slate Dark

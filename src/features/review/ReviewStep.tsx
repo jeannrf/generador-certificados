@@ -292,11 +292,11 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Recipients Table */}
-        <div className="lg:col-span-7 space-y-4">
-          <Card className="p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
+        <div className="lg:col-span-7 flex flex-col h-full">
+          <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between mb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-slate-400" />
                 <span className="text-xs font-bold text-slate-700">Filtro actual:</span>
@@ -315,7 +315,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               </span>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-200 max-h-[440px]">
+            <div className="overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 flex-1 min-h-[300px] max-h-[385px] lg:max-h-[395px] shadow-xs">
               <table className="min-w-full divide-y divide-slate-200 text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10">
                   <tr>
@@ -436,9 +436,9 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         </div>
 
         {/* Live Preview & Longest Name Test */}
-        <div className="lg:col-span-5 space-y-4">
-          <Card className="p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="lg:col-span-5 flex flex-col h-full">
+          <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2 shrink-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                   <Eye className="w-4 h-4 text-[#208077]" />
@@ -486,81 +486,83 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               </div>
             </div>
 
-            {/* Template with live stamped name */}
-            {currentPreviewRecipient?.issues.some((i) => i.code === 'TEXT_OVERFLOW') && (
-              <div className="mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-center justify-between gap-2 shadow-2xs animate-fadeIn">
-                <div className="flex items-center gap-1.5 font-medium">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>
-                    {currentPreviewRecipient.issues.find((i) => i.code === 'TEXT_OVERFLOW')?.message}
-                  </span>
+            <div className="flex-1 flex flex-col justify-center min-h-0 my-auto">
+              {/* Template with live stamped name */}
+              {currentPreviewRecipient?.issues.some((i) => i.code === 'TEXT_OVERFLOW') && (
+                <div className="mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-center justify-between gap-2 shadow-2xs animate-fadeIn shrink-0">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>
+                      {currentPreviewRecipient.issues.find((i) => i.code === 'TEXT_OVERFLOW')?.message}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCustomizingRecipient(currentPreviewRecipient)}
+                    className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
+                  >
+                    Ajustar
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setCustomizingRecipient(currentPreviewRecipient)}
-                  className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
-                >
-                  Ajustar
-                </button>
-              </div>
-            )}
-            <div
-              ref={previewContainerRef}
-              className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 shadow-md select-none"
-              style={{ aspectRatio: `${template.widthPt} / ${template.heightPt}` }}
-            >
-              <img
-                src={template.previewUrl}
-                alt="Vista previa"
-                className="w-full h-full object-contain pointer-events-none"
-              />
-
-              {/* Dynamic Name Box */}
+              )}
               <div
-                style={{
-                  left: `${effectivePreviewField.x * 100}%`,
-                  top: `${effectivePreviewField.y * 100}%`,
-                  width: `${effectivePreviewField.width * 100}%`,
-                  height: `${effectivePreviewField.height * 100}%`,
-                }}
-                className="absolute flex pointer-events-none"
+                ref={previewContainerRef}
+                className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 shadow-md select-none"
+                style={{ aspectRatio: `${template.widthPt} / ${template.heightPt}` }}
               >
+                <img
+                  src={template.previewUrl}
+                  alt="Vista previa"
+                  className="w-full h-full object-contain pointer-events-none"
+                />
+
+                {/* Dynamic Name Box */}
                 <div
-                  className="w-full h-full flex px-[1%] py-0.5 overflow-hidden"
                   style={{
-                    alignItems:
-                      effectivePreviewField.vAlign === 'top'
-                        ? 'flex-start'
-                        : effectivePreviewField.vAlign === 'bottom'
-                        ? 'flex-end'
-                        : 'center',
-                    justifyContent:
-                      effectivePreviewField.align === 'left'
-                        ? 'flex-start'
-                        : effectivePreviewField.align === 'right'
-                        ? 'flex-end'
-                        : 'center',
+                    left: `${effectivePreviewField.x * 100}%`,
+                    top: `${effectivePreviewField.y * 100}%`,
+                    width: `${effectivePreviewField.width * 100}%`,
+                    height: `${effectivePreviewField.height * 100}%`,
                   }}
+                  className="absolute flex pointer-events-none"
                 >
-                  <span
-                    className="w-full block leading-normal select-none transition-all py-0.5 px-0.5 whitespace-nowrap overflow-visible"
+                  <div
+                    className="w-full h-full flex px-[1%] py-0.5 overflow-hidden"
                     style={{
-                      fontFamily: effectivePreviewField.fontFamily,
-                      fontWeight: effectivePreviewField.isBold ? 700 : 400,
-                      fontStyle: effectivePreviewField.isItalic ? 'italic' : 'normal',
-                      fontSize: `${computedFontSize}px`,
-                      color: effectivePreviewField.color,
-                      textAlign: effectivePreviewField.align,
+                      alignItems:
+                        effectivePreviewField.vAlign === 'top'
+                          ? 'flex-start'
+                          : effectivePreviewField.vAlign === 'bottom'
+                          ? 'flex-end'
+                          : 'center',
+                      justifyContent:
+                        effectivePreviewField.align === 'left'
+                          ? 'flex-start'
+                          : effectivePreviewField.align === 'right'
+                          ? 'flex-end'
+                          : 'center',
                     }}
                   >
-                    {previewName || '—'}
-                  </span>
+                    <span
+                      className="w-full block leading-normal select-none transition-all py-0.5 px-0.5 whitespace-nowrap overflow-visible"
+                      style={{
+                        fontFamily: effectivePreviewField.fontFamily,
+                        fontWeight: effectivePreviewField.isBold ? 700 : 400,
+                        fontStyle: effectivePreviewField.isItalic ? 'italic' : 'normal',
+                        fontSize: `${computedFontSize}px`,
+                        color: effectivePreviewField.color,
+                        textAlign: effectivePreviewField.align,
+                      }}
+                    >
+                      {previewName || '—'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Navigation controls */}
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-600 border-t border-slate-100 pt-3">
+            <div className="mt-3 flex items-center justify-between text-xs text-slate-600 border-t border-slate-100 pt-3 shrink-0">
               <button
                 disabled={safePreviewIndex === 0}
                 onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
