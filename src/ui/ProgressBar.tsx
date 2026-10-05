@@ -24,7 +24,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             {sublabel && <p className="text-xs text-slate-500 mt-0.5">{sublabel}</p>}
           </div>
           {showPercent && (
-            <span className="font-mono font-medium text-brand-600 tabular-nums">
+            <span className="font-mono font-medium text-[#208077] tabular-nums">
               {Math.round(clamped)}%
             </span>
           )}
@@ -39,7 +39,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         className="h-3 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/60 p-0.5"
       >
         <div
-          className="h-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-500 rounded-full transition-all duration-300 ease-out shadow-sm"
+          className="h-full bg-[#208077] rounded-full transition-all duration-300 ease-out shadow-xs"
           style={{ width: `${clamped}%` }}
         />
       </div>

@@ -106,7 +106,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-200" aria-hidden="true">
+            <div className="w-8 h-8 rounded-lg bg-[#f0faf9] text-[#208077] flex items-center justify-center border border-[#b2e5df]" aria-hidden="true">
               <Sliders className="w-4 h-4" />
             </div>
             <div>
@@ -134,7 +134,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-slate-700">Vista previa en tiempo real</span>
               {hasCustomOverrides && (
-                <span className="text-[10px] bg-brand-50 text-brand-700 font-semibold px-2 py-0.5 rounded-full border border-brand-200">
+                <span className="text-[10px] bg-[#f0faf9] text-[#208077] font-semibold px-2 py-0.5 rounded-full border border-[#b2e5df]">
                   Ajustes personalizados activos
                 </span>
               )}
@@ -158,7 +158,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                   width: `${effectiveField.width * 100}%`,
                   height: `${effectiveField.height * 100}%`,
                 }}
-                className="absolute flex pointer-events-none border border-brand-400/30 bg-brand-400/5 rounded-xs"
+                className="absolute flex pointer-events-none border border-[#208077]/30 bg-[#208077]/5 rounded-xs"
               >
                 <div
                   className="w-full h-full flex px-[1%] py-0.5 overflow-hidden"
@@ -201,7 +201,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs">
                 <label className="font-bold text-slate-700">Tamaño de Fuente (pt)</label>
-                <span className="font-mono font-bold text-brand-600">
+                <span className="font-mono font-bold text-[#208077]">
                   {effectiveField.maxFontSize} pt
                 </span>
               </div>
@@ -229,7 +229,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                       maxFontSize: Number(e.target.value),
                     }))
                   }
-                  className="flex-1 accent-brand-600"
+                  className="flex-1 accent-[#208077]"
                 />
                 <button
                   type="button"
@@ -260,7 +260,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                   }
                   className={`p-2 rounded-lg border text-xs font-bold transition-all ${
                     effectiveField.isBold
-                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                      ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                   title="Negrita"
@@ -278,7 +278,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                   }
                   className={`p-2 rounded-lg border text-xs font-bold transition-all ${
                     effectiveField.isItalic
-                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                      ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                   title="Cursiva"
@@ -295,7 +295,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                     onClick={() => setCustomField((prev) => ({ ...prev, align }))}
                     className={`p-2 rounded-lg border text-xs transition-all ${
                       effectiveField.align === align
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                        ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                     }`}
                   >
