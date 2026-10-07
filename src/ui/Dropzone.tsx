@@ -4,6 +4,7 @@ import { UploadCloud, File, AlertCircle } from 'lucide-react';
 interface DropzoneProps {
   accept: string;
   acceptLabel?: string;
+  suggestedSize?: string;
   maxSizeMB?: number;
   onFileSelect: (file: File) => void;
   title?: string;
@@ -17,6 +18,7 @@ interface DropzoneProps {
 export const Dropzone: React.FC<DropzoneProps> = ({
   accept,
   acceptLabel = 'PDF, PNG o JPG',
+  suggestedSize,
   maxSizeMB = 15,
   onFileSelect,
   title = 'Arrastra y suelta tu archivo aquí',
@@ -102,9 +104,16 @@ export const Dropzone: React.FC<DropzoneProps> = ({
         <p className={`${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'} text-slate-500 max-w-sm`}>{description}</p>
 
         {!hideBadge && (
-          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
-            <File className="w-3.5 h-3.5 text-slate-400" />
-            <span>Formatos: {acceptLabel} (Máx. {maxSizeMB} MB)</span>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
+              <File className="w-3.5 h-3.5 text-slate-400" />
+              <span>Formatos: {acceptLabel} (Máx. {maxSizeMB} MB)</span>
+            </div>
+            {suggestedSize && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f0faf9] border border-[#b2e5df] rounded-full text-xs font-semibold text-[#208077] shadow-2xs">
+                <span>{suggestedSize}</span>
+              </div>
+            )}
           </div>
         )}
       </div>
