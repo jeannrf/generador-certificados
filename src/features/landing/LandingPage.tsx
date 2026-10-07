@@ -8,7 +8,6 @@ import {
   Download,
   Sliders,
   Check,
-  Lock,
   ChevronDown,
   FileText,
   ExternalLink,
@@ -58,17 +57,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
           />
 
           {/* Nav Links */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-            <a href="#features" className="hover:text-slate-900 transition-colors">
+          <nav className="hidden md:flex items-center gap-4 lg:gap-8 text-xs lg:text-sm font-medium text-slate-600">
+            <a href="#features" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Características
             </a>
-            <a href="#how-it-works" className="hover:text-slate-900 transition-colors">
+            <a href="#how-it-works" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Cómo funciona
             </a>
-            <a href="#security" className="hover:text-slate-900 transition-colors">
+            <a href="#security" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Privacidad y Seguridad
             </a>
-            <a href="#faq" className="hover:text-slate-900 transition-colors">
+            <a href="#faq" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Preguntas Frecuentes
             </a>
           </nav>
@@ -77,7 +76,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
           <div className="flex items-center gap-3">
             <button
               onClick={onStartGenerator}
-              className="inline-flex items-center justify-center text-sm font-semibold px-5 py-2.5 rounded-xl bg-[#208077] hover:bg-[#18655e] text-white transition-all duration-200 shadow-xs cursor-pointer active:scale-95"
+              className="inline-flex items-center justify-center text-sm font-semibold px-5 py-2.5 rounded-xl bg-[#208077] hover:bg-[#18655e] text-white transition-all duration-200 shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
             >
               Probar ahora
             </button>
@@ -86,24 +85,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
       </header>
 
       {/* ── Hero Section (Limpio, sobrio y profesional, sin badges ni degradados de IA) ───── */}
-      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-32 bg-slate-50">
+      <section className="relative overflow-hidden pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-20 lg:pb-32 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* Columna Izquierda: Mensaje y CTA principal */}
-            <div className="lg:col-span-7 space-y-8">
+            <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-center lg:text-left">
               {/* Título tipográfico limpio y contundente */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.08]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.08] max-w-3xl mx-auto lg:mx-0">
                 Emite certificados oficiales masivos en segundos.
               </h1>
 
               {/* Subtítulo editorial */}
-              <p className="text-base sm:text-lg text-slate-600 max-w-xl leading-relaxed">
+              <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
                 Diseña sobre tu propia plantilla en PDF, conecta tu lista de Excel en un instante y despacha cientos de diplomas personalizados con entrega directa a sus correos.
               </p>
 
               {/* Botones de Acción Principal */}
-              <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-4">
+              <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4">
                 <button
                   type="button"
                   onClick={onStartGenerator}
@@ -121,8 +120,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
             </div>
 
             {/* Columna Derecha: Mockup Visual con Tarjetas Superpuestas */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto max-w-md lg:max-w-none">
+            <div className="lg:col-span-5 relative mt-4 lg:mt-0 flex justify-center">
+              <div className="relative mx-auto max-w-md w-full lg:max-w-none">
                 
                 {/* 1. Tarjeta Principal (Tarjeta Blanca de Emisión de Lote) */}
                 <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-200 relative z-10 space-y-6">
@@ -193,7 +192,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
                 </div>
 
                 {/* 2. Tarjeta Flotante Superpuesta con el Verde Predominante #208077 */}
-                <div className="absolute -top-8 -right-4 sm:-right-8 z-20 w-64 bg-gradient-to-br from-[#208077] to-[#124742] rounded-2xl p-5 text-white shadow-2xl border border-teal-300/30 transform rotate-1 hover:rotate-0 transition-transform duration-300">
+                <div className="absolute -top-6 -right-2 sm:-top-8 sm:-right-4 lg:-right-8 z-20 w-60 sm:w-64 bg-gradient-to-br from-[#208077] to-[#124742] rounded-2xl p-4 sm:p-5 text-white shadow-2xl border border-teal-300/30 transform rotate-1 hover:rotate-0 transition-transform duration-300">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <span className="text-[10px] font-semibold text-teal-100 uppercase tracking-widest block">
@@ -439,28 +438,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
       {/* ── Seguridad y Privacidad (Bloque en verde oscuro homogéneo #0e3834) ─ */}
       <section id="security" className="py-20 bg-[#0e3834] text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="p-8 sm:p-12 rounded-3xl border border-teal-900/60 bg-[#0b2f2c] flex flex-col lg:flex-row items-center justify-between gap-8">
-            <div className="space-y-4 max-w-xl">
-              <div className="inline-flex items-center gap-2 text-teal-200 text-xs font-semibold">
-                <Lock className="w-4 h-4 text-[#208077]" />
-                <span>Privacidad por Diseño</span>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-                Tus datos nunca salen de tu ordenador
-              </h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                A diferencia de otras herramientas que suben tu base de datos a servidores desconocidos, nuestro motor compila cada archivo PDF en la memoria local de tu navegador web. Tus listas de alumnos y correos permanecen 100% protegidas.
-              </p>
-            </div>
-            <div className="shrink-0">
-              <button
-                onClick={onStartGenerator}
-                className="inline-flex items-center justify-center px-6 py-3.5 rounded-xl bg-[#208077] hover:bg-[#18655e] text-white font-bold text-sm transition-all duration-200 cursor-pointer active:scale-95"
-              >
-                Probar Ahora Sin Costo
-              </button>
-            </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="p-8 sm:p-12 rounded-3xl border border-teal-900/60 bg-[#0b2f2c] text-center space-y-4 max-w-3xl mx-auto">
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
+              Tus datos nunca salen de tu ordenador
+            </h3>
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto">
+              A diferencia de otras herramientas que suben tu base de datos a servidores desconocidos, nuestro motor compila cada archivo PDF en la memoria local de tu navegador web. Tus listas de alumnos y correos permanecen 100% protegidas.
+            </p>
           </div>
         </div>
       </section>
