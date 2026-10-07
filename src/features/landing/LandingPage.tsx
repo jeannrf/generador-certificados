@@ -290,9 +290,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Feature 1 */}
             <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:border-[#208077]/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-[#f0faf9] text-[#208077] flex items-center justify-center border border-[#b2e5df]">
-                <FileSpreadsheet className="w-6 h-6" />
-              </div>
+              <FileSpreadsheet className="w-7 h-7 text-[#208077]" strokeWidth={1.8} />
               <h3 className="text-lg font-bold text-slate-900">
                 Importación Excel y CSV Inteligente
               </h3>
@@ -303,9 +301,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
             {/* Feature 2 */}
             <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:border-[#208077]/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-[#f0faf9] text-[#208077] flex items-center justify-center border border-[#b2e5df]">
-                <Sliders className="w-6 h-6" />
-              </div>
+              <Sliders className="w-7 h-7 text-[#208077]" strokeWidth={1.8} />
               <h3 className="text-lg font-bold text-slate-900">
                 Editor Visual Interactivo
               </h3>
@@ -316,9 +312,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
             {/* Feature 3 */}
             <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:border-[#208077]/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-[#f0faf9] text-[#208077] flex items-center justify-center border border-[#b2e5df]">
-                <Zap className="w-6 h-6" />
-              </div>
+              <Zap className="w-7 h-7 text-[#208077]" strokeWidth={1.8} />
               <h3 className="text-lg font-bold text-slate-900">
                 Motor Tipográfico Sin Desbordes
               </h3>
@@ -329,9 +323,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
             {/* Feature 4 */}
             <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:border-[#208077]/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-[#f0faf9] text-[#208077] flex items-center justify-center border border-[#b2e5df]">
-                <Mail className="w-6 h-6" />
-              </div>
+              <Mail className="w-7 h-7 text-[#208077]" strokeWidth={1.8} />
               <h3 className="text-lg font-bold text-slate-900">
                 Despacho Masivo por Correo
               </h3>
@@ -342,9 +334,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
             {/* Feature 5 */}
             <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:border-[#208077]/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-[#f0faf9] text-[#208077] flex items-center justify-center border border-[#b2e5df]">
-                <Download className="w-6 h-6" />
-              </div>
+              <Download className="w-7 h-7 text-[#208077]" strokeWidth={1.8} />
               <h3 className="text-lg font-bold text-slate-900">
                 Exportación en ZIP Instantánea
               </h3>
@@ -355,9 +345,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
             {/* Feature 6 */}
             <div className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:border-[#208077]/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-[#f0faf9] text-[#208077] flex items-center justify-center border border-[#b2e5df]">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
+              <ShieldCheck className="w-7 h-7 text-[#208077]" strokeWidth={1.8} />
               <h3 className="text-lg font-bold text-slate-900">
                 Cero Almacenamiento en Nube
               </h3>
@@ -436,17 +424,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
         </div>
       </section>
 
-      {/* ── Seguridad y Privacidad (Bloque en verde oscuro homogéneo #0e3834) ─ */}
-      <section id="security" className="py-20 bg-[#0e3834] text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="p-8 sm:p-12 rounded-3xl border border-teal-900/60 bg-[#0b2f2c] text-center space-y-4 max-w-3xl mx-auto">
-            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
-              Tus datos nunca salen de tu ordenador
-            </h3>
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto">
-              A diferencia de otras herramientas que suben tu base de datos a servidores desconocidos, nuestro motor compila cada archivo PDF en la memoria local de tu navegador web. Tus listas de alumnos y correos permanecen 100% protegidas.
-            </p>
-          </div>
+      {/* ── Seguridad y Privacidad ─────────────────────────────────────── */}
+      <section id="security" className="py-24 sm:py-28 bg-[#0e3834] text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5">
+          <h3 className="font-serif italic text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-white leading-tight">
+            Tus datos nunca salen de tu ordenador
+          </h3>
+          <p className="font-sans text-sm sm:text-base lg:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
+            A diferencia de otras herramientas que suben tu base de datos a servidores desconocidos, nuestro motor compila cada archivo PDF en la memoria local de tu navegador web. Tus listas de alumnos y correos permanecen 100% protegidas.
+          </p>
         </div>
       </section>
 
@@ -527,16 +513,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
             {/* Correo */}
             <a
               href="mailto:jeanpierrf31@gmail.com"
-              className="p-6 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-[#f0faf9] hover:border-[#b2e5df] transition-all flex flex-col items-center text-center space-y-3 group"
+              className="p-5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-[#f0faf9] hover:border-[#b2e5df] transition-all flex items-center gap-4 group shadow-2xs"
             >
-              <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#208077] shadow-xs group-hover:scale-105 transition-transform">
-                <Mail className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              <Mail className="w-7 h-7 text-[#208077] shrink-0 transition-transform group-hover:scale-110" />
+              <div className="min-w-0 text-left">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                   Correo Electrónico
                 </span>
-                <span className="text-sm font-bold text-slate-900 group-hover:text-[#208077] transition-colors break-all">
+                <span className="text-sm font-bold text-slate-900 group-hover:text-[#208077] transition-colors truncate block">
                   jeanpierrf31@gmail.com
                 </span>
               </div>
@@ -547,16 +531,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
               href="https://www.linkedin.com/in/jeanpier-robles/"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-6 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-[#f0faf9] hover:border-[#b2e5df] transition-all flex flex-col items-center text-center space-y-3 group"
+              className="p-5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-[#f0faf9] hover:border-[#b2e5df] transition-all flex items-center gap-4 group shadow-2xs"
             >
-              <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#208077] shadow-xs group-hover:scale-105 transition-transform">
-                <LinkedinIcon className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              <LinkedinIcon className="w-7 h-7 text-[#208077] shrink-0 transition-transform group-hover:scale-110" />
+              <div className="min-w-0 text-left">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                   LinkedIn
                 </span>
-                <span className="text-sm font-bold text-slate-900 group-hover:text-[#208077] transition-colors flex items-center justify-center gap-1.5">
+                <span className="text-sm font-bold text-slate-900 group-hover:text-[#208077] transition-colors flex items-center gap-1.5">
                   Jeanpier Robles
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#208077]" />
                 </span>
@@ -567,15 +549,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <footer className="bg-slate-950 text-slate-400 py-12 border-t border-slate-800 text-xs">
+      <footer className="bg-slate-950 text-slate-400 py-10 border-t border-slate-800 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <BrandLogo
-            theme="dark"
-            size="sm"
-            subtitle="Generador Automático de Certificados en PDF"
-            onClick={scrollToTop}
-          />
-          <div className="flex flex-wrap items-center justify-center gap-6">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-6">
             <button onClick={onStartGenerator} className="hover:text-white transition-colors cursor-pointer">
               Abrir Generador
             </button>
@@ -606,7 +582,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
             </a>
           </div>
           <p className="text-slate-500">
-            © {new Date().getFullYear()} UniCertified.
+            © {new Date().getFullYear()}
           </p>
         </div>
       </footer>

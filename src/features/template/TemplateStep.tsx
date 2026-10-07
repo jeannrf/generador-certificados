@@ -5,7 +5,7 @@ import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
 import { Dropzone } from '../../ui/Dropzone';
 import { renderPdfToPreview } from '../../infra/pdfRenderer';
-import { FileText, AlertCircle, Info, Loader2, UploadCloud, CheckCircle2, Layout, Trash2, Ruler } from 'lucide-react';
+import { FileText, AlertCircle, Info, Loader2, UploadCloud, CheckCircle2, Layout, Trash2 } from 'lucide-react';
 
 interface TemplateStepProps {
   template: TemplateData | null;
@@ -138,38 +138,6 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
               </span>
 
               <div className="space-y-2">
-                {/* Tamaños recomendados */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Ruler className="w-4 h-4 text-[#208077] shrink-0" />
-                    <span className="font-semibold text-slate-800 text-xs">
-                      Tamaños sugeridos (Orientación Horizontal)
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs space-y-1">
-                      <div className="font-bold text-slate-800 flex items-center justify-between">
-                        <span>Imagen (.png / .jpg)</span>
-                        <span className="text-[#208077] font-mono text-[11px] font-semibold">2000 × 1414 px</span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 leading-relaxed">
-                        Proporción A4 estándar (Canva, Illustrator). Mínimo recomendado: 1920 × 1080 px.
-                      </p>
-                    </div>
-
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs space-y-1">
-                      <div className="font-bold text-slate-800 flex items-center justify-between">
-                        <span>Documento (.pdf)</span>
-                        <span className="text-[#208077] font-mono text-[11px] font-semibold">A4 (297 × 210 mm)</span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 leading-relaxed">
-                        Medida de hoja estándar (842 × 595 pt) o Carta. Calidad vectorial sin pérdida al imprimir.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
                   <Layout className="w-4 h-4 text-[#208077] shrink-0 mt-0.5" />
                   <div className="text-xs">
