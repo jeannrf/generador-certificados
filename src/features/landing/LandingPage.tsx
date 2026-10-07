@@ -550,8 +550,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <footer className="bg-slate-950 text-slate-400 py-10 border-t border-slate-800 text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8">
             <button onClick={onStartGenerator} className="hover:text-white transition-colors cursor-pointer">
               Abrir Generador
             </button>
@@ -581,9 +581,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
               <span>LinkedIn</span>
             </a>
           </div>
-          <p className="text-slate-500">
-            © {new Date().getFullYear()}
-          </p>
         </div>
       </footer>
     </div>
