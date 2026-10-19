@@ -4,9 +4,12 @@ import {
   validateEmailConfig,
   buildDeliveryReportCsv,
   ensureHtmlEmailBody,
+  summarizeCampaign,
+  getUnsentRecipients,
+  getCampaignRecords,
 } from '../src/domain/email';
 import { uint8ArrayToBase64 } from '../src/infra/email/googleAppsScript';
-import { Recipient, EmailDeliveryRecord } from '../src/domain/types';
+import { Recipient, EmailDeliveryRecord, EmailCampaign } from '../src/domain/types';
 
 describe('Domain - Email Interpolation & Validation', () => {
   const sampleRecipient: Recipient = {
@@ -99,5 +102,48 @@ describe('Domain - Email Interpolation & Validation', () => {
     const customHtml = '<div class="banner"><h1>Bienvenido</h1><p>Texto</p></div>';
     const html = ensureHtmlEmailBody(customHtml);
     expect(html).toBe(customHtml);
+  });
+});
+
+describe('Domain - Email Campaign recovery', () => {
+  const makeRecipient = (id: string, email: string): Recipient => ({
+    id,
+    rowNumber: 1,
+    name: '',
+    email,
+    extra: {},
+    issues: [],
+  });
+
+  const campaign: EmailCampaign = {
+    id: 'camp_1',
+    startedAt: '2026-10-19T10:00:00.000Z',
+    updatedAt: '2026-10-19T10:05:00.000Z',
+    subject: 'Hola',
+    recipients: [
+      makeRecipient('a', 'a@correo.com'),
+      makeRecipient('b', 'b@correo.com'),
+      makeRecipient('c', 'c@correo.com'),
+      makeRecipient('d', 'd@correo.com'),
+    ],
+    records: {
+      a: { recipientId: 'a', name: 'a@correo.com', email: 'a@correo.com', status: 'sent' },
+      b: { recipientId: 'b', name: 'b@correo.com', email: 'b@correo.com', status: 'error', errorMessage: 'Timeout' },
+      c: { recipientId: 'c', name: 'c@correo.com', email: 'c@correo.com', status: 'sending' },
+    },
+  };
+
+  it('should count sent, failed, unconfirmed and pending recipients', () => {
+    expect(summarizeCampaign(campaign)).toEqual({ total: 4, sent: 1, failed: 1, unconfirmed: 1, pending: 1 });
+  });
+
+  it('should return everyone not confirmed as sent for retry', () => {
+    expect(getUnsentRecipients(campaign).map((r) => r.id)).toEqual(['b', 'c', 'd']);
+  });
+
+  it('should list recipients without a record as pending', () => {
+    const records = getCampaignRecords(campaign);
+    expect(records).toHaveLength(4);
+    expect(records[3]).toMatchObject({ recipientId: 'd', email: 'd@correo.com', status: 'pending' });
   });
 });
