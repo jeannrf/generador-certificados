@@ -17,6 +17,7 @@ import {
   EmailConfigVariant,
 } from '../../infra/email/googleAppsScript';
 import { saveCampaign, loadCampaign, clearCampaign } from '../../infra/email/campaignStorage';
+import { loadSendLog, recordSentEmail } from '../../infra/email/sendLog';
 import {
   interpolateEmailVariables,
   validateEmailConfig,
@@ -25,6 +26,7 @@ import {
   getCampaignRecords,
   summarizeCampaign,
   getUnsentRecipients,
+  summarizeDailyQuota,
 } from '../../domain/email';
 import { triggerDownload } from '../../infra/zipExporter';
 import {
@@ -41,6 +43,7 @@ import {
   Eye,
   Paperclip,
   History,
+  Gauge,
 } from 'lucide-react';
 
 export interface EmailAttachmentFile {
@@ -163,12 +166,19 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   const [runStatus, setRunStatus] = useState<'idle' | 'sending' | 'paused'>('idle');
   const [runProgress, setRunProgress] = useState({ current: 0, total: 0 });
   const [currentRecipientName, setCurrentRecipientName] = useState<string>();
-  const [remainingQuota, setRemainingQuota] = useState<number>();
+  // Correos enviados con éxito en las últimas 24 h (cupo diario de Gmail)
+  const [sendLog, setSendLog] = useState<number[]>(() => loadSendLog());
   const [autoPauseReason, setAutoPauseReason] = useState<string | null>(null);
   const [resultsFilter, setResultsFilter] = useState<ResultsFilter>('all');
 
   const isCancelledRef = useRef(false);
   const isPausedRef = useRef(false);
+
+  // Refrescar el cupo cada minuto para que se liberen los envíos que cumplen 24 h
+  useEffect(() => {
+    const timer = setInterval(() => setSendLog(loadSendLog()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Avisar antes de cerrar o recargar mientras se están enviando correos
   useEffect(() => {
@@ -247,6 +257,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
       });
 
       if (result.ok) {
+        setSendLog(recordSentEmail());
         setTestFeedback({
           type: 'success',
           text: copy.testSuccess(testEmail.trim()),
@@ -334,6 +345,20 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
       }
       if (isCancelledRef.current) break;
 
+      // Sin cupo diario: pausar en vez de gastar intentos que Gmail rechazaría
+      const quota = summarizeDailyQuota(loadSendLog());
+      if (quota.remaining <= 0) {
+        isPausedRef.current = true;
+        setRunStatus('paused');
+        setAutoPauseReason(
+          `Llegaste al límite diario de ${quota.limit} correos${
+            quota.nextReleaseAt ? ` (se libera cupo desde el ${formatDateTime(quota.nextReleaseAt)})` : ''
+          }. Puedes dejarlo en pausa y pulsar Reanudar más tarde, o detenerlo y usar "Enviar a los que faltan" otro día.`
+        );
+        i--;
+        continue;
+      }
+
       const rec = targets[i];
       const targetEmail = rec.email!.trim();
       const base = { recipientId: rec.id, name: rec.name || targetEmail, email: targetEmail };
@@ -356,7 +381,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         errorMessage: result.ok ? undefined : result.error,
         sentAt: new Date().toISOString(),
       });
-      if (result.remainingQuota !== undefined) setRemainingQuota(result.remainingQuota);
+      if (result.ok) setSendLog(recordSentEmail());
 
       consecutiveFailures = result.ok ? 0 : consecutiveFailures + 1;
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
@@ -379,9 +404,20 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
     setCurrentRecipientName(undefined);
   };
 
+  // Avisa si la lista supera el cupo que queda hoy; lo que no alcance quedará pendiente
+  const confirmQuota = (count: number): boolean => {
+    const quota = summarizeDailyQuota(loadSendLog());
+    if (count <= quota.remaining) return true;
+    return window.confirm(
+      `Vas a enviar ${count} correos, pero hoy solo te quedan ${quota.remaining} de ${quota.limit}. ` +
+        `Se enviarán ${quota.remaining} y el envío se pausará; el resto quedará pendiente para cuando se libere el cupo. ¿Continuar?`
+    );
+  };
+
   const handleStartMassEmail = () => {
     if (!ensureValidConfig()) return;
     if (recipientsWithEmail.length === 0) return;
+    if (!confirmQuota(recipientsWithEmail.length)) return;
 
     const now = new Date().toISOString();
     commitCampaign({
@@ -398,7 +434,9 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
   const handleRetryUnsent = () => {
     if (!campaignRef.current || !ensureValidConfig()) return;
-    runSend(getUnsentRecipients(campaignRef.current));
+    const unsent = getUnsentRecipients(campaignRef.current);
+    if (!confirmQuota(unsent.length)) return;
+    runSend(unsent);
   };
 
   const handleCancelSend = () => {
@@ -435,6 +473,8 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   const summary = campaign ? summarizeCampaign(campaign) : null;
   const unsentCount = summary ? summary.failed + summary.unconfirmed + summary.pending : 0;
   const isRunning = runStatus !== 'idle';
+  const dailyQuota = summarizeDailyQuota(sendLog);
+  const quotaPercent = (dailyQuota.sent / dailyQuota.limit) * 100;
   const campaignRecords = campaign ? getCampaignRecords(campaign) : [];
   const filteredRecords = campaignRecords.filter((r) => {
     if (resultsFilter === 'sent') return r.status === 'sent';
@@ -442,8 +482,8 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
     if (resultsFilter === 'pending') return r.status === 'pending';
     return true;
   });
-  const formatDateTime = (iso: string) =>
-    new Date(iso).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
+  const formatDateTime = (date: string | number) =>
+    new Date(date).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
 
   return (
     <div className={variant === 'certificates' ? 'mt-8 pt-8 border-t border-slate-200 space-y-6' : 'space-y-6'}>
@@ -635,6 +675,44 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         </Card>
       )}
 
+      {/* Cupo diario de Gmail (contado en este navegador, ventana móvil de 24 h) */}
+      <Card className="p-4 sm:p-5 border border-slate-200 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#f0faf9] border border-[#b2e5df] text-[#208077] flex items-center justify-center shrink-0">
+              <Gauge className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">Cupo diario de Gmail</h4>
+              <p className="text-[11px] text-slate-500">
+                {dailyQuota.sent} enviados en las últimas 24 h ·{' '}
+                <strong className={dailyQuota.remaining === 0 ? 'text-rose-600' : 'text-[#208077]'}>
+                  te quedan {dailyQuota.remaining}
+                </strong>{' '}
+                de {dailyQuota.limit}
+              </p>
+            </div>
+          </div>
+          {dailyQuota.nextReleaseAt && (
+            <span className="text-[11px] text-slate-500">
+              Próximo cupo libre: {formatDateTime(dailyQuota.nextReleaseAt)}
+            </span>
+          )}
+        </div>
+        <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              quotaPercent >= 90 ? 'bg-rose-500' : quotaPercent >= 70 ? 'bg-amber-500' : 'bg-[#208077]'
+            }`}
+            style={{ width: `${Math.min(100, quotaPercent)}%` }}
+          />
+        </div>
+        <p className="text-[11px] text-slate-400 leading-snug">
+          Google cuenta 24 horas desde cada envío, no se reinicia a medianoche. Este contador solo incluye lo enviado
+          desde esta app en este navegador; los correos que mandes directamente desde Gmail también consumen el cupo.
+        </p>
+      </Card>
+
       {/* Grid de 2 bloques en paralelo: Prueba Individual vs Envío Masivo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
         {/* Bloque Izquierdo: Prueba Individual */}
@@ -771,9 +849,6 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                 )}
                 {summary.pending > 0 && (
                   <Badge variant="neutral" size="sm">{summary.pending} pendientes</Badge>
-                )}
-                {remainingQuota !== undefined && (
-                  <span className="text-[11px] text-slate-400">Cuota: {remainingQuota}</span>
                 )}
               </div>
 
