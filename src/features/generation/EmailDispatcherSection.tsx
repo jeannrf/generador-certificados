@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Recipient,
-  TemplateData,
-  FieldBox,
   EmailConfig,
   EmailSendProgress,
   EmailDeliveryRecord,
@@ -16,6 +14,7 @@ import {
   uint8ArrayToBase64,
   loadEmailConfigFromStorage,
   saveEmailConfigToStorage,
+  EmailConfigVariant,
 } from '../../infra/email/googleAppsScript';
 import {
   interpolateEmailVariables,
@@ -23,7 +22,6 @@ import {
   buildDeliveryReportCsv,
   ensureHtmlEmailBody,
 } from '../../domain/email';
-import { composeCertificatePdf } from '../../infra/pdfComposer';
 import { triggerDownload } from '../../infra/zipExporter';
 import {
   Mail,
@@ -40,23 +38,56 @@ import {
   Paperclip,
 } from 'lucide-react';
 
+export interface EmailAttachmentFile {
+  fileName: string;
+  pdfBytes: Uint8Array;
+}
+
 interface EmailDispatcherSectionProps {
   recipients: Recipient[];
-  template: TemplateData;
-  field: FieldBox;
-  fileNamePattern: string;
-  pregeneratedCertificates?: Record<string, { fileName: string; pdfBytes: Uint8Array }>;
+  /** 'certificates' adjunta un PDF por persona; 'mail' envía solo el mensaje */
+  variant?: EmailConfigVariant;
+  /** Genera el PDF adjunto de cada destinatario (solo en modo certificados) */
+  buildAttachment?: (recipient: Recipient) => Promise<EmailAttachmentFile>;
 }
+
+const COPY = {
+  certificates: {
+    title: 'Envío Automático de Certificados por Correo',
+    subtitle: 'Despacha los certificados en PDF adjuntos a cada destinatario automáticamente con un solo clic.',
+    senderPlaceholder: 'Ej: Emisión de Certificados UNI',
+    subjectPlaceholder: 'Tu Certificado — {nombre}',
+    bodyPlaceholder: 'Hola {nombre},\n\n¡Felicitaciones! Adjuntamos tu certificado oficial en formato PDF...\n\nSaludos cordiales,\nComité Organizador',
+    testDescription: 'Envíate un certificado de muestra para confirmar que el diseño y el correo llegan perfectamente antes del despacho masivo.',
+    testSuccess: (to: string) => `¡Certificado de prueba enviado con éxito a ${to}! Revisa tu bandeja de entrada o spam.`,
+    massTitle: 'Envío Masivo de Certificados',
+    massButton: (n: number) => `Enviar ${n} Certificados por Correo`,
+    sending: 'Enviando certificados...',
+    reportPrefix: 'Reporte_Envios_Certificados',
+  },
+  mail: {
+    title: 'Personaliza tu mensaje',
+    subtitle: 'Cada persona recibe un correo individual y personalizado con los datos de su fila.',
+    senderPlaceholder: 'Ej: Equipo de Eventos UNI',
+    subjectPlaceholder: 'Hola {nombre}, tenemos novedades para ti',
+    bodyPlaceholder: 'Hola {nombre},\n\nTe escribimos para compartirte información importante...\n\nSaludos cordiales,\nEl equipo',
+    testDescription: 'Envíate el correo a ti primero para revisar cómo se ve antes de mandarlo a toda la lista.',
+    testSuccess: (to: string) => `¡Correo de prueba enviado con éxito a ${to}! Revisa tu bandeja de entrada o spam.`,
+    massTitle: 'Envío Masivo de Correos',
+    massButton: (n: number) => `Enviar ${n} ${n === 1 ? 'Correo' : 'Correos'}`,
+    sending: 'Enviando correos...',
+    reportPrefix: 'Reporte_Envios_Correos',
+  },
+};
 
 export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   recipients,
-  template,
-  field,
-  fileNamePattern,
-  pregeneratedCertificates,
+  variant = 'certificates',
+  buildAttachment,
 }) => {
+  const copy = COPY[variant];
   // Configuración cargada desde localStorage (abierta por defecto)
-  const [config, setConfig] = useState<EmailConfig>(loadEmailConfigFromStorage());
+  const [config, setConfig] = useState<EmailConfig>(() => loadEmailConfigFromStorage(variant));
   const [isConfigOpen, setIsConfigOpen] = useState(true);
   const [emailViewMode, setEmailViewMode] = useState<'write' | 'preview'>('write');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -107,8 +138,8 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
   // Guardar configuración cuando cambie
   useEffect(() => {
-    saveEmailConfigToStorage(config);
-  }, [config]);
+    saveEmailConfigToStorage(config, variant);
+  }, [config, variant]);
 
   // Enviar correo de prueba unitario ("pon tu correo y prueba")
   const handleSendTestEmail = async () => {
@@ -134,7 +165,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
     setTestFeedback(null);
 
     try {
-      // 1. Tomar destinatario de ejemplo y generar PDF
+      // 1. Tomar destinatario de ejemplo y generar el PDF si corresponde
       const sampleRec: Recipient = recipientsWithEmail[0] || {
         id: 'sample_test',
         rowNumber: 1,
@@ -149,14 +180,8 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         email: testEmail.trim(),
       };
 
-      const { fileName, pdfBytes } = await composeCertificatePdf(
-        template,
-        field,
-        testRecWithTargetEmail,
-        fileNamePattern
-      );
+      const attachmentFile = buildAttachment ? await buildAttachment(testRecWithTargetEmail) : undefined;
 
-      const base64Pdf = uint8ArrayToBase64(pdfBytes);
       const interpolatedSubject = interpolateEmailVariables(config.subject, testRecWithTargetEmail);
       const interpolatedBody = interpolateEmailVariables(config.htmlBody, testRecWithTargetEmail, {
         escapeForHtml: false,
@@ -170,16 +195,16 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         subject: interpolatedSubject,
         htmlBody: ensureHtmlEmailBody(interpolatedBody),
         senderName: config.senderName,
-        attachment: {
-          filename: fileName,
-          base64: base64Pdf,
+        attachment: attachmentFile && {
+          filename: attachmentFile.fileName,
+          base64: uint8ArrayToBase64(attachmentFile.pdfBytes),
         },
       });
 
       if (result.ok) {
         setTestFeedback({
           type: 'success',
-          text: `¡Certificado de prueba enviado con éxito a ${testEmail.trim()}! Revisa tu bandeja de entrada o spam.`,
+          text: copy.testSuccess(testEmail.trim()),
         });
       } else {
         setTestFeedback({
@@ -190,7 +215,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
     } catch (err: any) {
       setTestFeedback({
         type: 'error',
-        text: err?.message || 'Error inesperado generando o enviando el certificado.',
+        text: err?.message || 'Error inesperado al enviar el correo de prueba.',
       });
     } finally {
       setIsSendingTest(false);
@@ -250,20 +275,12 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
       setSendProgress((prev) => ({
         ...prev,
         current: i + 1,
-        currentRecipientName: `${rec.name} (${targetEmail})`,
+        currentRecipientName: rec.name ? `${rec.name} (${targetEmail})` : targetEmail,
       }));
 
       try {
-        // Obtener PDF pregenerado o generar si no existe
-        const pregenerated = pregeneratedCertificates?.[rec.id];
-        const { fileName, pdfBytes } = pregenerated || (await composeCertificatePdf(
-          template,
-          field,
-          rec,
-          fileNamePattern
-        ));
+        const attachmentFile = buildAttachment ? await buildAttachment(rec) : undefined;
 
-        const base64Pdf = uint8ArrayToBase64(pdfBytes);
         const subject = interpolateEmailVariables(config.subject, rec);
         const htmlBody = ensureHtmlEmailBody(
           interpolateEmailVariables(config.htmlBody, rec, { escapeForHtml: false })
@@ -277,9 +294,9 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           subject,
           htmlBody,
           senderName: config.senderName,
-          attachment: {
-            filename: fileName,
-            base64: base64Pdf,
+          attachment: attachmentFile && {
+            filename: attachmentFile.fileName,
+            base64: uint8ArrayToBase64(attachmentFile.pdfBytes),
           },
         });
 
@@ -287,7 +304,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           sentCounter++;
           newRecords[rec.id] = {
             recipientId: rec.id,
-            name: rec.name,
+            name: rec.name || targetEmail,
             email: targetEmail,
             status: 'sent',
             sentAt: new Date().toISOString(),
@@ -296,7 +313,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           failedCounter++;
           newRecords[rec.id] = {
             recipientId: rec.id,
-            name: rec.name,
+            name: rec.name || targetEmail,
             email: targetEmail,
             status: 'error',
             errorMessage: result.error,
@@ -315,7 +332,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         failedCounter++;
         newRecords[rec.id] = {
           recipientId: rec.id,
-          name: rec.name,
+          name: rec.name || targetEmail,
           email: targetEmail,
           status: 'error',
           errorMessage: err?.message || 'Error desconocido',
@@ -357,14 +374,14 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
     if (recordsList.length === 0) return;
     const csvContent = buildDeliveryReportCsv(recordsList);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    triggerDownload(blob, `Reporte_Envios_Certificados_${Date.now()}.csv`);
+    triggerDownload(blob, `${copy.reportPrefix}_${Date.now()}.csv`);
   };
 
   const progressPercent =
     sendProgress.total > 0 ? (sendProgress.current / sendProgress.total) * 100 : 0;
 
   return (
-    <div className="mt-8 pt-8 border-t border-slate-200 space-y-6">
+    <div className={variant === 'certificates' ? 'mt-8 pt-8 border-t border-slate-200 space-y-6' : 'space-y-6'}>
       {/* Header de la sección de correo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -373,10 +390,10 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              Envío Automático de Certificados por Correo
+              {copy.title}
             </h3>
             <p className="text-xs text-slate-500">
-              Despacha los certificados en PDF adjuntos a cada destinatario automáticamente con un solo clic.
+              {copy.subtitle}
             </p>
           </div>
         </div>
@@ -413,7 +430,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   type="text"
                   value={config.senderName}
                   onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
-                  placeholder="Ej: Emisión de Certificados UNI"
+                  placeholder={copy.senderPlaceholder}
                   className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
                 />
               </div>
@@ -426,7 +443,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   type="text"
                   value={config.subject}
                   onChange={(e) => setConfig({ ...config, subject: e.target.value })}
-                  placeholder="Tu Certificado — {nombre}"
+                  placeholder={copy.subjectPlaceholder}
                   className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
                 />
                 <span className="text-[11px] text-slate-400 block pt-0.5">
@@ -495,7 +512,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                     rows={7}
                     value={config.htmlBody}
                     onChange={(e) => setConfig({ ...config, htmlBody: e.target.value })}
-                    placeholder="Hola {nombre},&#10;&#10;¡Felicitaciones! Adjuntamos tu certificado oficial en formato PDF...&#10;&#10;Saludos cordiales,&#10;Comité Organizador"
+                    placeholder={copy.bodyPlaceholder}
                     className="w-full flex-1 min-h-[175px] text-xs font-sans rounded-xl border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077] resize-y leading-relaxed shadow-2xs"
                   />
                   <span className="text-[11px] text-slate-500 leading-snug pt-0.5 flex items-start gap-1">
@@ -510,7 +527,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   <div className="space-y-3">
                     <div className="border-b border-slate-100 pb-2 text-[11px] text-slate-500 space-y-1">
                       <p>
-                        <strong className="text-slate-700">De:</strong> {config.senderName || 'Emisión de Certificados'}
+                        <strong className="text-slate-700">De:</strong> {config.senderName || copy.senderPlaceholder}
                       </p>
                       <p>
                         <strong className="text-slate-700">Asunto:</strong>{' '}
@@ -537,13 +554,15 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                       }}
                     />
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg">
-                    <Paperclip className="w-3.5 h-3.5 text-[#208077]" />
-                    <span className="font-semibold text-slate-800">Archivo adjunto:</span>
-                    <span className="font-mono text-slate-500 truncate">
-                      Certificado - {recipients.length > 0 ? recipients[0].name : 'Destinatario'}.pdf
-                    </span>
-                  </div>
+                  {buildAttachment && (
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg">
+                      <Paperclip className="w-3.5 h-3.5 text-[#208077]" />
+                      <span className="font-semibold text-slate-800">Archivo adjunto:</span>
+                      <span className="font-mono text-slate-500 truncate">
+                        Certificado - {recipients.length > 0 ? recipients[0].name : 'Destinatario'}.pdf
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -563,7 +582,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
               <h4 className="text-sm font-bold text-slate-900">Envío de Prueba Individual</h4>
             </div>
             <p className="text-xs text-slate-500">
-              Envíate un certificado de muestra para confirmar que el diseño y el correo llegan perfectamente antes del despacho masivo.
+              {copy.testDescription}
             </p>
           </div>
 
@@ -627,7 +646,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   <div className="w-8 h-8 rounded-xl bg-[#f0faf9] border border-[#b2e5df] text-[#208077] flex items-center justify-center shrink-0">
                     <Send className="w-4 h-4" />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900">Envío Masivo de Certificados</h4>
+                  <h4 className="text-sm font-bold text-slate-900">{copy.massTitle}</h4>
                 </div>
                 <p className="text-xs text-slate-500">
                   {recipientsWithEmail.length} de {recipients.length} personas tienen correo electrónico asignado.
@@ -643,7 +662,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   disabled={recipientsWithEmail.length === 0}
                   className="w-full bg-[#208077] hover:bg-[#18655e] shadow-sm justify-center py-2.5 text-xs font-semibold"
                 >
-                  Enviar {recipientsWithEmail.length} Certificados por Correo
+                  {copy.massButton(recipientsWithEmail.length)}
                 </Button>
               </div>
             </>
@@ -653,7 +672,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
             <div className="space-y-3.5 my-auto">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-slate-800 flex items-center gap-1.5 truncate max-w-[240px]">
-                  {sendProgress.status === 'paused' ? 'Envíos en pausa' : 'Enviando certificados...'}
+                  {sendProgress.status === 'paused' ? 'Envíos en pausa' : copy.sending}
                   <span className="font-normal text-slate-500 font-mono truncate text-[11px]">
                     {sendProgress.currentRecipientName}
                   </span>

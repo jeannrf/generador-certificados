@@ -53,7 +53,7 @@ export interface FieldBox {
 }
 
 export type IssueSeverity = 'warning' | 'error';
-export type IssueCode = 'EMPTY_NAME' | 'INVALID_EMAIL' | 'DUPLICATE' | 'NAME_TOO_LONG' | 'TEXT_OVERFLOW' | 'TRIMMED';
+export type IssueCode = 'EMPTY_NAME' | 'EMPTY_EMAIL' | 'INVALID_EMAIL' | 'DUPLICATE' | 'NAME_TOO_LONG' | 'TEXT_OVERFLOW' | 'TRIMMED';
 
 export interface Issue {
   severity: IssueSeverity;

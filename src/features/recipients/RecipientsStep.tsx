@@ -12,9 +12,11 @@ interface RecipientsStepProps {
   mapping: ColumnMapping;
   onDataLoaded: (data: ParsedTableData, mapping: ColumnMapping) => void;
   onMappingChange: (mapping: ColumnMapping) => void;
-  onBack: () => void;
+  onBack?: () => void;
   onContinue: () => void;
   onClearData: () => void;
+  /** 'mail': el correo es obligatorio y el nombre opcional (envío de correos sin certificado) */
+  variant?: 'certificates' | 'mail';
 }
 
 export const RecipientsStep: React.FC<RecipientsStepProps> = ({
@@ -25,7 +27,11 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
   onBack,
   onContinue,
   onClearData,
+  variant = 'certificates',
 }) => {
+  const isMail = variant === 'mail';
+  // Columna principal que se resalta en la vista previa
+  const keyColumn = isMail ? mapping.emailColumn : mapping.nameColumn;
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -53,8 +59,10 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
       }
 
       const detected = detectColumns(parsed.headers, parsed.rows);
+      const fallbackName = detected.nameCol || parsed.headers[0];
       const newMapping: ColumnMapping = {
-        nameColumn: detected.nameCol || parsed.headers[0],
+        // En modo correos el nombre es opcional: no reutilizar la columna de correo como nombre
+        nameColumn: isMail && fallbackName === detected.emailCol ? '' : fallbackName,
         emailColumn: detected.emailCol,
       };
 
@@ -115,10 +123,12 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Carga la lista de destinatarios
+            {isMail ? 'Carga tu base de contactos' : 'Carga la lista de destinatarios'}
           </h2>
           <p className="text-sm text-slate-600 mt-1">
-            Sube tu archivo de Excel con los nombres de las personas a quienes se emitirá el certificado.
+            {isMail
+              ? 'Sube tu archivo Excel o CSV con los correos de las personas a quienes quieres escribir.'
+              : 'Sube tu archivo de Excel con los nombres de las personas a quienes se emitirá el certificado.'}
           </p>
         </div>
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
@@ -143,17 +153,19 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
             <span className="hidden sm:inline">Descargar Plantilla Excel</span>
             <span className="sm:hidden">Plantilla Excel</span>
           </Button>
-          <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
-            Atrás
-          </Button>
+          {onBack && (
+            <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
+              Atrás
+            </Button>
+          )}
           <Button
             variant="primary"
             size="sm"
-            disabled={!tableData || !mapping.nameColumn}
+            disabled={!tableData || !(isMail ? mapping.emailColumn : mapping.nameColumn)}
             onClick={onContinue}
             className="flex-1 sm:flex-none justify-center"
           >
-            Revisar Destinatarios
+            {isMail ? 'Continuar a Redactar' : 'Revisar Destinatarios'}
           </Button>
         </div>
       </div>
@@ -197,14 +209,22 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                 <span className="w-2 h-2 rounded-full bg-[#208077] mt-1 shrink-0" />
                 <div>
                   <strong className="text-slate-900 block text-xs">Columna de Nombres</strong>
-                  <span className="text-slate-500">Obligatoria para personalizar el texto en cada certificado.</span>
+                  <span className="text-slate-500">
+                    {isMail
+                      ? 'Opcional. Te permite saludar a cada persona por su nombre con {nombre}.'
+                      : 'Obligatoria para personalizar el texto en cada certificado.'}
+                  </span>
                 </div>
               </div>
               <div className="flex items-start gap-2.5 bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-[#208077] mt-1 shrink-0" />
                 <div>
                   <strong className="text-slate-900 block text-xs">Columna de Correos</strong>
-                  <span className="text-slate-500">Necesaria si vas a enviar los certificados por correo electrónico.</span>
+                  <span className="text-slate-500">
+                    {isMail
+                      ? 'Obligatoria. Es la dirección a la que llegará cada correo.'
+                      : 'Necesaria si vas a enviar los certificados por correo electrónico.'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -264,7 +284,12 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 block">
-                      Columna de Nombres <span className="text-rose-500">*</span>
+                      Columna de Nombres{' '}
+                      {isMail ? (
+                        <span className="text-slate-400 font-normal">(Opcional)</span>
+                      ) : (
+                        <span className="text-rose-500">*</span>
+                      )}
                     </label>
                     <select
                       value={mapping.nameColumn}
@@ -275,6 +300,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                           : 'border-[#b2e5df] bg-[#f0faf9] text-slate-900'
                       }`}
                     >
+                      {isMail && <option value="">-- Ninguna --</option>}
                       {tableData.headers.map((h) => (
                         <option key={h} value={h}>
                           {h}
@@ -292,7 +318,12 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 block">
-                      Columna de Correo <span className="text-slate-400 font-normal">(Opcional)</span>
+                      Columna de Correo{' '}
+                      {isMail ? (
+                        <span className="text-rose-500">*</span>
+                      ) : (
+                        <span className="text-slate-400 font-normal">(Opcional)</span>
+                      )}
                     </label>
                     <select
                       value={mapping.emailColumn || ''}
@@ -305,7 +336,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                           : 'border-slate-200 bg-slate-50 text-slate-800'
                       }`}
                     >
-                      <option value="">-- Ninguna --</option>
+                      <option value="">{isMail ? '-- Selecciona una columna --' : '-- Ninguna --'}</option>
                       {tableData.headers.map((h) => (
                         <option key={h} value={h}>
                           {h}
@@ -339,7 +370,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                             <th
                               key={h}
                               className={`px-3 py-2 text-left bg-slate-50 ${
-                                h === mapping.nameColumn ? 'text-[#208077] font-bold' : ''
+                                h === keyColumn ? 'text-[#208077] font-bold' : ''
                               }`}
                             >
                               {h}
@@ -357,7 +388,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                               <td
                                 key={h}
                                 className={`px-3 py-1.5 truncate max-w-[180px] ${
-                                  h === mapping.nameColumn ? 'font-medium text-slate-900 bg-[#f0faf9]/80' : 'text-slate-600'
+                                  h === keyColumn ? 'font-medium text-slate-900 bg-[#f0faf9]/80' : 'text-slate-600'
                                 }`}
                               >
                                 {row[h] || '—'}

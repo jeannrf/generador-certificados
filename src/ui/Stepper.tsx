@@ -2,13 +2,21 @@ import React from 'react';
 import { Check, FileText, Move, Users, CheckCircle, Download } from 'lucide-react';
 import { WizardStep } from '../domain/types';
 
-interface StepperProps {
-  currentStep: WizardStep;
-  onStepClick?: (step: WizardStep) => void;
-  maxStepUnlocked?: WizardStep;
+export interface StepDefinition<S extends number = number> {
+  step: S;
+  title: string;
+  description: string;
+  icon: React.ElementType;
 }
 
-const STEPS = [
+interface StepperProps<S extends number = WizardStep> {
+  currentStep: S;
+  onStepClick?: (step: S) => void;
+  maxStepUnlocked?: S;
+  steps?: StepDefinition<S>[];
+}
+
+const CERTIFICATE_STEPS: StepDefinition<WizardStep>[] = [
   { step: 1 as WizardStep, title: 'Plantilla', description: 'Subir o elegir diseño', icon: FileText },
   { step: 2 as WizardStep, title: 'Posición y Estilo', description: 'Ubicación y tipografía', icon: Move },
   { step: 3 as WizardStep, title: 'Destinatarios', description: 'CSV, Excel o texto', icon: Users },
@@ -16,17 +24,17 @@ const STEPS = [
   { step: 5 as WizardStep, title: 'Generación', description: 'Descarga ZIP o PDF', icon: Download },
 ];
 
-export const Stepper: React.FC<StepperProps> = ({
+export const Stepper = <S extends number = WizardStep>({
   currentStep,
   onStepClick,
-  maxStepUnlocked: _maxStepUnlocked = 1,
-}) => {
+  steps = CERTIFICATE_STEPS as unknown as StepDefinition<S>[],
+}: StepperProps<S>) => {
   return (
     <div className="w-full bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-subtle backdrop-blur-md bg-white/90">
       <div className="max-w-6xl mx-auto px-4 py-3 sm:px-6">
         <nav aria-label="Progress">
           <ol className="flex items-center justify-between gap-2 md:gap-4">
-            {STEPS.map((s, idx) => {
+            {steps.map((s, idx) => {
               const isCompleted = s.step < currentStep;
               const isCurrent = s.step === currentStep;
               const Icon = s.icon;
@@ -81,7 +89,7 @@ export const Stepper: React.FC<StepperProps> = ({
                     </div>
 
                     {/* Connector line */}
-                    {idx < STEPS.length - 1 && (
+                    {idx < steps.length - 1 && (
                       <div
                         className={`hidden lg:block flex-1 h-0.5 ml-2 transition-colors duration-300 ${
                           s.step < currentStep ? 'bg-emerald-400' : 'bg-slate-200'
