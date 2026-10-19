@@ -160,3 +160,33 @@ export function summarizeCampaign(campaign: EmailCampaign): EmailCampaignSummary
 export function getUnsentRecipients(campaign: EmailCampaign): Recipient[] {
   return campaign.recipients.filter((rec) => campaign.records[rec.id]?.status !== 'sent');
 }
+
+/** Límite diario de envío de Gmail para cuentas de Google Workspace (ventana móvil de 24 h) */
+export const DAILY_SEND_LIMIT = 2000;
+export const DAILY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export interface DailyQuotaSummary {
+  limit: number;
+  sent: number;
+  remaining: number;
+  /** Momento en que se libera el siguiente cupo (el envío más antiguo cumple 24 h) */
+  nextReleaseAt?: number;
+}
+
+/**
+ * Calcula el cupo diario a partir de las marcas de tiempo de los correos enviados con éxito.
+ */
+export function summarizeDailyQuota(
+  sentTimestamps: number[],
+  now: number = Date.now(),
+  limit: number = DAILY_SEND_LIMIT
+): DailyQuotaSummary {
+  const inWindow = sentTimestamps.filter((t) => now - t < DAILY_WINDOW_MS);
+  const oldest = inWindow.length > 0 ? Math.min(...inWindow) : undefined;
+  return {
+    limit,
+    sent: inWindow.length,
+    remaining: Math.max(0, limit - inWindow.length),
+    nextReleaseAt: oldest !== undefined ? oldest + DAILY_WINDOW_MS : undefined,
+  };
+}
