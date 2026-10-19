@@ -119,3 +119,25 @@ export interface EmailSendProgress {
   records: Record<string, EmailDeliveryRecord>;
 }
 
+
+/**
+ * Envío masivo persistido: guarda la lista a la que se envió y el estado de cada persona
+ * para poder recuperarlo y reintentarlo aunque se recargue la página.
+ */
+export interface EmailCampaign {
+  id: string;
+  startedAt: string;
+  updatedAt: string;
+  subject: string;
+  recipients: Recipient[];
+  records: Record<string, EmailDeliveryRecord>;
+}
+
+export interface EmailCampaignSummary {
+  total: number;
+  sent: number;
+  failed: number;
+  /** Se estaba enviando cuando se cerró la página: no se sabe si llegó */
+  unconfirmed: number;
+  pending: number;
+}

@@ -1,4 +1,10 @@
-import { EmailConfig, EmailDeliveryRecord, Recipient } from './types';
+import {
+  EmailCampaign,
+  EmailCampaignSummary,
+  EmailConfig,
+  EmailDeliveryRecord,
+  Recipient,
+} from './types';
 
 /**
  * Escapa caracteres HTML para evitar inyecciones al interpolar variables en el correo
@@ -110,4 +116,47 @@ export function buildDeliveryReportCsv(records: EmailDeliveryRecord[]): string {
   ]);
 
   return '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+}
+
+/**
+ * Lista el estado de cada persona del envío; quien aún no tiene registro queda como pendiente.
+ */
+export function getCampaignRecords(campaign: EmailCampaign): EmailDeliveryRecord[] {
+  return campaign.recipients.map(
+    (rec) =>
+      campaign.records[rec.id] || {
+        recipientId: rec.id,
+        name: rec.name || rec.email || '',
+        email: rec.email || '',
+        status: 'pending',
+      }
+  );
+}
+
+/**
+ * Cuenta enviados, fallidos, sin confirmar y pendientes de un envío.
+ * 'sending' fuera de un envío en curso significa que la página se cerró a mitad de esa petición.
+ */
+export function summarizeCampaign(campaign: EmailCampaign): EmailCampaignSummary {
+  const summary: EmailCampaignSummary = {
+    total: campaign.recipients.length,
+    sent: 0,
+    failed: 0,
+    unconfirmed: 0,
+    pending: 0,
+  };
+  for (const rec of getCampaignRecords(campaign)) {
+    if (rec.status === 'sent') summary.sent++;
+    else if (rec.status === 'error') summary.failed++;
+    else if (rec.status === 'sending') summary.unconfirmed++;
+    else summary.pending++;
+  }
+  return summary;
+}
+
+/**
+ * Personas a las que todavía no se les confirmó el envío (fallidas, sin confirmar o pendientes).
+ */
+export function getUnsentRecipients(campaign: EmailCampaign): Recipient[] {
+  return campaign.recipients.filter((rec) => campaign.records[rec.id]?.status !== 'sent');
 }
