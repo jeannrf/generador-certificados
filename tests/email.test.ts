@@ -7,6 +7,8 @@ import {
   summarizeCampaign,
   getUnsentRecipients,
   getCampaignRecords,
+  summarizeDailyQuota,
+  DAILY_WINDOW_MS,
 } from '../src/domain/email';
 import { uint8ArrayToBase64 } from '../src/infra/email/googleAppsScript';
 import { Recipient, EmailDeliveryRecord, EmailCampaign } from '../src/domain/types';
@@ -145,5 +147,26 @@ describe('Domain - Email Campaign recovery', () => {
     const records = getCampaignRecords(campaign);
     expect(records).toHaveLength(4);
     expect(records[3]).toMatchObject({ recipientId: 'd', email: 'd@correo.com', status: 'pending' });
+  });
+});
+
+describe('Domain - Daily send quota', () => {
+  const now = Date.UTC(2026, 9, 19, 15, 0, 0);
+  const hoursAgo = (h: number) => now - h * 60 * 60 * 1000;
+
+  it('should only count sends from the last 24 hours (rolling window)', () => {
+    const quota = summarizeDailyQuota([hoursAgo(25), hoursAgo(23), hoursAgo(1)], now, 2000);
+    expect(quota.sent).toBe(2);
+    expect(quota.remaining).toBe(1998);
+    expect(quota.nextReleaseAt).toBe(hoursAgo(23) + DAILY_WINDOW_MS);
+  });
+
+  it('should never report negative remaining quota', () => {
+    const quota = summarizeDailyQuota([hoursAgo(1), hoursAgo(2), hoursAgo(3)], now, 2);
+    expect(quota.remaining).toBe(0);
+  });
+
+  it('should have full quota and no release time when nothing was sent', () => {
+    expect(summarizeDailyQuota([], now, 2000)).toEqual({ limit: 2000, sent: 0, remaining: 2000, nextReleaseAt: undefined });
   });
 });
