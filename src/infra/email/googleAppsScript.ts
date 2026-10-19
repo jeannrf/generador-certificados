@@ -2,6 +2,10 @@ import { EmailConfig } from '../../domain/types';
 
 const STORAGE_KEY = 'cert_email_config_v2';
 const OLD_STORAGE_KEY = 'cert_email_config_v1';
+const MAIL_STORAGE_KEY = 'mail_email_config_v1';
+
+/** Servicio que usa la configuración: correos con certificado adjunto o correos simples */
+export type EmailConfigVariant = 'certificates' | 'mail';
 
 export const DEFAULT_EMAIL_CONFIG: EmailConfig = {
   webAppUrl: '',
@@ -14,6 +18,19 @@ export const DEFAULT_EMAIL_CONFIG: EmailConfig = {
 
 Saludos cordiales,
 Comité Organizador`,
+};
+
+export const DEFAULT_MAIL_CONFIG: EmailConfig = {
+  webAppUrl: '',
+  token: '',
+  senderName: 'Uniautomate',
+  subject: 'Hola {nombre}, tenemos novedades para ti',
+  htmlBody: `Hola {nombre},
+
+Te escribimos para compartirte información importante.
+
+Saludos cordiales,
+El equipo`,
 };
 
 /**
@@ -35,9 +52,12 @@ export function uint8ArrayToBase64(bytes: Uint8Array): string {
 /**
  * Guarda la configuración de correo en localStorage para no perderla
  */
-export function saveEmailConfigToStorage(config: EmailConfig): void {
+export function saveEmailConfigToStorage(
+  config: EmailConfig,
+  variant: EmailConfigVariant = 'certificates'
+): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    localStorage.setItem(variant === 'mail' ? MAIL_STORAGE_KEY : STORAGE_KEY, JSON.stringify(config));
   } catch (err) {
     console.warn('No se pudo guardar la configuración de correo en localStorage:', err);
   }
@@ -46,7 +66,17 @@ export function saveEmailConfigToStorage(config: EmailConfig): void {
 /**
  * Carga la configuración de correo guardada en localStorage o devuelve la por defecto
  */
-export function loadEmailConfigFromStorage(): EmailConfig {
+export function loadEmailConfigFromStorage(variant: EmailConfigVariant = 'certificates'): EmailConfig {
+  if (variant === 'mail') {
+    try {
+      const raw = localStorage.getItem(MAIL_STORAGE_KEY);
+      if (raw) return { ...DEFAULT_MAIL_CONFIG, ...JSON.parse(raw) };
+    } catch (err) {
+      console.warn('Error leyendo configuración de correo desde localStorage:', err);
+    }
+    return DEFAULT_MAIL_CONFIG;
+  }
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {

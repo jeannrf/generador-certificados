@@ -103,7 +103,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
             isLight ? 'text-slate-900' : 'text-white'
           }`}
         >
-          UniCertified
+          Uniautomate
         </span>
         {subtitle && (
           <span

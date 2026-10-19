@@ -9,9 +9,13 @@ import {
   Sliders,
   Check,
   ChevronDown,
-  FileText,
   ExternalLink,
+  Award,
+  ArrowRight,
+  Send,
+  Users,
 } from 'lucide-react';
+import type { Service } from '../../App';
 
 const LinkedinIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
   <svg
@@ -24,11 +28,48 @@ const LinkedinIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' 
   </svg>
 );
 
+const SERVICES: {
+  id: Service;
+  icon: React.ElementType;
+  eyebrow: string;
+  title: string;
+  description: string;
+  bullets: string[];
+  cta: string;
+}[] = [
+  {
+    id: 'certificates',
+    icon: Award,
+    eyebrow: 'Con PDF adjunto',
+    title: 'Generador de certificados automáticos',
+    description: 'Sube tu plantilla, ubica el nombre y genera un certificado en PDF para cada persona de tu lista.',
+    bullets: [
+      'Plantillas en PDF o imagen',
+      'Descarga todo en un ZIP',
+      'Envío de cada certificado a su correo',
+    ],
+    cta: 'Crear certificados',
+  },
+  {
+    id: 'mailer',
+    icon: Mail,
+    eyebrow: 'Solo correo',
+    title: 'Envío de correos automáticos',
+    description: 'Escribe un mensaje una sola vez y envíalo personalizado a cientos de personas desde tu Excel o CSV.',
+    bullets: [
+      'Saluda a cada persona por su nombre',
+      'Envíate una prueba antes de mandar',
+      'Reporte de entregas descargable',
+    ],
+    cta: 'Enviar correos',
+  },
+];
+
 interface LandingPageProps {
-  onStartGenerator: () => void;
+  onSelectService: (service: Service) => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const toggleFaq = (index: number) => {
@@ -58,6 +99,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
           {/* Nav Links */}
           <nav className="hidden md:flex items-center gap-4 lg:gap-8 text-xs lg:text-sm font-medium text-slate-600">
+            <a href="#servicios" className="hover:text-slate-900 transition-colors whitespace-nowrap">
+              Servicios
+            </a>
             <a href="#features" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Características
             </a>
@@ -74,157 +118,70 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
           {/* CTA Header Buttons */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={onStartGenerator}
+            <a
+              href="#servicios"
               className="inline-flex items-center justify-center text-sm font-semibold px-5 py-2.5 rounded-xl bg-[#208077] hover:bg-[#18655e] text-white transition-all duration-200 shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
             >
               Probar ahora
-            </button>
+            </a>
           </div>
         </div>
       </header>
 
-      {/* ── Hero Section (Limpio, sobrio y profesional, sin badges ni degradados de IA) ───── */}
-      <section className="relative overflow-hidden pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-20 lg:pb-32 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            
-            {/* Columna Izquierda: Mensaje y CTA principal */}
-            <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-center lg:text-left">
-              {/* Título tipográfico limpio y contundente */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.08] max-w-3xl mx-auto lg:mx-0">
-                Emite certificados oficiales masivos en segundos.
-              </h1>
+      {/* ── Hero: selector de servicios ───────────────────────────────── */}
+      <section id="servicios" className="relative overflow-hidden pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-20 lg:pb-28 bg-slate-50 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 sm:space-y-14">
+          <div className="text-center space-y-5 max-w-3xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.08]">
+              ¿Qué quieres automatizar hoy?
+            </h1>
+            <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
+              Sube tu Excel o CSV y deja que Uniautomate haga el trabajo repetitivo por ti. Elige un servicio para empezar, es gratis y no necesitas registrarte.
+            </p>
+          </div>
 
-              {/* Subtítulo editorial */}
-              <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                Diseña sobre tu propia plantilla en PDF, conecta tu lista de Excel en un instante y despacha cientos de diplomas personalizados con entrega directa a sus correos.
-              </p>
-
-              {/* Botones de Acción Principal */}
-              <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto">
+            {SERVICES.map((svc) => {
+              const Icon = svc.icon;
+              return (
                 <button
+                  key={svc.id}
                   type="button"
-                  onClick={onStartGenerator}
-                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-[#208077] hover:bg-[#18655e] text-white font-semibold text-base transition-all duration-200 shadow-sm cursor-pointer active:scale-98"
+                  onClick={() => onSelectService(svc.id)}
+                  className="group text-left bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm hover:shadow-xl hover:border-[#208077]/60 transition-all duration-200 cursor-pointer flex flex-col gap-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#208077] focus-visible:ring-offset-2"
                 >
-                  Probar ahora
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-[#f0faf9] border border-[#b2e5df] flex items-center justify-center text-[#208077] transition-colors group-hover:bg-[#208077] group-hover:text-white">
+                      <Icon className="w-7 h-7" strokeWidth={1.8} />
+                    </div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      {svc.eyebrow}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                      {svc.title}
+                    </h2>
+                    <p className="text-sm text-slate-600 leading-relaxed">{svc.description}</p>
+                  </div>
+
+                  <ul className="space-y-2 text-sm text-slate-700 flex-1">
+                    {svc.bullets.map((b) => (
+                      <li key={b} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#208077] mt-0.5 shrink-0" />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <span className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 rounded-xl bg-[#208077] group-hover:bg-[#18655e] text-white font-semibold text-base transition-colors shadow-sm">
+                    {svc.cta}
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
                 </button>
-                <a
-                  href="#contacto"
-                  className="inline-flex items-center justify-center px-6 py-3.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-base transition-all duration-200 shadow-xs cursor-pointer active:scale-98"
-                >
-                  Contacto
-                </a>
-              </div>
-            </div>
-
-            {/* Columna Derecha: Mockup Visual con Tarjetas Superpuestas */}
-            <div className="lg:col-span-5 relative mt-4 lg:mt-0 flex justify-center">
-              <div className="relative mx-auto max-w-md w-full lg:max-w-none">
-                
-                {/* 1. Tarjeta Principal (Tarjeta Blanca de Emisión de Lote) */}
-                <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-200 relative z-10 space-y-6">
-                  {/* Header de la tarjeta */}
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#f0faf9] border border-[#b2e5df] flex items-center justify-center text-[#208077] font-bold">
-                        <FileText className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 leading-tight">
-                          Certificación Académica
-                        </h4>
-                        <p className="text-xs text-slate-400">
-                          diplomados@universidad.edu
-                        </p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#f0faf9] text-[#208077] border border-[#b2e5df]">
-                      Activo
-                    </span>
-                  </div>
-
-                  {/* Resumen del Lote */}
-                  <div className="space-y-1">
-                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                      Lote Preparado
-                    </span>
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        350 Certificados
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      Fecha de emisión: 24 de Octubre, 2026
-                    </p>
-                  </div>
-
-                  {/* Opciones de salida con radio */}
-                  <div className="space-y-2.5 pt-2">
-                    <div className="p-3 rounded-xl border border-[#208077]/40 bg-[#f0faf9] flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full border-4 border-[#208077] bg-white" />
-                        <span className="text-xs font-semibold text-slate-800">
-                          Descarga en ZIP (Alta Resolución)
-                        </span>
-                      </div>
-                      <span className="text-[11px] font-mono text-[#208077] font-semibold">
-                        Listo
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full border border-slate-300 bg-white" />
-                        <span className="text-xs font-medium text-slate-600">
-                          Despacho individual por correo
-                        </span>
-                      </div>
-                      <Mail className="w-4 h-4 text-slate-400" />
-                    </div>
-                  </div>
-
-                  {/* Botón puramente ilustrativo dentro del mockup (no interactivo) */}
-                  <div className="w-full py-3.5 rounded-xl bg-slate-900 text-white font-semibold text-sm text-center shadow-xs select-none pointer-events-none cursor-default opacity-95">
-                    Generar Lote Completo
-                  </div>
-                </div>
-
-                {/* 2. Tarjeta Flotante Superpuesta con el Verde Predominante #208077 */}
-                <div className="absolute -top-6 -right-2 sm:-top-8 sm:-right-4 lg:-right-8 z-20 w-60 sm:w-64 bg-gradient-to-br from-[#208077] to-[#124742] rounded-2xl p-4 sm:p-5 text-white shadow-2xl border border-teal-300/30 transform rotate-1 hover:rotate-0 transition-transform duration-300">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <span className="text-[10px] font-semibold text-teal-100 uppercase tracking-widest block">
-                        Certificado Seguro
-                      </span>
-                      <span className="text-xs font-bold text-white tracking-wide">
-                        CERT-2026 • 9842
-                      </span>
-                    </div>
-                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-teal-100">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 mb-4">
-                    <p className="text-[10px] text-teal-100/80">Destinatario de honor</p>
-                    <p className="text-sm font-bold text-white tracking-tight">
-                      Dra. Sofía Alarcón Medina
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-teal-500/40 flex items-center justify-between text-[11px] text-teal-100">
-                    <span className="flex items-center gap-1 font-medium">
-                      <Check className="w-3.5 h-3.5 text-teal-200" /> Autoajuste OK
-                    </span>
-                    <span className="font-mono font-bold text-teal-200">100% PDF</span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
+              );
+            })}
           </div>
         </div>
       </section>
@@ -253,7 +210,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
                 Ahorro de tiempo operativo
               </p>
               <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                Elimina el trabajo manual de diseñar y rotular certificados uno a uno.
+                Elimina el trabajo manual de rotular certificados o escribir correos uno a uno.
               </p>
             </div>
 
@@ -277,7 +234,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
           <div className="text-center max-w-2xl mx-auto space-y-4">
             <span className="text-xs font-bold text-[#208077] uppercase tracking-widest">
-              Precisión y Control
+              Generador de certificados
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
               Todo lo que necesitas para emitir certificados sin estrés
@@ -415,10 +372,62 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
 
           <div className="text-center pt-4">
             <button
-              onClick={onStartGenerator}
+              onClick={() => onSelectService('certificates')}
               className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-[#208077] hover:bg-[#18655e] text-white font-bold text-base shadow-sm transition-all duration-200 cursor-pointer active:scale-98"
             >
               Comenzar a Crear Certificados
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Envío de correos automáticos ────────────────────────────────── */}
+      <section id="envio-correos" className="py-24 bg-slate-50 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+          <div className="text-center max-w-2xl mx-auto space-y-4">
+            <span className="text-xs font-bold text-[#208077] uppercase tracking-widest">
+              Envío de correos automáticos
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              ¿Solo necesitas escribirle a toda tu lista?
+            </h2>
+            <p className="text-base text-slate-600">
+              Sin plantillas ni certificados: sube tus contactos, redacta el mensaje y envíalo personalizado a cada persona.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Users,
+                title: 'Sube tus contactos',
+                text: 'Arrastra tu Excel o CSV. Detectamos solas las columnas de correo y nombre.',
+              },
+              {
+                icon: Mail,
+                title: 'Redacta una sola vez',
+                text: 'Usa {nombre} o cualquier columna de tu archivo para que cada correo sea personal.',
+              },
+              {
+                icon: Send,
+                title: 'Prueba y envía',
+                text: 'Envíate una prueba, lanza el envío masivo y descarga el reporte de entregas.',
+              },
+            ].map(({ icon: Icon, title, text }) => (
+              <div key={title} className="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <Icon className="w-7 h-7 text-[#208077]" strokeWidth={1.8} />
+                <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center pt-4">
+            <button
+              onClick={() => onSelectService('mailer')}
+              className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-[#208077] hover:bg-[#18655e] text-white font-bold text-base shadow-sm transition-all duration-200 cursor-pointer active:scale-98"
+            >
+              Comenzar a Enviar Correos
             </button>
           </div>
         </div>
@@ -444,7 +453,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
               Preguntas Frecuentes
             </h2>
             <p className="text-sm text-slate-600">
-              Todo lo que necesitas saber antes de empezar a emitir tus certificados.
+              Todo lo que necesitas saber antes de empezar.
             </p>
           </div>
 
@@ -461,6 +470,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
               {
                 q: '¿Cómo funciona el envío por correo electrónico?',
                 a: 'El sistema permite despachar cada certificado PDF generado como archivo adjunto a través de tu cuenta de Gmail conectada mediante una contraseña de aplicación segura. Los participantes recibirán el correo directamente en su bandeja de entrada.',
+              },
+              {
+                q: '¿Puedo enviar correos sin generar certificados?',
+                a: 'Sí. Elige el servicio "Envío de correos automáticos": subes tu Excel o CSV con una columna de correos, redactas el mensaje y se envía de forma individual a cada persona, sin plantilla ni adjuntos.',
               },
               {
                 q: '¿Hay algún límite en la cantidad de certificados?',
@@ -552,8 +565,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartGenerator }) =>
       <footer className="bg-slate-950 text-slate-400 py-10 border-t border-slate-800 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
           <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8">
-            <button onClick={onStartGenerator} className="hover:text-white transition-colors cursor-pointer">
-              Abrir Generador
+            <button onClick={() => onSelectService('certificates')} className="hover:text-white transition-colors cursor-pointer">
+              Generar certificados
+            </button>
+            <button onClick={() => onSelectService('mailer')} className="hover:text-white transition-colors cursor-pointer">
+              Enviar correos
             </button>
             <a href="#features" className="hover:text-white transition-colors">
               Características

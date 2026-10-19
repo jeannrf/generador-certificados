@@ -27,7 +27,7 @@ interface FieldEditorStepProps {
 const PRESET_COLORS = [
   '#0f172a', // Slate Dark
   '#1e3a8a', // Navy Blue
-  '#208077', // Brand Verde UniCertified
+  '#208077', // Brand Verde Uniautomate
   '#d97706', // Gold / Amber
   '#047857', // Emerald Green
   '#0284c7', // Sky Blue

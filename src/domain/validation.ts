@@ -7,6 +7,10 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export interface ValidationOptions {
   field?: FieldBox;
   templateWidthPt?: number;
+  /** Si es false, un nombre vacío no se considera error (envío de correos simples). Por defecto true. */
+  requireName?: boolean;
+  /** Si es true, cada fila debe tener un correo electrónico. Por defecto false. */
+  requireEmail?: boolean;
 }
 
 /**
@@ -27,6 +31,8 @@ export function validateRecipients(
 
   const baseField = options?.field;
   const templateWidthPt = options?.templateWidthPt || 841.89;
+  const requireName = options?.requireName ?? true;
+  const requireEmail = options?.requireEmail ?? false;
 
   return rawRows.map((row, index) => {
     const rowNumber = index + 1;
@@ -39,11 +45,13 @@ export function validateRecipients(
 
     // 1. Validación de nombre
     if (!cleanedName) {
-      issues.push({
-        severity: 'error',
-        code: 'EMPTY_NAME',
-        message: 'El nombre está vacío',
-      });
+      if (requireName) {
+        issues.push({
+          severity: 'error',
+          code: 'EMPTY_NAME',
+          message: 'El nombre está vacío',
+        });
+      }
     } else {
       // Advertencia si el nombre no cabe en el recuadro delimitado
       if (field) {
@@ -99,7 +107,13 @@ export function validateRecipients(
     }
 
     // 2. Validación de correo (si está presente)
-    if (cleanedEmail) {
+    if (!cleanedEmail && requireEmail) {
+      issues.push({
+        severity: 'error',
+        code: 'EMPTY_EMAIL',
+        message: 'El correo electrónico está vacío',
+      });
+    } else if (cleanedEmail) {
       if (!EMAIL_REGEX.test(cleanedEmail)) {
         issues.push({
           severity: 'error',

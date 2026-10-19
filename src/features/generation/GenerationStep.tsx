@@ -364,10 +364,10 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
             {/* 2. Envío por correo (ahora sí, porque ya están generados) */}
             <EmailDispatcherSection
               recipients={validRecipients}
-              template={template}
-              field={field}
-              fileNamePattern={fileNamePattern}
-              pregeneratedCertificates={pregeneratedPdfs}
+              buildAttachment={async (rec) =>
+                pregeneratedPdfs?.[rec.id] ??
+                composeCertificatePdf(template, field, rec, fileNamePattern)
+              }
             />
 
             {/* Botón para reiniciar lote */}
