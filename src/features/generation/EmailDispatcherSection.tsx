@@ -160,7 +160,18 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   );
 
   // Envío en curso o recuperado de una sesión anterior (persistido tras cada correo)
-  const [campaign, setCampaign] = useState<EmailCampaign | null>(() => loadCampaign(variant));
+  // Un envío ya terminado con una lista distinta a la actual no se restaura: se empieza uno nuevo
+  const [campaign, setCampaign] = useState<EmailCampaign | null>(() => {
+    const saved = loadCampaign(variant);
+    if (!saved || getUnsentRecipients(saved).length > 0) return saved;
+    const savedEmails = new Set(saved.recipients.map((r) => (r.email ?? '').trim().toLowerCase()));
+    const sameList =
+      savedEmails.size === recipientsWithEmail.length &&
+      recipientsWithEmail.every((r) => savedEmails.has((r.email ?? '').trim().toLowerCase()));
+    if (sameList || recipientsWithEmail.length === 0) return saved;
+    clearCampaign(variant);
+    return null;
+  });
   const campaignRef = useRef<EmailCampaign | null>(campaign);
   const [wasRestored] = useState(() => campaign !== null && getUnsentRecipients(campaign).length > 0);
   const [runStatus, setRunStatus] = useState<'idle' | 'sending' | 'paused'>('idle');
