@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
+import type { SendMailOptions } from 'nodemailer';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Configuración de CORS
@@ -69,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const mailOptions: nodemailer.SendMailOptions = {
+    const mailOptions: SendMailOptions = {
       from,
       to: to.trim(),
       subject,
