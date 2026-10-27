@@ -64,3 +64,5 @@ playwright/.cache/
 .~lock.*
 *.tmp
 
+.vercel
+.env*

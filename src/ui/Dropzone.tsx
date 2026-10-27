@@ -13,6 +13,7 @@ interface DropzoneProps {
   className?: string;
   compact?: boolean;
   hideBadge?: boolean;
+  disabled?: boolean;
 }
 
 export const Dropzone: React.FC<DropzoneProps> = ({
@@ -27,6 +28,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
   className = '',
   compact = false,
   hideBadge = false,
+  disabled = false,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
 
   const handleFiles = (files: FileList | null) => {
     setError(null);
-    if (!files || files.length === 0) return;
+    if (disabled || !files || files.length === 0) return;
 
     const file = files[0];
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
@@ -49,7 +51,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(true);
+    if (!disabled) setIsDragOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -69,13 +71,24 @@ export const Dropzone: React.FC<DropzoneProps> = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        className={`relative group cursor-pointer border-2 border-dashed rounded-2xl ${
+        onClick={() => !disabled && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        className={`relative group border-2 border-dashed rounded-2xl ${
           compact ? 'p-5 sm:p-6' : 'p-8 sm:p-12'
         } text-center transition-all duration-200 flex-1 flex flex-col items-center justify-center ${
-          isDragOver
-            ? 'border-[#208077] bg-[#f0faf9] scale-[0.99] ring-4 ring-[#b2e5df]/50'
-            : 'border-slate-300 hover:border-[#208077] bg-slate-50/50 hover:bg-slate-50'
+          disabled
+            ? 'cursor-not-allowed opacity-60 border-slate-200 bg-slate-50'
+            : isDragOver
+            ? 'cursor-pointer border-[#208077] bg-[#f0faf9] scale-[0.99] ring-4 ring-[#b2e5df]/50'
+            : 'cursor-pointer border-slate-300 hover:border-[#208077] bg-slate-50/50 hover:bg-slate-50'
         }`}
       >
         <input
@@ -83,7 +96,12 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           type="file"
           accept={accept}
           className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
+          disabled={disabled}
+          onChange={(e) => {
+            handleFiles(e.target.files);
+            // Permite volver a elegir el mismo archivo después de un error
+            e.target.value = '';
+          }}
         />
 
         <div

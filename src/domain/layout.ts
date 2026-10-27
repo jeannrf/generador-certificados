@@ -1,4 +1,5 @@
 import { FieldBox } from './types';
+import { fieldFontVariant } from './fonts';
 
 export interface PdfBoxCoords {
   xPt: number;
@@ -126,8 +127,10 @@ export function calculateScreenFontSize(
 
   const scale = containerWidthPx / templateWidthPt;
   const boxWidthPt = field.width * templateWidthPt;
-  const fontWeight = field.isBold ? 700 : 400;
-  const fontStyle = field.isItalic ? 'italic' : 'normal';
+  // Variante real: si la fuente no tiene negrita o itálica se mide la regular, igual que en el PDF
+  const variant = fieldFontVariant(field);
+  const fontWeight = variant.weight;
+  const fontStyle = variant.italic ? 'italic' : 'normal';
 
   if (text && text.trim().length > 0) {
     const optimal = calculateOptimalFontSize(

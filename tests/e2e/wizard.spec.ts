@@ -3,20 +3,19 @@ import path from 'path';
 
 test.describe('Generador de Certificados — Flujo E2E Completo', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/#certificados');
   });
 
   test('debe cargar la aplicación con el encabezado y el paso 1 activo', async ({ page }) => {
-    await expect(page.locator('text=Generador de Certificados').first()).toBeVisible();
+    await expect(page.locator('text=Uniautomate').first()).toBeVisible();
     await expect(page.locator('text=Sube la plantilla de tu certificado')).toBeVisible();
     await expect(page.locator('text=Plantilla').first()).toBeVisible();
   });
 
   test('debe completar el flujo completo desde la plantilla hasta la generación y el módulo de correos', async ({ page }) => {
-    // 1. PASO 1: Elegir plantilla demo
-    const demoButton = page.locator('button:has-text("Clásico Dorado")');
-    await expect(demoButton).toBeVisible();
-    await demoButton.click();
+    // 1. PASO 1: Subir una plantilla de 1 página
+    await page.locator('input[type="file"]').first().setInputFiles(path.resolve(process.cwd(), 'tests/fixtures/page1.jpg'));
+    await expect(page.locator('text=page1.jpg').first()).toBeVisible();
 
     // El botón Continuar debe activarse
     const continueBtnStep1 = page.locator('button:has-text("Continuar al siguiente paso")');
@@ -24,7 +23,7 @@ test.describe('Generador de Certificados — Flujo E2E Completo', () => {
     await continueBtnStep1.click();
 
     // 2. PASO 2: Editor de campo
-    await expect(page.locator('text=Define la ubicación y el estilo del nombre')).toBeVisible();
+    await expect(page.locator('text=Define la ubicación y el estilo de los campos')).toBeVisible();
 
     const continueBtnStep2 = page.locator('button:has-text("Guardar y Continuar")');
     await expect(continueBtnStep2).toBeVisible();
@@ -34,7 +33,7 @@ test.describe('Generador de Certificados — Flujo E2E Completo', () => {
     await expect(page.locator('text=Carga la lista de destinatarios')).toBeVisible();
 
     // Subir archivo CSV de prueba mediante el input de archivo
-    const csvPath = path.resolve(process.cwd(), 'samples/destinatarios_prueba.csv');
+    const csvPath = path.resolve(process.cwd(), 'tests/fixtures/destinatarios.csv');
     await page.locator('input[type="file"]').setInputFiles(csvPath);
 
     // Debe detectar los registros cargados
@@ -52,9 +51,7 @@ test.describe('Generador de Certificados — Flujo E2E Completo', () => {
     await continueBtnStep4.click();
 
     // 5. PASO 5: Generación y Distribución
-    await expect(page.locator('text=Generar y Distribuir Certificados')).toBeVisible();
-    await expect(page.locator('text=Descarga Local (ZIP / PDF)')).toBeVisible();
-    await expect(page.locator('text=Envío por Correo (Gmail)')).toBeVisible();
+    await expect(page.locator('text=Generar Certificados')).toBeVisible();
 
     // Iniciar generación masiva de prueba
     const startGenBtn = page.locator('button:has-text("Comenzar Generación")');
@@ -63,28 +60,12 @@ test.describe('Generador de Certificados — Flujo E2E Completo', () => {
 
     // Esperar a que se complete la generación
     await expect(page.locator('text=Certificados generados con éxito')).toBeVisible({ timeout: 30000 });
-    await expect(page.locator('button:has-text("Descargar ZIP")')).toBeVisible();
+    await expect(page.locator('button:has-text("Descargar Archivo ZIP")')).toBeVisible();
     await expect(page.locator('button:has-text("Descargar PDF Único")')).toBeVisible();
 
-    // Cambiar a la pestaña de Envío por Correo
-    const emailTabBtn = page.locator('button:has-text("Envío por Correo (Gmail)")');
-    await emailTabBtn.click();
-
-    // Verificar sección "Pon tu correo y prueba"
-    await expect(page.locator('text=Pon tu correo y prueba:')).toBeVisible();
-    const testEmailInput = page.locator('input[placeholder="tu.correo@ejemplo.com"]');
-    await expect(testEmailInput).toBeVisible();
-    const sendTestBtn = page.locator('button:has-text("Enviar prueba")');
-    await expect(sendTestBtn).toBeVisible();
-
-    // Abrir modal de script y verificar código
-    const viewScriptBtn = page.locator('button:has-text("Ver Script y Guía")');
-    await viewScriptBtn.click();
-    await expect(page.locator('text=Código para Google Apps Script')).toBeVisible();
-    await expect(page.locator('button:has-text("Copiar Código")')).toBeVisible();
-
-    // Cerrar modal
-    await page.locator('button:has-text("Entendido, volver a la app")').click();
-    await expect(page.locator('text=Código para Google Apps Script')).not.toBeVisible();
+    // Sección de envío por correo, disponible tras generar
+    await expect(page.locator('text=Asunto del Correo')).toBeVisible();
+    await expect(page.locator('input[placeholder="tu.correo@ejemplo.com"]')).toBeVisible();
+    await expect(page.locator('button:has-text("Enviar prueba")')).toBeVisible();
   });
 });

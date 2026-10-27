@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Recipient, FieldBox, TemplateData, FONT_OPTIONS } from '../../domain/types';
+import { Recipient, FieldBox, TemplatePage } from '../../domain/types';
 import { Button } from '../../ui/Button';
 import { transformTextCase } from '../../domain/normalization';
 import { calculateScreenFontSize } from '../../domain/layout';
+import { fieldFontVariant, findCatalogFont, supportsBold, supportsItalic } from '../../domain/fonts';
+import { FontPicker } from '../../ui/FontPicker';
 import {
   X,
   RotateCcw,
@@ -23,7 +25,8 @@ interface IndividualFieldModalProps {
   isOpen: boolean;
   recipient: Recipient | null;
   baseField: FieldBox;
-  template: TemplateData;
+  /** Página donde está el campo de nombre */
+  page: TemplatePage;
   onClose: () => void;
   onSave: (customField: Partial<FieldBox> | undefined) => void;
 }
@@ -32,7 +35,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
   isOpen,
   recipient,
   baseField,
-  template,
+  page,
   onClose,
   onSave,
 }) => {
@@ -76,6 +79,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
   const effectiveField: FieldBox = {
     ...baseField,
     ...customField,
+    pageId: baseField.pageId,
   };
 
   const previewName = transformTextCase(recipient.name, effectiveField.textCase);
@@ -83,10 +87,13 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
     previewName,
     effectiveField,
     containerWidth,
-    template.widthPt
+    page.widthPt
   );
 
   const hasCustomOverrides = Object.keys(customField).length > 0;
+  const currentFont = findCatalogFont(effectiveField.fontFamily);
+  const boldAvailable = !currentFont || supportsBold(currentFont);
+  const italicAvailable = !currentFont || supportsItalic(currentFont);
 
   const handleResetToDefault = () => {
     setCustomField({});
@@ -145,10 +152,10 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
             <div
               ref={previewRef}
               className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 shadow-inner select-none"
-              style={{ aspectRatio: `${template.widthPt} / ${template.heightPt}` }}
+              style={{ aspectRatio: `${page.widthPt} / ${page.heightPt}` }}
             >
               <img
-                src={template.previewUrl}
+                src={page.previewUrl}
                 alt="Plantilla"
                 className="w-full h-full object-contain pointer-events-none"
               />
@@ -183,8 +190,9 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                     className="w-full block truncate leading-normal transition-all"
                     style={{
                       fontFamily: effectiveField.fontFamily,
-                      fontWeight: effectiveField.isBold ? 700 : 400,
-                      fontStyle: effectiveField.isItalic ? 'italic' : 'normal',
+                      fontWeight: fieldFontVariant(effectiveField).weight,
+                      fontStyle: fieldFontVariant(effectiveField).italic ? 'italic' : 'normal',
+            fontSynthesis: 'none',
                       fontSize: `${screenFontSize}px`,
                       color: effectiveField.color,
                       textAlign: effectiveField.align,
@@ -205,22 +213,10 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                 <Type className="w-3.5 h-3.5 text-[#208077]" />
                 Fuente tipográfica
               </label>
-              <select
+              <FontPicker
                 value={effectiveField.fontFamily}
-                onChange={(e) =>
-                  setCustomField((prev) => ({
-                    ...prev,
-                    fontFamily: e.target.value,
-                  }))
-                }
-                className="w-full text-xs font-semibold rounded-xl border border-slate-200 bg-white p-2.5 text-slate-800 focus:ring-2 focus:ring-[#208077] focus:bg-white transition-colors cursor-pointer shadow-2xs"
-              >
-                {FONT_OPTIONS.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(fontFamily) => setCustomField((prev) => ({ ...prev, fontFamily }))}
+              />
             </div>
 
             {/* Typography: Size + Styles */}
@@ -264,7 +260,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                     onClick={() =>
                       setCustomField((prev) => ({
                         ...prev,
-                        maxFontSize: Math.min(80, effectiveField.maxFontSize + 1),
+                        maxFontSize: Math.min(120, effectiveField.maxFontSize + 1),
                       }))
                     }
                     className="p-1.5 border border-slate-300 rounded-lg hover:bg-white text-slate-700 transition-colors cursor-pointer"
@@ -286,12 +282,13 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                         isBold: !effectiveField.isBold,
                       }))
                     }
-                    className={`p-2 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                      effectiveField.isBold
+                    disabled={!boldAvailable}
+                    className={`p-2 rounded-lg border text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                      effectiveField.isBold && boldAvailable
                         ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                     }`}
-                    title="Negrita"
+                    title={boldAvailable ? 'Negrita' : 'Esta fuente no tiene negrita'}
                   >
                     <Bold className="w-3.5 h-3.5" />
                   </button>
@@ -304,12 +301,13 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                         isItalic: !effectiveField.isItalic,
                       }))
                     }
-                    className={`p-2 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                      effectiveField.isItalic
+                    disabled={!italicAvailable}
+                    className={`p-2 rounded-lg border text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                      effectiveField.isItalic && italicAvailable
                         ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                     }`}
-                    title="Cursiva"
+                    title={italicAvailable ? 'Cursiva' : 'Esta fuente no tiene cursiva'}
                   >
                     <Italic className="w-3.5 h-3.5" />
                   </button>

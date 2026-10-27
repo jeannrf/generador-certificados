@@ -1,8 +1,14 @@
 export type TemplateKind = 'pdf' | 'image';
 
-export interface TemplateData {
+/**
+ * Una página de la plantilla.
+ * - PDF: un PDF de una sola página (se conserva vectorial). Si trae más páginas, solo se usa la primera.
+ * - Imagen: los bytes originales PNG/JPG, sin recomprimir.
+ * widthPt/heightPt son las dimensiones VISIBLES (ya aplicada la rotación /Rotate o la orientación EXIF).
+ */
+export interface TemplatePage {
   id: string;
-  name: string;
+  sourceName: string;
   kind: TemplateKind;
   bytes: Uint8Array;
   mimeType: string;
@@ -11,32 +17,40 @@ export interface TemplateData {
   previewUrl: string; // Object URL or Data URL for previewing in UI
 }
 
+/** Plantilla de 1 a MAX_TEMPLATE_PAGES páginas, en el orden en que salen en el PDF final. */
+export interface TemplateData {
+  id: string;
+  name: string;
+  pages: TemplatePage[];
+}
+
 export type TextCase = 'original' | 'title' | 'upper';
 export type TextAlign = 'left' | 'center' | 'right';
 export type TextVAlign = 'top' | 'middle' | 'bottom';
 
-export interface FontOption {
-  label: string;
-  value: string;
-}
-
-export const FONT_OPTIONS: FontOption[] = [
-  { label: 'Playfair Display (Serif Elegante)', value: 'Playfair Display, Georgia, serif' },
-  { label: 'Times New Roman (Clásico Formal)', value: '"Times New Roman", Times, serif' },
-  { label: 'Cormorant Garamond (Clásico)', value: 'Cormorant Garamond, Georgia, serif' },
-  { label: 'Plus Jakarta Sans (Moderno)', value: 'Plus Jakarta Sans, sans-serif' },
-  { label: 'Montserrat (Geométrico)', value: 'Montserrat, sans-serif' },
-  { label: 'Poppins (Amigable)', value: 'Poppins, sans-serif' },
-  { label: 'Monospace (Técnico)', value: 'monospace' },
-];
+export type FieldKind = 'text' | 'qr';
 
 /**
- * Coordenadas NORMALIZADAS (0 a 1) relativas al ancho y alto de la plantilla.
+ * De dónde sale el contenido de un campo:
+ * - column: una columna de la lista; fixed: igual en todos los certificados;
+ * - driveLink: el enlace al PDF de esa persona en Google Drive (solo para QR).
+ */
+export type FieldSource =
+  | { type: 'column'; column: string }
+  | { type: 'fixed'; value: string }
+  | { type: 'driveLink' };
+
+/**
+ * Coordenadas NORMALIZADAS (0 a 1) relativas al ancho y alto de la página a la que pertenece.
  */
 export interface FieldBox {
   id: string;
   name: string;
-  source: { type: 'column'; column: string } | { type: 'fixed'; value: string };
+  /** Texto (por defecto) o código QR */
+  kind?: FieldKind;
+  /** Página de la plantilla donde se estampa (TemplatePage.id) */
+  pageId: string;
+  source: FieldSource;
   x: number; // 0.0 - 1.0 (left)
   y: number; // 0.0 - 1.0 (top)
   width: number; // 0.0 - 1.0
@@ -53,7 +67,7 @@ export interface FieldBox {
 }
 
 export type IssueSeverity = 'warning' | 'error';
-export type IssueCode = 'EMPTY_NAME' | 'EMPTY_EMAIL' | 'INVALID_EMAIL' | 'DUPLICATE' | 'NAME_TOO_LONG' | 'TEXT_OVERFLOW' | 'TRIMMED';
+export type IssueCode = 'EMPTY_NAME' | 'EMPTY_EMAIL' | 'INVALID_EMAIL' | 'DUPLICATE' | 'NAME_TOO_LONG' | 'TEXT_OVERFLOW' | 'TRIMMED' | 'EMPTY_FIELD';
 
 export interface Issue {
   severity: IssueSeverity;
@@ -68,6 +82,7 @@ export interface Recipient {
   email?: string;
   extra: Record<string, string>;
   issues: Issue[];
+  /** Ajustes individuales del campo de nombre para esta persona */
   customField?: Partial<FieldBox>;
 }
 

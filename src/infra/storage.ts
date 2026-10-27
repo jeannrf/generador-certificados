@@ -1,3 +1,6 @@
+import { FieldBox, TemplateData } from '../domain/types';
+import { migrateLegacyFields, migrateLegacyTemplate } from '../domain/templatePages';
+
 /**
  * Almacenamiento local persistente con IndexedDB para guardar el estado del Wizard
  * evitando la pérdida de datos ante recargas (F5) o cierres accidentales.
@@ -32,17 +35,8 @@ function openDatabase(): Promise<IDBDatabase> {
 export interface PersistedSession {
   currentStep: number;
   maxStepUnlocked: number;
-  template: {
-    id: string;
-    name: string;
-    kind: 'pdf' | 'image';
-    bytes: Uint8Array;
-    mimeType: string;
-    widthPt: number;
-    heightPt: number;
-    previewUrl?: string;
-  } | null;
-  field: any;
+  template: TemplateData | null;
+  fields: FieldBox[];
   tableData: any;
   mapping: any;
   recipients: any[];
@@ -80,13 +74,25 @@ export async function loadSession(): Promise<PersistedSession | null> {
       const store = tx.objectStore(STORE_NAME);
 
       const request = store.get(STATE_KEY);
-      request.onsuccess = () => resolve(request.result || null);
+      request.onsuccess = () => resolve(request.result ? migrateSession(request.result) : null);
       request.onerror = () => reject(request.error);
     });
   } catch (err) {
     console.warn('No se pudo recuperar la sesión de IndexedDB:', err);
     return null;
   }
+}
+
+/**
+ * Migración de sesiones guardadas antes de las plantillas multipágina:
+ * `template` de un solo archivo → `template.pages` con 1 página, y `field` → `fields` en esa página.
+ * Es idempotente: una sesión ya migrada se devuelve igual.
+ */
+export function migrateSession(raw: Record<string, unknown>): PersistedSession {
+  const template = migrateLegacyTemplate(raw.template);
+  const fields = migrateLegacyFields(raw.fields, raw.field, template) ?? [];
+  const { field: _legacyField, ...rest } = raw;
+  return { ...(rest as unknown as PersistedSession), template, fields };
 }
 
 /**

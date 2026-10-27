@@ -57,6 +57,8 @@ interface EmailDispatcherSectionProps {
   variant?: EmailConfigVariant;
   /** Genera el PDF adjunto de cada destinatario (solo en modo certificados) */
   buildAttachment?: (recipient: Recipient) => Promise<EmailAttachmentFile>;
+  /** Variables adicionales que se ofrecen para insertar (p. ej. 'enlace' al PDF en Drive) */
+  extraVariables?: string[];
 }
 
 // Pausa entre correos para respetar el ritmo de Gmail
@@ -119,6 +121,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   recipients,
   variant = 'certificates',
   buildAttachment,
+  extraVariables = [],
 }) => {
   const copy = COPY[variant];
   // Configuración cargada desde localStorage (abierta por defecto)
@@ -592,6 +595,17 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   >
                     + {'{correo}'}
                   </button>
+                  {extraVariables.map((varName) => (
+                    <button
+                      key={varName}
+                      type="button"
+                      onClick={() => insertVariable(varName)}
+                      className="text-[10px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer shadow-2xs"
+                      title={`Insertar {${varName}} en la posición del cursor`}
+                    >
+                      + {`{${varName}}`}
+                    </button>
+                  ))}
                   <div className="h-3.5 w-px bg-slate-200 mx-0.5" />
                   <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs text-[11px]">
                     <button

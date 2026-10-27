@@ -1,11 +1,11 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { ColumnMapping } from '../../domain/types';
+import { ColumnMapping, FieldBox } from '../../domain/types';
+import { columnFields, isQrField, unassignedColumnFields } from '../../domain/fields';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Dropzone } from '../../ui/Dropzone';
 import { parseCSV, parseTXT, parseExcel, detectColumns, ParsedTableData } from '../../infra/parsers';
-import { ChevronLeft, FileSpreadsheet, AlertCircle, AlertTriangle, CheckCircle2, Download, RefreshCw, Trash2 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { ChevronLeft, FileSpreadsheet, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, Trash2, QrCode } from 'lucide-react';
 
 interface RecipientsStepProps {
   tableData: ParsedTableData | null;
@@ -17,6 +17,9 @@ interface RecipientsStepProps {
   onClearData: () => void;
   /** 'mail': el correo es obligatorio y el nombre opcional (envío de correos sin certificado) */
   variant?: 'certificates' | 'mail';
+  /** Campos del certificado: los que usan una columna se asignan aquí, ya con la lista cargada */
+  fields?: FieldBox[];
+  onFieldsChange?: (fields: FieldBox[]) => void;
 }
 
 export const RecipientsStep: React.FC<RecipientsStepProps> = ({
@@ -28,11 +31,15 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
   onContinue,
   onClearData,
   variant = 'certificates',
+  fields = [],
+  onFieldsChange,
 }) => {
   const isMail = variant === 'mail';
   // Columna principal que se resalta en la vista previa
   const keyColumn = isMail ? mapping.emailColumn : mapping.nameColumn;
   const [error, setError] = useState<string | null>(null);
+  const fieldsWithColumn = columnFields(fields);
+  const missingColumns = tableData ? unassignedColumnFields(fields, tableData.headers) : [];
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileSelect = async (file: File) => {
@@ -132,27 +139,6 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<Download className="w-4 h-4 text-emerald-600" />}
-            onClick={() => {
-              const data = [
-                { 'Nombre Completo': 'Ana María Pérez Rodríguez', 'Correo Electrónico': 'ana.perez@universidad.edu', 'DNI': '72345678' },
-                { 'Nombre Completo': 'José Luis de la Torre y Mendoza', 'Correo Electrónico': 'jose.delatorre@correo.com', 'DNI': '73456789' },
-                { 'Nombre Completo': 'Carlos Alberto Mendoza Silva', 'Correo Electrónico': 'carlos.mendoza@global.com', 'DNI': '74567890' },
-              ];
-              const ws = XLSX.utils.json_to_sheet(data);
-              const wb = XLSX.utils.book_new();
-              XLSX.utils.book_append_sheet(wb, ws, 'Destinatarios');
-              XLSX.writeFile(wb, 'Plantilla_Ejemplo_Destinatarios.xlsx');
-            }}
-            title="Descargar archivo Excel (.xlsx) de ejemplo con columnas preparadas"
-            className="flex-1 sm:flex-none justify-center"
-          >
-            <span className="hidden sm:inline">Descargar Plantilla Excel</span>
-            <span className="sm:hidden">Plantilla Excel</span>
-          </Button>
           {onBack && (
             <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
               Atrás
@@ -161,7 +147,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
           <Button
             variant="primary"
             size="sm"
-            disabled={!tableData || !(isMail ? mapping.emailColumn : mapping.nameColumn)}
+            disabled={!tableData || !(isMail ? mapping.emailColumn : mapping.nameColumn) || missingColumns.length > 0}
             onClick={onContinue}
             className="flex-1 sm:flex-none justify-center"
           >
@@ -281,7 +267,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                 </div>
 
                 {/* Mapping Selectors */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shrink-0">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 block">
                       Columna de Nombres{' '}
@@ -322,7 +308,9 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                       {isMail ? (
                         <span className="text-rose-500">*</span>
                       ) : (
-                        <span className="text-slate-400 font-normal">(Opcional)</span>
+                        <span className="text-slate-400 font-normal" title="Solo hace falta si vas a enviar los certificados por correo en el Paso 5">
+                          (para enviar por correo)
+                        </span>
                       )}
                     </label>
                     <select
@@ -351,7 +339,50 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
                       </div>
                     )}
                   </div>
+                
+                  {/* Columnas de los campos del certificado (curso, fecha, QR…), en la misma grilla */}
+                  {onFieldsChange &&
+                    fieldsWithColumn.map((f) => {
+                      const column = f.source.type === 'column' ? f.source.column : '';
+                      const isMissing = !tableData.headers.includes(column);
+                      return (
+                        <div key={f.id} className="space-y-1.5">
+                          <label htmlFor={`col-${f.id}`} className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            {isQrField(f) && <QrCode className="w-3.5 h-3.5 text-slate-500" aria-hidden />}
+                            {f.name} <span className="text-rose-500">*</span>
+                          </label>
+                          <select
+                            id={`col-${f.id}`}
+                            value={isMissing ? '' : column}
+                            onChange={(e) =>
+                              onFieldsChange(
+                                fields.map((x) =>
+                                  x.id === f.id ? { ...x, source: { type: 'column', column: e.target.value } } : x
+                                )
+                              )
+                            }
+                            aria-label={`Columna para ${f.name}`}
+                            className={`w-full text-xs font-medium rounded-xl border p-2.5 focus:ring-2 focus:ring-[#208077] focus:bg-white transition-colors ${
+                              isMissing ? 'border-amber-400 bg-amber-50/50 text-slate-800' : 'border-slate-200 bg-slate-50 text-slate-800'
+                            }`}
+                          >
+                            <option value="">-- Elige una columna --</option>
+                            {tableData.headers.map((h) => (
+                              <option key={h} value={h}>
+                                {h}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
                 </div>
+
+                {missingColumns.length > 0 && onFieldsChange && (
+                  <p role="alert" className="-mt-2 text-[11px] text-amber-700 shrink-0">
+                    Elige la columna de {missingColumns.map((f) => `"${f.name}"`).join(', ')} para continuar.
+                  </p>
+                )}
 
                 {/* Data Preview Table */}
                 <div className="space-y-2 flex-1 flex flex-col min-h-0">
