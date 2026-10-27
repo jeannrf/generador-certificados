@@ -1,47 +1,142 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { TemplateData, FieldBox, TextAlign, FONT_OPTIONS } from '../../domain/types';
+import { TemplateData, FieldBox, TextAlign } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
+import { PageTabs } from '../../ui/PageTabs';
+import { FieldTextOverlay } from '../../ui/FieldTextOverlay';
 import { transformTextCase } from '../../domain/normalization';
 import { calculateScreenFontSize } from '../../domain/layout';
+import {
+  autoAssignColumns,
+  createNameField,
+  createQrField,
+  createTextField,
+  defaultNameFontSize,
+  fieldsForPage,
+  getNameField,
+  isNameField,
+  isQrField,
+  NAME_FIELD_ID,
+  resetNameFieldLayout,
+} from '../../domain/fields';
+import { SAMPLE_DRIVE_URL } from '../../domain/drive';
+import { fieldFontVariant, findCatalogFont, supportsBold, supportsItalic } from '../../domain/fonts';
+import { loadFieldFontsForPreview } from '../../infra/fontLoader';
+import { FontPicker } from '../../ui/FontPicker';
+import { QrPreview } from '../../ui/QrPreview';
+import { ColorPopover } from '../../ui/ColorPopover';
+import { createUndoHistory } from '../../shared/undoHistory';
 import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Move,
   Sliders,
   ChevronLeft,
-  Sparkles,
   Minus,
   Plus,
+  ListPlus,
+  Trash2,
+  Undo2,
+  Redo2,
+  QrCode,
 } from 'lucide-react';
 
 interface FieldEditorStepProps {
   template: TemplateData;
-  field: FieldBox;
-  onFieldChange: (field: FieldBox) => void;
+  fields: FieldBox[];
+  onFieldsChange: (fields: FieldBox[]) => void;
+  /** Columnas de la lista si ya se cargó (Paso 3), para sugerirlas */
+  availableColumns: string[];
+  /** Primera fila de la lista, para previsualizar los campos de columna */
+  sampleRow?: Record<string, string>;
   onBack: () => void;
   onContinue: () => void;
 }
 
-const PRESET_COLORS = [
-  '#0f172a', // Slate Dark
-  '#1e3a8a', // Navy Blue
-  '#208077', // Brand Verde Uniautomate
-  '#d97706', // Gold / Amber
-  '#047857', // Emerald Green
-  '#0284c7', // Sky Blue
-  '#dc2626', // Crimson Red
-  '#ffffff', // Pure White
-];
-
 export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
   template,
-  field,
-  onFieldChange,
+  fields,
+  onFieldsChange,
+  availableColumns,
+  sampleRow,
   onBack,
   onContinue,
 }) => {
+  const [selectedFieldId, setSelectedFieldId] = useState<string>(NAME_FIELD_ID);
+  const field =
+    fields.find((f) => f.id === selectedFieldId) ?? getNameField(fields) ?? createNameField(template.pages[0].id, template.pages[0]);
+  const [currentPageId, setCurrentPageId] = useState<string>(field.pageId);
+  const page = template.pages.find((p) => p.id === currentPageId) ?? template.pages[0];
+  const isFieldOnPage = field.pageId === page.id;
+  const pageFields = fieldsForPage(fields, page.id);
+
+  // Deshacer/rehacer: todo cambio de campos pasa por commitFields para quedar en el historial
+  const historyRef = useRef(createUndoHistory<FieldBox[]>());
+  const [, setHistoryVersion] = useState(0);
+  const commitFields = (next: FieldBox[], mergeable = true) => {
+    historyRef.current.record(fields, mergeable);
+    setHistoryVersion((v) => v + 1);
+    onFieldsChange(next);
+  };
+  const handleUndo = () => {
+    const previous = historyRef.current.undo(fields);
+    if (!previous) return;
+    onFieldsChange(previous);
+    setHistoryVersion((v) => v + 1);
+  };
+  const handleRedo = () => {
+    const next = historyRef.current.redo(fields);
+    if (!next) return;
+    onFieldsChange(next);
+    setHistoryVersion((v) => v + 1);
+  };
+
+  const onFieldChange = (updated: FieldBox) => {
+    commitFields(fields.map((f) => (f.id === updated.id ? updated : f)));
+  };
+
+  const selectField = (target: FieldBox) => {
+    setSelectedFieldId(target.id);
+    setCurrentPageId(target.pageId);
+  };
+
+  const handlePageSelect = (pageId: string) => {
+    setCurrentPageId(pageId);
+    const first = fieldsForPage(fields, pageId)[0];
+    if (first) setSelectedFieldId(first.id);
+  };
+
+  const handleAddField = () => {
+    const created = createTextField(page.id, fields);
+    commitFields([...fields, created], false);
+    setSelectedFieldId(created.id);
+  };
+
+  const handleAddQr = () => {
+    const created = createQrField(page, fields);
+    commitFields([...fields, created], false);
+    setSelectedFieldId(created.id);
+  };
+
+  const handleDeleteField = (target: FieldBox) => {
+    if (isNameField(target)) return;
+    commitFields(fields.filter((f) => f.id !== target.id), false);
+    if (target.id === selectedFieldId) setSelectedFieldId(NAME_FIELD_ID);
+  };
+
+  /** Texto con el que se previsualiza un campo en el editor */
+  const sampleTextFor = (target: FieldBox): string => {
+    if (isNameField(target)) return sampleName;
+    switch (target.source.type) {
+      case 'fixed':
+        return target.source.value;
+      case 'driveLink':
+        return SAMPLE_DRIVE_URL;
+      case 'column':
+        return sampleRow?.[target.source.column] || `{${target.source.column || 'columna'}}`;
+    }
+  };
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [sampleName, setSampleName] = useState('Jeanpier Alexander Robles Fabian');
@@ -49,7 +144,18 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
   const [isResizing, setIsResizing] = useState<string | null>(null);
   const [isSnappedToCenterX, setIsSnappedToCenterX] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0, fieldX: 0, fieldY: 0, width: 0, height: 0 });
-  const previewText = transformTextCase(sampleName, field.textCase);
+  const previewText = transformTextCase(sampleTextFor(field), field.textCase);
+  const currentFont = findCatalogFont(field.fontFamily);
+  // Tamaño de referencia de la página visible: guía el botón "Restablecer" y el tope del control deslizante
+  const defaultFontSize = defaultNameFontSize(page);
+  const maxSliderFontSize = Math.max(72, defaultFontSize * 2);
+  const boldAvailable = !currentFont || supportsBold(currentFont);
+  const italicAvailable = !currentFont || supportsItalic(currentFont);
+
+  // Cargar las fuentes de todos los campos para que la vista previa coincida con el PDF
+  useEffect(() => {
+    loadFieldFontsForPreview(fields);
+  }, [fields]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -74,13 +180,14 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
     previewText,
     field,
     containerWidth,
-    template.widthPt
+    page.widthPt
   );
 
-  // Navegación precisa con flechas del teclado (1px por pulsación, Shift + Flechas = 10px)
+  // Atajos de teclado: Ctrl+Z / Ctrl+Shift+Z (o Ctrl+Y), Supr/Retroceso para borrar el campo
+  // y flechas para moverlo (1px por pulsación, Shift + Flechas = 10px)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // No mover si el usuario está escribiendo en un input, textarea o select
+      // Mientras se escribe en un input, textarea o select, las teclas hacen lo de siempre
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -89,6 +196,23 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
           target.tagName === 'SELECT' ||
           target.isContentEditable)
       ) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && (key === 'z' || key === 'y')) {
+        e.preventDefault();
+        if (key === 'y' || e.shiftKey) handleRedo();
+        else handleUndo();
+        return;
+      }
+
+      // El campo seleccionado está en otra página: no hay nada visible que borrar ni mover
+      if (!isFieldOnPage) return;
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !isNameField(field)) {
+        e.preventDefault();
+        handleDeleteField(field);
         return;
       }
 
@@ -136,7 +260,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
     return () => {
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
-  }, [field, onFieldChange]);
+  });
 
   // Centrar horizontalmente con 1 clic
   const handleCenterField = () => {
@@ -261,11 +385,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Define la ubicación y el estilo del nombre
+            Define la ubicación y el estilo de los campos
           </h2>
-          <p className="text-sm text-slate-600 mt-1">
-            Arrastra el recuadro sobre el certificado y personaliza la tipografía.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
@@ -281,13 +402,35 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
         {/* Interactive Canvas / Visual Template Editor */}
         <div className="lg:col-span-8">
           <Card className="p-4 sm:p-6 overflow-hidden bg-slate-900/5">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs text-slate-500 font-medium">
-              <span className="flex items-center gap-1.5">
-                <Move className="w-3.5 h-3.5 text-[#208077] shrink-0" />
-                <span className="hidden sm:inline">Arrastra o usa las <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-300 text-slate-700 text-[10px]">Flechas</kbd> (1px) / <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-300 text-slate-700 text-[10px]">Shift+Flechas</kbd> (10px)</span>
-                <span className="sm:hidden font-medium text-slate-600">Arrastra para ubicar el nombre</span>
-              </span>
-              <div className="flex items-center gap-2">
+            {/* Pestañas de página a la izquierda y acciones a la derecha, en la misma fila */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 text-xs text-slate-500 font-medium">
+              <PageTabs
+                pages={template.pages}
+                currentPageId={page.id}
+                onSelect={handlePageSelect}
+                fieldCounts={Object.fromEntries(template.pages.map((p) => [p.id, fieldsForPage(fields, p.id).length]))}
+              />
+              <div className="flex items-center gap-2 sm:ml-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={!historyRef.current.canUndo()}
+                  title="Deshacer (Ctrl+Z)"
+                  aria-label="Deshacer"
+                  className="p-1 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  disabled={!historyRef.current.canRedo()}
+                  title="Rehacer (Ctrl+Shift+Z)"
+                  aria-label="Rehacer"
+                  className="p-1 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
+                </button>
                 <button
                   type="button"
                   onClick={handleCenterField}
@@ -296,27 +439,16 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 >
                   Centrar
                 </button>
+                {isNameField(field) && (
                 <button
                   type="button"
-                  onClick={() =>
-                    onFieldChange({
-                      ...field,
-                      x: 0.05,
-                      y: 0.42,
-                      width: 0.90,
-                      height: 0.13,
-                      maxFontSize: 28,
-                      isBold: true,
-                    })
-                  }
+                  onClick={() => onFieldChange(resetNameFieldLayout(field, page))}
                   className="text-[11px] font-semibold text-slate-700 bg-white hover:bg-slate-50 px-2 py-0.5 rounded border border-slate-200 transition-colors shadow-2xs cursor-pointer"
-                  title="Restablecer al tamaño estándar (28 pt, 90% de ancho)"
+                  title={`Restablecer al tamaño estándar para esta página (${defaultFontSize} pt, 90% de ancho)`}
                 >
-                  Restablecer (28 pt)
+                  Restablecer ({defaultFontSize} pt)
                 </button>
-                <span className="hidden sm:inline-block font-mono bg-white px-2 py-0.5 rounded border text-slate-600">
-                  X: {Math.round(field.x * 100)}% • Y: {Math.round(field.y * 100)}%
-                </span>
+                )}
               </div>
             </div>
 
@@ -324,14 +456,51 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
             <div
               ref={containerRef}
               className="relative w-full rounded-xl overflow-hidden shadow-lg border border-slate-300 bg-white select-none touch-none"
-              style={{ aspectRatio: `${template.widthPt} / ${template.heightPt}` }}
+              style={{ aspectRatio: `${page.widthPt} / ${page.heightPt}` }}
             >
               <img
-                src={template.previewUrl}
-                alt="Plantilla"
+                src={page.previewUrl}
+                alt={`Página ${template.pages.indexOf(page) + 1} de la plantilla`}
                 className="w-full h-full object-contain pointer-events-none"
                 draggable={false}
               />
+
+              {/* Demás campos de esta página: clic para seleccionarlos */}
+              {pageFields
+                .filter((f) => f.id !== field.id)
+                .map((other) => {
+                  const otherText = transformTextCase(sampleTextFor(other), other.textCase);
+                  return (
+                    <FieldTextOverlay
+                      key={other.id}
+                      field={other}
+                      text={otherText}
+                      fontSizePx={calculateScreenFontSize(otherText, other, containerWidth, page.widthPt)}
+                      title={`Seleccionar "${other.name}"`}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        selectField(other);
+                      }}
+                      boxClassName="cursor-pointer border border-dashed border-slate-500/60 hover:border-[#208077] hover:bg-[#208077]/5 rounded-sm"
+                    />
+                  );
+                })}
+
+              {pageFields.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+                  <div className="pointer-events-auto bg-white/95 border border-slate-200 rounded-xl shadow-md px-4 py-3 text-center max-w-xs">
+                    <p className="text-xs font-semibold text-slate-800">Esta página no tiene campos</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Se incluirá tal cual en cada certificado (por ejemplo, un reverso fijo).</p>
+                    <button
+                      type="button"
+                      onClick={handleAddField}
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#208077] bg-[#f0faf9] hover:bg-[#b2e5df]/40 px-2 py-1 rounded-md border border-[#b2e5df] cursor-pointer"
+                    >
+                      <ListPlus className="w-3.5 h-3.5" /> Agregar un campo aquí
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Red Vertical Snapping Guide Line (Guía de centro en rojo) */}
               {(isSnappedToCenterX || (isDragging && Math.abs(field.x + field.width / 2 - 0.5) < 0.005)) && (
@@ -345,7 +514,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 </div>
               )}
 
-              {/* Bounding Box for Name */}
+              {/* Bounding Box for the selected field */}
+              {isFieldOnPage && (
               <div
                 onPointerDown={(e) => handlePointerDown(e, 'drag')}
                 style={{
@@ -358,7 +528,12 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   isDragging ? 'shadow-2xl ring-4 ring-[#b2e5df]/60 bg-[#208077]/20' : 'hover:border-[#18655e]'
                 }`}
               >
-                {/* Live Name Text inside box */}
+                {/* Live text (or QR) inside the box */}
+                {isQrField(field) ? (
+                  <div className="w-full h-full flex items-center justify-center overflow-hidden pointer-events-none">
+                    <QrPreview text={previewText} color={field.color} className="h-full max-w-full aspect-square" />
+                  </div>
+                ) : (
                 <div
                   className="w-full h-full flex px-[1%] py-0.5 overflow-hidden pointer-events-none"
                   style={{
@@ -380,16 +555,18 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                     className="w-full block truncate leading-normal select-none transition-all py-0.5 px-0.5"
                     style={{
                       fontFamily: field.fontFamily,
-                      fontWeight: field.isBold ? 700 : 400,
-                      fontStyle: field.isItalic ? 'italic' : 'normal',
+                      fontWeight: fieldFontVariant(field).weight,
+                      fontStyle: fieldFontVariant(field).italic ? 'italic' : 'normal',
+            fontSynthesis: 'none',
                       fontSize: `${screenFontSize}px`,
                       color: field.color,
                       textAlign: field.align,
                     }}
                   >
-                    {previewText || 'Jeanpier Alexander Robles Fabian'}
+                    {previewText || (isNameField(field) ? 'Jeanpier Alexander Robles Fabian' : field.name)}
                   </span>
                 </div>
+                )}
 
                 {/* Corner Resize Handles (Canva / PowerPoint style) */}
                 <div
@@ -435,48 +612,211 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-6 bg-white border border-[#208077] rounded-full cursor-ew-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
               </div>
+              )}
             </div>
           </Card>
         </div>
 
         {/* Styling Controls Sidebar (Right Column) */}
         <div className="lg:col-span-4 space-y-5">
-          <Card className="p-5 space-y-5">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+          <Card className="p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                Agregar campos
+              </h3>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleAddField}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] px-2 py-1 rounded-md border border-[#b2e5df] cursor-pointer"
+                  title="Agregar un campo de texto en la página visible"
+                >
+                  <ListPlus className="w-3.5 h-3.5" /> Texto
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddQr}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] px-2 py-1 rounded-md border border-[#b2e5df] cursor-pointer"
+                  title="Agregar un código QR en la página visible"
+                >
+                  <QrCode className="w-3.5 h-3.5" /> QR
+                </button>
+              </div>
+            </div>
+
+            <ul className="space-y-1.5">
+              {fields.map((f) => {
+                const pageNumber = template.pages.findIndex((p) => p.id === f.pageId) + 1;
+                const isSelected = f.id === field.id;
+                return (
+                  <li key={f.id} className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => selectField(f)}
+                      aria-pressed={isSelected}
+                      className={`flex-1 min-w-0 flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-left text-xs cursor-pointer transition-colors ${
+                        isSelected ? 'border-[#208077] bg-[#f0faf9] text-slate-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="truncate font-semibold flex items-center gap-1.5">
+                        {isQrField(f) && <QrCode className="w-3.5 h-3.5 shrink-0 text-slate-500" aria-hidden />}
+                        {f.name}
+                      </span>
+                      <span className="shrink-0 text-[10px] font-semibold text-slate-400">Pág. {pageNumber}</span>
+                    </button>
+                    {!isNameField(f) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteField(f)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                        title={`Eliminar "${f.name}"`}
+                        aria-label={`Eliminar campo ${f.name}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Configuración del campo seleccionado (el nombre no tiene opciones aquí) */}
+            {!isNameField(field) && (
+            <div className="space-y-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              {!isNameField(field) && (
+                <>
+                  <label className="block space-y-1">
+                    <span className="text-xs font-semibold text-slate-700">Nombre del campo</span>
+                    <input
+                      type="text"
+                      value={field.name}
+                      onChange={(e) => onFieldChange({ ...field, name: e.target.value })}
+                      className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
+                      placeholder="Curso, Fecha, Horas…"
+                    />
+                  </label>
+
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-700">{isQrField(field) ? 'Contenido del QR' : 'Texto'}</span>
+                    <div
+                      className={`grid ${isQrField(field) ? 'grid-cols-3' : 'grid-cols-2'} gap-1 p-1 bg-white rounded-lg border border-slate-200`}
+                      role="radiogroup"
+                      aria-label={isQrField(field) ? 'Contenido del QR' : 'Origen del texto'}
+                    >
+                      {[
+                        ...(isQrField(field) ? [{ type: 'driveLink' as const, label: 'PDF en Drive' }] : []),
+                        { type: 'column' as const, label: isQrField(field) ? 'Columna' : 'Columna de la lista' },
+                        { type: 'fixed' as const, label: 'Texto fijo' },
+                      ].map((option) => (
+                        <button
+                          key={option.type}
+                          type="button"
+                          role="radio"
+                          aria-checked={field.source.type === option.type}
+                          onClick={() =>
+                            onFieldChange(
+                              option.type === 'driveLink'
+                                ? { ...field, source: { type: 'driveLink' } }
+                                : option.type === 'column'
+                                ? // Si la lista ya está cargada, se busca la columna que se llame como el campo
+                                  autoAssignColumns([{ ...field, source: { type: 'column', column: '' } }], availableColumns)[0]
+                                : { ...field, source: { type: 'fixed', value: isQrField(field) ? '' : field.name } }
+                            )
+                          }
+                          className={`px-2 py-1 rounded-md text-[11px] font-semibold cursor-pointer ${
+                            field.source.type === option.type ? 'bg-[#208077] text-white' : 'text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    {field.source.type === 'column' &&
+                      (availableColumns.length > 0 ? (
+                        <>
+                          <select
+                            value={field.source.column}
+                            onChange={(e) => onFieldChange({ ...field, source: { type: 'column', column: e.target.value } })}
+                            aria-label="Columna de la lista"
+                            className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
+                          >
+                            <option value="">Elige una columna</option>
+                            {availableColumns.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-[10px] text-slate-500">Cada certificado mostrará el valor de esta columna.</p>
+                        </>
+                      ) : (
+                        <p className="text-[10px] text-slate-500 bg-white border border-dashed border-slate-300 rounded-lg px-2.5 py-2">
+                          Elegirás qué columna usar cuando subas tu lista en el Paso 3.
+                        </p>
+                      ))}
+                    {field.source.type === 'fixed' && (
+                      <input
+                        type="text"
+                        value={field.source.value}
+                        onChange={(e) => onFieldChange({ ...field, source: { type: 'fixed', value: e.target.value } })}
+                        className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
+                        placeholder={isQrField(field) ? 'Enlace o texto, igual para todos' : 'Igual en todos los certificados'}
+                        aria-label="Texto fijo"
+                      />
+                    )}
+                    {field.source.type === 'driveLink' && (
+                      <p className="text-[10px] text-slate-500">
+                        Cada QR abrirá el PDF de esa persona. Se guarda en tu Google Drive en el Paso 5.
+                      </p>
+                    )}
+                  </div>
+
+                  {isQrField(field) && (
+                    <label className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-slate-700">Color del QR</span>
+                      <input
+                        type="color"
+                        value={field.color}
+                        onChange={(e) => onFieldChange({ ...field, color: e.target.value })}
+                        className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+                        aria-label="Color del QR"
+                      />
+                    </label>
+                  )}
+                </>
+              )}
+
+            </div>
+            )}
+          </Card>
+
+          {!isQrField(field) && (
+          <Card className="p-4 space-y-3.5">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2.5">
               <Sliders className="w-4 h-4 text-[#208077]" />
-              Ajustes de Tipografía
+              Tipografía · <span className="font-semibold text-slate-500 truncate">{field.name}</span>
             </h3>
 
-            {/* Test Text Input (Placed prominently at the top of the sidebar) */}
-            <div className="space-y-2 bg-[#f0faf9] p-3 rounded-xl border border-[#b2e5df]">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#208077]" />
-                Texto de prueba en vivo
-              </label>
+            {/* Texto de prueba para previsualizar el nombre */}
+            {isNameField(field) && (
               <input
                 type="text"
                 value={sampleName}
                 onChange={(e) => setSampleName(e.target.value)}
-                className="w-full text-xs font-semibold text-slate-900 bg-white border border-[#b2e5df] rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#208077] focus:outline-none shadow-xs"
-                placeholder="Jeanpier Alexander Robles Fabian"
+                aria-label="Texto de prueba"
+                title="Texto de prueba"
+                className="w-full text-xs font-semibold text-slate-900 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
+                placeholder="Escribe un nombre de prueba"
               />
-
-            </div>
+            )}
 
             {/* Font Family */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Fuente tipográfica</label>
-              <select
+              <FontPicker
                 value={field.fontFamily}
-                onChange={(e) => onFieldChange({ ...field, fontFamily: e.target.value })}
-                className="w-full text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#208077] focus:bg-white"
-              >
-                {FONT_OPTIONS.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(fontFamily) => onFieldChange({ ...field, fontFamily })}
+              />
             </div>
 
             {/* Compact Typography Toolbar: Style (B, I, Mayús) + Alignment */}
@@ -495,15 +835,16 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   )}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-100 rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200">
                 {/* Bold, Italic & Mayús Toggle */}
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    title="Negrita (Bold)"
+                    title={boldAvailable ? 'Negrita (Bold)' : 'Esta fuente no tiene negrita'}
+                    disabled={!boldAvailable}
                     onClick={() => onFieldChange({ ...field, isBold: !field.isBold })}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm transition-all ${
-                      field.isBold
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                      field.isBold && boldAvailable
                         ? 'bg-[#208077] text-white font-extrabold shadow-sm'
                         : 'bg-white text-slate-700 hover:bg-slate-50 font-bold border border-slate-200'
                     }`}
@@ -513,10 +854,11 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
 
                   <button
                     type="button"
-                    title="Cursiva (Italic)"
+                    title={italicAvailable ? 'Cursiva (Italic)' : 'Esta fuente no tiene cursiva'}
+                    disabled={!italicAvailable}
                     onClick={() => onFieldChange({ ...field, isItalic: !field.isItalic })}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm transition-all ${
-                      field.isItalic
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                      field.isItalic && italicAvailable
                         ? 'bg-[#208077] text-white font-serif italic font-bold shadow-sm'
                         : 'bg-white text-slate-700 hover:bg-slate-50 font-serif italic font-bold border border-slate-200'
                     }`}
@@ -538,7 +880,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                         textCase: field.textCase === 'upper' ? 'title' : 'upper',
                       })
                     }
-                    className={`relative w-9 h-9 flex items-center justify-center rounded-lg text-xs transition-all ${
+                    className={`relative w-8 h-8 flex items-center justify-center rounded-lg text-xs transition-all ${
                       field.textCase === 'upper'
                         ? 'bg-emerald-50 text-emerald-700 font-extrabold border-2 border-emerald-500 shadow-xs ring-2 ring-emerald-400/20'
                         : 'bg-white text-slate-600 hover:bg-rose-50/30 font-semibold border-2 border-rose-300 hover:border-rose-400'
@@ -553,6 +895,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                       }`}
                     />
                   </button>
+
+                  <ColorPopover value={field.color} onChange={(color) => onFieldChange({ ...field, color })} />
                 </div>
 
                 {/* Divider */}
@@ -573,7 +917,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                         type="button"
                         title={a.label}
                         onClick={() => onFieldChange({ ...field, align: a.value })}
-                        className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all ${
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
                           isSelected
                             ? 'bg-[#208077] text-white shadow-sm'
                             : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
@@ -595,7 +939,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   <input
                     type="number"
                     min={10}
-                    max={100}
+                    max={120}
                     value={field.maxFontSize}
                     onChange={(e) => {
                       const val = Math.max(8, Math.min(120, Number(e.target.value) || 12));
@@ -630,7 +974,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 <input
                   type="range"
                   min="12"
-                  max="72"
+                  max={maxSliderFontSize}
                   value={field.maxFontSize}
                   onChange={(e) => {
                     const nextVal = Number(e.target.value);
@@ -645,7 +989,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    const nextVal = Math.min(90, field.maxFontSize + 1);
+                    const nextVal = Math.min(120, field.maxFontSize + 1);
                     onFieldChange({
                       ...field,
                       maxFontSize: nextVal,
@@ -659,34 +1003,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 </button>
               </div>
             </div>
-
-            {/* Color Picker & Presets */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Color del Texto</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={field.color}
-                  onChange={(e) => onFieldChange({ ...field, color: e.target.value })}
-                  className="w-9 h-9 rounded-xl border border-slate-200 cursor-pointer p-0.5 bg-white"
-                />
-                <div className="flex items-center gap-1.5 flex-wrap flex-1">
-                  {PRESET_COLORS.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => onFieldChange({ ...field, color: c })}
-                      style={{ backgroundColor: c }}
-                      className={`w-6 h-6 rounded-lg border border-slate-300 transition-transform ${
-                        field.color.toLowerCase() === c.toLowerCase()
-                          ? 'scale-125 ring-2 ring-[#208077] ring-offset-1'
-                          : 'hover:scale-110'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
           </Card>
+          )}
         </div>
       </div>
     </div>

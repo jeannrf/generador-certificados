@@ -23,6 +23,7 @@ Aplicación web estática (sin servidor propio y sin costo) en la que el usuario
 | 11 | [testing-calidad-y-despliegue.md](11-testing-calidad-y-despliegue.md) | Pruebas, CI/CD, hosting gratuito |
 | 12 | [decisiones-adr.md](12-decisiones-adr.md) | Registro de decisiones técnicas y alternativas descartadas |
 | 13 | [guia-para-agentes.md](13-guia-para-agentes.md) | Reglas de trabajo para agentes de IA y desarrolladores |
+| 14 | [google-drive-y-qr.md](14-google-drive-y-qr.md) | QR único por certificado y subida al Google Drive del organizador |
 
 ## Decisiones ya tomadas (no reabrir sin motivo)
 

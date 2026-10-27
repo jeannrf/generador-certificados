@@ -96,6 +96,10 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            // fontkit solo se usa al incrustar fuentes en el PDF: va aparte y se carga a demanda
+            if (id.includes('@pdf-lib/fontkit')) {
+              return 'vendor-fontkit';
+            }
             if (id.includes('pdf-lib') || id.includes('pdfjs-dist') || id.includes('@pdf-lib')) {
               return 'vendor-pdf';
             }

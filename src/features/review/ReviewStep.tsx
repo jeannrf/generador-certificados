@@ -6,6 +6,22 @@ import { Badge } from '../../ui/Badge';
 import { transformTextCase } from '../../domain/normalization';
 import { calculateScreenFontSize } from '../../domain/layout';
 import { validateRecipients } from '../../domain/validation';
+import {
+  applyRecipientOverrides,
+  buildValidationOptions,
+  createNameField,
+  fieldsForPage,
+  getNameField,
+  resolveFieldText,
+} from '../../domain/fields';
+import { getPageForField } from '../../domain/templatePages';
+import { SAMPLE_DRIVE_URL } from '../../domain/drive';
+
+// En la revisión todavía no existen los archivos en Drive: el QR usa una URL de ejemplo
+const PREVIEW_CONTEXT = { driveUrl: SAMPLE_DRIVE_URL };
+import { FieldTextOverlay } from '../../ui/FieldTextOverlay';
+import { loadFieldFontsForPreview } from '../../infra/fontLoader';
+import { PageTabs } from '../../ui/PageTabs';
 import { composeCertificatePdf } from '../../infra/pdfComposer';
 import { triggerDownload } from '../../infra/zipExporter';
 import { IndividualFieldModal } from './IndividualFieldModal';
@@ -25,7 +41,7 @@ import {
 interface ReviewStepProps {
   recipients: Recipient[];
   template: TemplateData;
-  field: FieldBox;
+  fields: FieldBox[];
   onUpdateRecipient: (updated: Recipient) => void;
   onRemoveRecipient: (id: string) => void;
   onRemoveInvalid: () => void;
@@ -36,7 +52,7 @@ interface ReviewStepProps {
 export const ReviewStep: React.FC<ReviewStepProps> = ({
   recipients,
   template,
-  field,
+  fields,
   onUpdateRecipient,
   onRemoveRecipient,
   onRemoveInvalid,
@@ -49,6 +65,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [customizingRecipient, setCustomizingRecipient] = useState<Recipient | null>(null);
   const [downloadingSample, setDownloadingSample] = useState<boolean>(false);
+  const nameField = getNameField(fields) ?? createNameField(template.pages[0].id, template.pages[0]);
+  const namePage = getPageForField(template, nameField);
+  const [previewPageId, setPreviewPageId] = useState<string>(namePage.id);
+  const previewPage = template.pages.find((p) => p.id === previewPageId) ?? namePage;
 
   // Validación reactiva contra el marco y la tipografía actual
   const validatedRecipients = useMemo(() => {
@@ -59,11 +79,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       extra: r.extra,
       customField: r.customField,
     }));
-    return validateRecipients(raw, {
-      field,
-      templateWidthPt: template.widthPt,
-    });
-  }, [recipients, field, template]);
+    return validateRecipients(raw, buildValidationOptions(template, fields));
+  }, [recipients, fields, template]);
+
+  useEffect(() => {
+    loadFieldFontsForPreview(fields);
+  }, [fields]);
 
   // Medición subpíxel reactiva del contenedor con ResizeObserver
   useEffect(() => {
@@ -118,20 +139,18 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     return true;
   });
 
-  const effectivePreviewField: FieldBox = currentPreviewRecipient?.customField
-    ? { ...field, ...currentPreviewRecipient.customField }
-    : field;
-
-  const previewName = currentPreviewRecipient
-    ? transformTextCase(currentPreviewRecipient.name, effectivePreviewField.textCase)
-    : '';
-
-  const computedFontSize = calculateScreenFontSize(
-    previewName,
-    effectivePreviewField,
-    containerWidth,
-    template.widthPt
-  );
+  // Todos los campos de la página visible, con el texto y los ajustes de la persona seleccionada
+  const previewOverlays = currentPreviewRecipient
+    ? fieldsForPage(fields, previewPage.id).map((baseField) => {
+        const field = applyRecipientOverrides(baseField, currentPreviewRecipient);
+        const text = transformTextCase(resolveFieldText(field, currentPreviewRecipient, PREVIEW_CONTEXT), field.textCase);
+        return {
+          field,
+          text,
+          fontSizePx: calculateScreenFontSize(text, field, containerWidth, previewPage.widthPt),
+        };
+      })
+    : [];
 
   const handleDownloadSamplePdf = async () => {
     if (!currentPreviewRecipient) return;
@@ -139,8 +158,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     try {
       const { pdfBytes, fileName } = await composeCertificatePdf(
         template,
-        field,
-        currentPreviewRecipient
+        fields,
+        currentPreviewRecipient,
+        undefined,
+        PREVIEW_CONTEXT
       );
       const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
       triggerDownload(blob, `Muestra - ${fileName}`);
@@ -505,59 +526,27 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
                   </button>
                 </div>
               )}
+              <PageTabs
+                pages={template.pages}
+                currentPageId={previewPage.id}
+                onSelect={setPreviewPageId}
+                fieldCounts={Object.fromEntries(template.pages.map((p) => [p.id, fieldsForPage(fields, p.id).length]))}
+                className="mb-2 shrink-0"
+              />
               <div
                 ref={previewContainerRef}
                 className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 shadow-md select-none"
-                style={{ aspectRatio: `${template.widthPt} / ${template.heightPt}` }}
+                style={{ aspectRatio: `${previewPage.widthPt} / ${previewPage.heightPt}` }}
               >
                 <img
-                  src={template.previewUrl}
-                  alt="Vista previa"
+                  src={previewPage.previewUrl}
+                  alt={`Vista previa de la página ${template.pages.indexOf(previewPage) + 1}`}
                   className="w-full h-full object-contain pointer-events-none"
                 />
 
-                {/* Dynamic Name Box */}
-                <div
-                  style={{
-                    left: `${effectivePreviewField.x * 100}%`,
-                    top: `${effectivePreviewField.y * 100}%`,
-                    width: `${effectivePreviewField.width * 100}%`,
-                    height: `${effectivePreviewField.height * 100}%`,
-                  }}
-                  className="absolute flex pointer-events-none"
-                >
-                  <div
-                    className="w-full h-full flex px-[1%] py-0.5 overflow-hidden"
-                    style={{
-                      alignItems:
-                        effectivePreviewField.vAlign === 'top'
-                          ? 'flex-start'
-                          : effectivePreviewField.vAlign === 'bottom'
-                          ? 'flex-end'
-                          : 'center',
-                      justifyContent:
-                        effectivePreviewField.align === 'left'
-                          ? 'flex-start'
-                          : effectivePreviewField.align === 'right'
-                          ? 'flex-end'
-                          : 'center',
-                    }}
-                  >
-                    <span
-                      className="w-full block leading-normal select-none transition-all py-0.5 px-0.5 whitespace-nowrap overflow-visible"
-                      style={{
-                        fontFamily: effectivePreviewField.fontFamily,
-                        fontWeight: effectivePreviewField.isBold ? 700 : 400,
-                        fontStyle: effectivePreviewField.isItalic ? 'italic' : 'normal',
-                        fontSize: `${computedFontSize}px`,
-                        color: effectivePreviewField.color,
-                        textAlign: effectivePreviewField.align,
-                      }}
-                    >
-                      {previewName || '—'}
-                    </span>
-                  </div>
-                </div>
+                {previewOverlays.map(({ field, text, fontSizePx }) => (
+                  <FieldTextOverlay key={field.id} field={field} text={text || '—'} fontSizePx={fontSizePx} />
+                ))}
               </div>
             </div>
 
@@ -589,8 +578,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       <IndividualFieldModal
         isOpen={Boolean(customizingRecipient)}
         recipient={customizingRecipient}
-        baseField={field}
-        template={template}
+        baseField={nameField}
+        page={namePage}
         onClose={() => setCustomizingRecipient(null)}
         onSave={(newCustomField) => {
           if (customizingRecipient) {

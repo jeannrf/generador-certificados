@@ -5,17 +5,29 @@
 ```typescript
 type TemplateKind = 'pdf' | 'image';
 
-interface Template {
+/** Una página de la plantilla (ver ADR-009) */
+interface TemplatePage {
+  id: string;                 // estable: los campos apuntan aquí
+  sourceName: string;
   kind: TemplateKind;
-  bytes: Uint8Array;          // archivo original
+  bytes: Uint8Array;          // PDF de 1 página (vectorial) o imagen original
   mimeType: string;
-  widthPt: number;            // tamaño de página en puntos PDF
+  widthPt: number;            // tamaño VISIBLE en puntos PDF (rotación ya aplicada)
   heightPt: number;
+  previewUrl: string;
 }
 
-/** Coordenadas NORMALIZADAS (0–1) desde la esquina superior izquierda. */
-interface FieldBox {
+interface TemplateData {
   id: string;
+  name: string;
+  pages: TemplatePage[];      // 1 a 5, en el orden de salida
+}
+
+/** Coordenadas NORMALIZADAS (0–1) desde la esquina superior izquierda DE SU PÁGINA. */
+interface FieldBox {
+  id: string;                 // 'field_name' = nombre del destinatario (obligatorio)
+  name: string;
+  pageId: string;             // TemplatePage.id
   source: { type: 'column'; column: string } | { type: 'fixed'; value: string };
   x: number; y: number; width: number; height: number;
   fontFamily: string;
@@ -37,7 +49,7 @@ interface Recipient {
 }
 
 interface Issue { severity: 'warning' | 'error'; code: IssueCode; message: string }
-type IssueCode = 'EMPTY_NAME' | 'INVALID_EMAIL' | 'DUPLICATE' | 'NAME_TOO_LONG' | 'TRIMMED';
+type IssueCode = 'EMPTY_NAME' | 'EMPTY_EMAIL' | 'INVALID_EMAIL' | 'DUPLICATE' | 'NAME_TOO_LONG' | 'TEXT_OVERFLOW' | 'TRIMMED' | 'EMPTY_FIELD';
 ```
 
 ## Sistema de coordenadas (crítico)
@@ -53,10 +65,36 @@ yPt = pageHeightPt - (box.y + box.height) * pageHeightPt   // base inferior de l
 
 Esto hace que la vista previa (cualquier zoom o pantalla) y el PDF final coincidan.
 
+## Plantillas multipágina
+
+- De 1 a 5 páginas. Cada archivo subido agrega páginas al final; un PDF de varias páginas aporta todas y cuenta para el límite.
+- Formatos: PDF, PNG y JPG, detectados por su firma (no por la extensión). Se pueden mezclar formatos, tamaños y orientaciones.
+- Límites: 15 MB por archivo, 40 MB por plantilla, 8000 px por lado y 25 MP por imagen.
+- Se rechazan: formatos no soportados, PDFs protegidos con contraseña o dañados, PNG con CRC inválido o truncados y JPG sin marcador de fin.
+- Salida: siempre 1 PDF por persona con todas las páginas en el orden de la plantilla.
+
 ## Plantillas de imagen
 
-- Se crea un PDF con una página del tamaño de la imagen (px × 0,75 → pt a 96 dpi) y la imagen incrustada a página completa.
-- PNG/JPG se incrustan sin recomprimir cuando es posible; si supera el límite, se redimensiona antes.
+- Cada imagen se convierte en una página del tamaño de la imagen (px × 0,75 → pt a 96 dpi) con la imagen original incrustada a página completa, **sin recomprimir ni redimensionar**.
+- Se respetan las 8 orientaciones EXIF de los JPG (rotadas y espejadas).
+
+## Páginas PDF
+
+- Se conservan vectoriales. El CropBox y el `/Rotate` se aplican al generar, así la página sale como se ve en la vista previa.
+- Se conservan los enlaces web (anotaciones Link con URI) en su misma posición visible; los formularios y comentarios no.
+
+## Fuentes
+
+- Catálogo de ~106 fuentes de Google Fonts elegidas para certificados (`domain/fontCatalog.ts`), en 5 categorías: serif, sans serif, manuscrita, decorativa y monoespaciada. Se elige con un selector con buscador (sin distinguir tildes) y filtros por categoría.
+- **El PDF usa la fuente real**: el TTF (subconjunto latino, con tildes y ñ) se descarga de Fontsource la primera vez que se usa y se incrusta con **subconjunto de glifos** (`@pdf-lib/fontkit`), por lo que cada certificado pesa pocos KB más. `fontkit` se carga a demanda en un archivo aparte.
+- Negrita e itálica solo se ofrecen si la fuente las tiene; nunca se simulan, para que la vista previa coincida con el PDF.
+- Times New Roman y Courier siguen como fuentes estándar de PDF (no se descargan).
+- Si una fuente no se puede descargar (sin conexión), se usa la fuente estándar equivalente y el certificado igual se genera. Los valores de fuente guardados por versiones anteriores se siguen reconociendo.
+- Para agregar una fuente: consultar `https://api.fontsource.org/v1/fonts/<id>` y copiar sus pesos y estilos al catálogo.
+
+## Migración de sesiones de una página
+
+`infra/storage.ts → migrateSession` convierte al cargar una sesión guardada con el formato anterior: `template` → `template.pages` con 1 página (si era un PDF de varias páginas se usa la primera, como ya avisaba la app) y `field` → `fields` con ese campo en la página 1. Es idempotente y no toca los certificados ya descargados.
 
 ## Formatos de lista
 

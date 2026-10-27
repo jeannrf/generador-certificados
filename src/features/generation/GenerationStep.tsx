@@ -1,13 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Recipient, TemplateData, FieldBox, GenerationProgress } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { composeCertificatePdf, composeCombinedCertificatePdf } from '../../infra/pdfComposer';
 import { formatCertificateFileName } from '../../domain/validation';
+import { TemplateFileError } from '../../domain/templatePages';
 import { createZipArchive, triggerDownload, FileToZip } from '../../infra/zipExporter';
 import confetti from 'canvas-confetti';
 import { EmailDispatcherSection } from './EmailDispatcherSection';
+import { useDriveUpload } from './useDriveUpload';
+import { DriveUploadOptions, DriveUploadResult } from './DriveUploadPanel';
 import {
   Download,
   CheckCircle2,
@@ -16,7 +19,6 @@ import {
   RefreshCw,
   ChevronLeft,
   Sparkles,
-  Zap,
   FileText,
   Settings2,
 } from 'lucide-react';
@@ -24,7 +26,7 @@ import {
 interface GenerationStepProps {
   recipients: Recipient[];
   template: TemplateData;
-  field: FieldBox;
+  fields: FieldBox[];
   onBack: () => void;
   onResetAll: () => void;
 }
@@ -32,13 +34,26 @@ interface GenerationStepProps {
 export const GenerationStep: React.FC<GenerationStepProps> = ({
   recipients,
   template,
-  field,
+  fields,
   onBack,
   onResetAll,
 }) => {
   // Filtrar solo los válidos o con advertencia (excluyendo errores)
-  const validRecipients = recipients.filter(
-    (r) => !r.issues.some((i) => i.severity === 'error')
+  const validRecipients = useMemo(
+    () => recipients.filter((r) => !r.issues.some((i) => i.severity === 'error')),
+    [recipients]
+  );
+  const drive = useDriveUpload({ template, fields, recipients: validRecipients });
+
+  // Con Drive activo, los correos pueden incluir {enlace}: el PDF de cada persona en Drive
+  const emailRecipients = useMemo(
+    () =>
+      validRecipients.map((r) => {
+        const link = drive.linkFor(r.id);
+        return link ? { ...r, extra: { ...r.extra, enlace: link } } : r;
+      }),
+    // linkFor solo cambia cuando cambia el progreso guardado (drive.batch)
+    [validRecipients, drive.batch]
   );
 
   const [fileNamePattern, setFileNamePattern] = useState<string>('{nombre} - Certificado');
@@ -64,6 +79,18 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   );
 
   const startGeneration = async () => {
+    // Drive va primero: si hace falta iniciar sesión, la ventana de Google debe abrirse en este clic
+    try {
+      await drive.begin();
+    } catch (err) {
+      setProgress((prev) => ({
+        ...prev,
+        status: 'error',
+        errorMessage: err instanceof Error ? err.message : 'No se pudo preparar Google Drive.',
+      }));
+      return;
+    }
+
     isCancelledRef.current = false;
     setProgress({
       total: validRecipients.length,
@@ -93,13 +120,20 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
       try {
         const { fileName, pdfBytes } = await composeCertificatePdf(
           template,
-          field,
+          fields,
           rec,
-          fileNamePattern
+          fileNamePattern,
+          drive.contextFor(rec.id)
         );
         results.push({ fileName, data: pdfBytes });
         pdfsMap[rec.id] = { fileName, pdfBytes };
+        await drive.enqueue(rec.id, fileName, pdfBytes);
       } catch (err) {
+        // Un problema de la plantilla afecta a todo el lote: detenerse en vez de fallar persona por persona
+        if (err instanceof TemplateFileError) {
+          setProgress((prev) => ({ ...prev, status: 'error', errorMessage: err.message }));
+          return;
+        }
         console.error(`Error generando certificado para ${rec.name}:`, err);
       }
 
@@ -121,10 +155,15 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
       // Crear versión consolidada multipágina (todas las hojas en un solo PDF)
       const combinedBytes = await composeCombinedCertificatePdf(
         template,
-        field,
-        validRecipients
+        fields,
+        validRecipients,
+        undefined,
+        (rec) => drive.contextFor(rec.id)
       );
       const pdfBlob = new Blob([combinedBytes as BlobPart], { type: 'application/pdf' });
+
+      // Esperar a que terminen las subidas a Drive que sigan en curso
+      await drive.finish();
 
       setProgress({
         total: validRecipients.length,
@@ -204,16 +243,10 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
         {/* Estado 1: Idle (Antes de generar) */}
         {progress.status === 'idle' && (
           <div className="py-4 space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 bg-[#f0faf9] rounded-2xl flex items-center justify-center mx-auto text-[#208077] border border-[#b2e5df] shadow-xs">
-                <Zap className="w-7 h-7 stroke-[2]" />
-              </div>
+            <div className="text-center">
               <h3 className="text-lg font-bold text-slate-900">
                 Todo listo para generar {validRecipients.length} certificados
               </h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Los certificados se renderizan con gráficos vectoriales nítidos a máxima resolución.
-              </p>
             </div>
 
             {/* Custom File Naming Pattern Box */}
@@ -243,6 +276,8 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
               </div>
             </div>
 
+            <DriveUploadOptions drive={drive} />
+
             <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-3 pt-2 w-full">
               <Button
                 variant="outline"
@@ -258,6 +293,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                 size="lg"
                 leftIcon={<Sparkles className="w-5 h-5" />}
                 onClick={startGeneration}
+                disabled={drive.active && !drive.accountEmail}
                 className="w-full sm:w-auto px-8 shadow-md justify-center"
               >
                 Comenzar Generación
@@ -281,6 +317,13 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                   ? 'Compilando archivos finales'
                   : `Procesando: ${progress.currentName || '...'}`}
               </h3>
+              {drive.active && (
+                <p className="text-xs text-slate-500" aria-live="polite">
+                  {drive.status === 'preparing'
+                    ? 'Preparando la carpeta en Google Drive...'
+                    : `Guardados en Google Drive: ${drive.uploadedCount} de ${validRecipients.length}`}
+                </p>
+              )}
             </div>
 
             <ProgressBar
@@ -344,7 +387,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                         PDF Consolidado
                       </span>
                       <span className="text-xs text-slate-500">
-                        Un solo PDF con todas las páginas ({progress.generatedCount} págs)
+                        Un solo PDF con todas las páginas ({progress.generatedCount * template.pages.length} págs)
                       </span>
                     </div>
                   </div>
@@ -359,14 +402,21 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                   </Button>
                 </div>
               </div>
+
+              <DriveUploadResult
+                drive={drive}
+                total={validRecipients.length}
+                onRetry={() => drive.retryPending(pregeneratedPdfs)}
+              />
             </div>
 
             {/* 2. Envío por correo (ahora sí, porque ya están generados) */}
             <EmailDispatcherSection
-              recipients={validRecipients}
+              recipients={emailRecipients}
+              extraVariables={drive.active ? ['enlace'] : []}
               buildAttachment={async (rec) =>
                 pregeneratedPdfs?.[rec.id] ??
-                composeCertificatePdf(template, field, rec, fileNamePattern)
+                composeCertificatePdf(template, fields, rec, fileNamePattern, drive.contextFor(rec.id))
               }
             />
 

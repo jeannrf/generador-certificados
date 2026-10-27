@@ -1,6 +1,7 @@
 import { Recipient, Issue, FieldBox } from './types';
 import { cleanString, transformTextCase } from './normalization';
 import { measureBrowserTextWidth, calculateOptimalFontSize } from './layout';
+import { fieldFontVariant } from './fonts';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -11,6 +12,8 @@ export interface ValidationOptions {
   requireName?: boolean;
   /** Si es true, cada fila debe tener un correo electrónico. Por defecto false. */
   requireEmail?: boolean;
+  /** Campos adicionales (curso, fecha…): se avisa si su columna viene vacía en una fila. */
+  extraFields?: FieldBox[];
 }
 
 /**
@@ -33,6 +36,7 @@ export function validateRecipients(
   const templateWidthPt = options?.templateWidthPt || 841.89;
   const requireName = options?.requireName ?? true;
   const requireEmail = options?.requireEmail ?? false;
+  const columnFields = (options?.extraFields ?? []).filter((f) => f.source.type === 'column');
 
   return rawRows.map((row, index) => {
     const rowNumber = index + 1;
@@ -59,8 +63,9 @@ export function validateRecipients(
         const boxWidthPt = field.width * templateWidthPt;
         const targetWidthPt = Math.max(10, boxWidthPt - 8);
 
-        const fontWeight = field.isBold ? 700 : 400;
-        const fontStyle = field.isItalic ? 'italic' : 'normal';
+        const variant = fieldFontVariant(field);
+        const fontWeight = variant.weight;
+        const fontStyle = variant.italic ? 'italic' : 'normal';
         const textWidthAtSize = measureBrowserTextWidth(
           transformedText,
           field.maxFontSize,
@@ -131,6 +136,19 @@ export function validateRecipients(
         } else {
           seenEmails.add(lowerEmail);
         }
+      }
+    }
+
+    // 3. Campos adicionales que dependen de una columna
+    for (const extraField of columnFields) {
+      if (extraField.source.type !== 'column') continue;
+      const column = extraField.source.column;
+      if (!cleanString(row.extra?.[column] ?? '')) {
+        issues.push({
+          severity: 'warning',
+          code: 'EMPTY_FIELD',
+          message: `"${extraField.name}" quedará vacío (columna "${column}" sin dato)`,
+        });
       }
     }
 

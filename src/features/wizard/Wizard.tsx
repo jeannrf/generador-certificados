@@ -14,30 +14,19 @@ import { ReviewStep } from '../review/ReviewStep';
 import { GenerationStep } from '../generation/GenerationStep';
 import { ParsedTableData } from '../../infra/parsers';
 import { validateRecipients } from '../../domain/validation';
+import {
+  autoAssignColumns,
+  buildValidationOptions,
+  defaultMinFontSize,
+  defaultNameFontSize,
+  isNameField,
+  reconcileFieldsWithTemplate,
+} from '../../domain/fields';
 import { saveSession, loadSession, clearSession } from '../../infra/storage';
 import {
   SimplePrerequisiteModal,
   PrerequisiteNoticeModalInfo,
 } from '../../ui/SimplePrerequisiteModal';
-
-const INITIAL_FIELD: FieldBox = {
-  id: 'field_name',
-  name: 'Nombre del Destinatario',
-  source: { type: 'column', column: 'nombre' },
-  x: 0.05,
-  y: 0.42,
-  width: 0.90,
-  height: 0.13,
-  fontFamily: 'Playfair Display, Georgia, serif',
-  maxFontSize: 28,
-  minFontSize: 20,
-  color: '#0f172a',
-  align: 'center',
-  vAlign: 'middle',
-  textCase: 'title',
-  isBold: true,
-  isItalic: false,
-};
 
 export const Wizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<WizardStepType>(1);
@@ -45,7 +34,7 @@ export const Wizard: React.FC = () => {
 
   // Estados del Wizard
   const [template, setTemplate] = useState<TemplateData | null>(null);
-  const [field, setField] = useState<FieldBox>(INITIAL_FIELD);
+  const [fields, setFields] = useState<FieldBox[]>([]);
   const [tableData, setTableData] = useState<ParsedTableData | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping>({ nameColumn: '' });
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -57,38 +46,32 @@ export const Wizard: React.FC = () => {
     loadSession().then((saved) => {
       if (!isMounted || !saved) return;
       let hasValidTemplate = false;
-      if (saved.template) {
+      // loadSession ya migró las sesiones de una sola página al formato multipágina
+      const tpl = saved.template;
+      if (tpl) {
         // Ignorar plantillas demo antiguas que hayan quedado guardadas en el navegador
-        const tpl = saved.template as TemplateData;
         if (tpl.id?.startsWith('tpl_demo_') || tpl.name?.includes('Diploma de Reconocimiento')) {
           setTemplate(null);
         } else {
-          let restoredPreviewUrl = tpl.previewUrl;
-          if (tpl.kind === 'image' && tpl.bytes && tpl.bytes.length > 0) {
+          // Los Object URL de las imágenes no sobreviven a una recarga: regenerarlos desde los bytes
+          const pages = tpl.pages.map((page) => {
+            if (page.kind !== 'image' || !page.bytes || page.bytes.length === 0) return page;
             try {
-              restoredPreviewUrl = URL.createObjectURL(
-                new Blob([tpl.bytes as unknown as BlobPart], { type: tpl.mimeType || 'image/png' })
-              );
+              return {
+                ...page,
+                previewUrl: URL.createObjectURL(
+                  new Blob([page.bytes as unknown as BlobPart], { type: page.mimeType || 'image/png' })
+                ),
+              };
             } catch (err) {
-              console.warn('No se pudo regenerar ObjectURL para la plantilla de imagen:', err);
+              console.warn('No se pudo regenerar ObjectURL para la página de imagen:', err);
+              return page;
             }
-          }
-          setTemplate({ ...tpl, previewUrl: restoredPreviewUrl });
-          hasValidTemplate = true;
-        }
-      }
-      if (saved.field) {
-        const f = saved.field as FieldBox;
-        if (f.maxFontSize > 28 || f.width < 0.88) {
-          setField({
-            ...f,
-            maxFontSize: 28,
-            x: 0.05,
-            width: 0.90,
-            isBold: true,
           });
-        } else {
-          setField(f);
+          const restored = { ...tpl, pages };
+          setTemplate(restored);
+          setFields(reconcileFieldsWithTemplate(saved.fields, restored));
+          hasValidTemplate = true;
         }
       }
       if (saved.tableData) setTableData(saved.tableData);
@@ -117,14 +100,14 @@ export const Wizard: React.FC = () => {
         currentStep,
         maxStepUnlocked,
         template,
-        field,
+        fields,
         tableData,
         mapping,
         recipients,
       });
     }, 500);
     return () => clearTimeout(timer);
-  }, [currentStep, maxStepUnlocked, template, field, tableData, mapping, recipients]);
+  }, [currentStep, maxStepUnlocked, template, fields, tableData, mapping, recipients]);
 
   // Alerta antes de salir si hay datos cargados
   useEffect(() => {
@@ -174,17 +157,24 @@ export const Wizard: React.FC = () => {
     }
   }, [currentStep, template]);
 
-  const handleTemplateChange = (newTemplate: TemplateData, defaultField?: Partial<FieldBox>) => {
+  const handleTemplateChange = (newTemplate: TemplateData) => {
+    const isNewTemplate = template?.id !== newTemplate.id;
     setTemplate(newTemplate);
-    if (defaultField) {
-      setField((prev) => ({ ...prev, ...defaultField }));
-    } else {
-      setField((prev) => (prev.maxFontSize > 28 || prev.width < 0.88 ? INITIAL_FIELD : prev));
-    }
+    setFields((prev) => {
+      const reconciled = reconcileFieldsWithTemplate(prev, newTemplate);
+      if (!isNewTemplate) return reconciled;
+      // Plantilla nueva: el tamaño del nombre se adapta al de la página
+      const fontSize = defaultNameFontSize(newTemplate.pages[0]);
+      return reconciled.map((f) =>
+        isNameField(f) ? { ...f, maxFontSize: fontSize, minFontSize: defaultMinFontSize(fontSize) } : f
+      );
+    });
   };
 
   const handleDataLoaded = (data: ParsedTableData, newMapping: ColumnMapping) => {
     setTableData(data);
+    // Los campos de columna creados antes de tener la lista se asignan solos si coincide el nombre
+    setFields((prev) => autoAssignColumns(prev, data.headers));
     setMapping(newMapping);
     syncRecipients(data, newMapping);
   };
@@ -207,10 +197,7 @@ export const Wizard: React.FC = () => {
         customField: existing?.customField,
       };
     });
-    const validated = validateRecipients(raw, {
-      field,
-      templateWidthPt: template?.widthPt,
-    });
+    const validated = validateRecipients(raw, buildValidationOptions(template, fields));
     setRecipients(validated);
   };
 
@@ -224,10 +211,7 @@ export const Wizard: React.FC = () => {
         extra: r.extra,
         customField: r.customField,
       }));
-      const revalidated = validateRecipients(raw, {
-        field,
-        templateWidthPt: template?.widthPt,
-      });
+      const revalidated = validateRecipients(raw, buildValidationOptions(template, fields));
       return updatedList.map((r, i) => ({
         ...r,
         issues: revalidated[i]?.issues || [],
@@ -246,10 +230,7 @@ export const Wizard: React.FC = () => {
         extra: r.extra,
         customField: r.customField,
       }));
-      const revalidated = validateRecipients(raw, {
-        field,
-        templateWidthPt: template?.widthPt,
-      });
+      const revalidated = validateRecipients(raw, buildValidationOptions(template, fields));
       setRecipients((prev) =>
         prev.map((r, i) => ({
           ...r,
@@ -258,7 +239,12 @@ export const Wizard: React.FC = () => {
         }))
       );
     }
-  }, [field, template?.widthPt]);
+  }, [fields, template]);
+
+  // Al volver al Paso 3 con la lista ya cargada, asignar las columnas de campos agregados después
+  useEffect(() => {
+    if (currentStep === 3 && tableData) setFields((prev) => autoAssignColumns(prev, tableData.headers));
+  }, [currentStep, tableData]);
 
   const handleRemoveRecipient = (id: string) => {
     setRecipients((prev) => prev.filter((r) => r.id !== id));
@@ -275,7 +261,7 @@ export const Wizard: React.FC = () => {
     setCurrentStep(1);
     setMaxStepUnlocked(1);
     setTemplate(null);
-    setField(INITIAL_FIELD);
+    setFields([]);
     setTableData(null);
     setRecipients([]);
   };
@@ -292,6 +278,7 @@ export const Wizard: React.FC = () => {
         {currentStep === 1 && (
           <TemplateStep
             template={template}
+            fields={fields}
             onTemplateChange={handleTemplateChange}
             onRemoveTemplate={() => {
               setTemplate(null);
@@ -310,8 +297,10 @@ export const Wizard: React.FC = () => {
         {currentStep === 2 && template && (
           <FieldEditorStep
             template={template}
-            field={field}
-            onFieldChange={setField}
+            fields={fields}
+            onFieldsChange={setFields}
+            availableColumns={tableData?.headers ?? []}
+            sampleRow={tableData?.rows[0]}
             onBack={() => setCurrentStep(1)}
             onContinue={() => unlockStep(3)}
           />
@@ -332,6 +321,8 @@ export const Wizard: React.FC = () => {
               setTableData(null);
               setRecipients([]);
             }}
+            fields={fields}
+            onFieldsChange={setFields}
           />
         )}
 
@@ -339,7 +330,7 @@ export const Wizard: React.FC = () => {
           <ReviewStep
             recipients={recipients}
             template={template}
-            field={field}
+            fields={fields}
             onUpdateRecipient={handleUpdateRecipient}
             onRemoveRecipient={handleRemoveRecipient}
             onRemoveInvalid={handleRemoveInvalid}
@@ -352,7 +343,7 @@ export const Wizard: React.FC = () => {
           <GenerationStep
             recipients={recipients}
             template={template}
-            field={field}
+            fields={fields}
             onBack={() => setCurrentStep(4)}
             onResetAll={handleResetAll}
           />
