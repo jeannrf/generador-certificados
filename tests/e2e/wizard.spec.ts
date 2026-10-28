@@ -61,7 +61,7 @@ test.describe('Generador de Certificados — Flujo E2E Completo', () => {
     // Esperar a que se complete la generación
     await expect(page.locator('text=Certificados generados con éxito')).toBeVisible({ timeout: 30000 });
     await expect(page.locator('button:has-text("Descargar Archivo ZIP")')).toBeVisible();
-    await expect(page.locator('button:has-text("Descargar PDF Único")')).toBeVisible();
+    await expect(page.locator('button:has-text("Descargar PDF Único")')).toHaveCount(0);
 
     // Sección de envío por correo, disponible tras generar
     await expect(page.locator('text=Asunto del Correo')).toBeVisible();

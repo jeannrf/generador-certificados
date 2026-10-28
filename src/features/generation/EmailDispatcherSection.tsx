@@ -10,12 +10,12 @@ import { Button } from '../../ui/Button';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { Badge } from '../../ui/Badge';
 import {
-  sendEmailViaScript,
+  sendEmail,
   uint8ArrayToBase64,
   loadEmailConfigFromStorage,
   saveEmailConfigToStorage,
   EmailConfigVariant,
-} from '../../infra/email/googleAppsScript';
+} from '../../infra/email/emailClient';
 import { saveCampaign, loadCampaign, clearCampaign } from '../../infra/email/campaignStorage';
 import { loadSendLog, recordSentEmail } from '../../infra/email/sendLog';
 import {
@@ -225,7 +225,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
       setIsConfigOpen(true);
       setTestFeedback({
         type: 'error',
-        text: 'Debes configurar la URL de la Web App de Google Apps Script para poder enviar correos.',
+        text: validation.errors[0] || 'Por favor verifica la configuración de envío.',
       });
       return;
     }
@@ -256,10 +256,8 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         escapeForHtml: false,
       });
 
-      // 2. Enviar a través de Google Apps Script
-      const result = await sendEmailViaScript({
-        webAppUrl: config.webAppUrl,
-        token: config.token,
+      // 2. Enviar con Gmail a través de /api/send-email
+      const result = await sendEmail({
         to: testEmail.trim(),
         subject: interpolatedSubject,
         htmlBody: ensureHtmlEmailBody(interpolatedBody),
@@ -324,9 +322,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   const sendOne = async (rec: Recipient): Promise<{ ok: boolean; error?: string; remainingQuota?: number }> => {
     try {
       const attachmentFile = buildAttachment ? await buildAttachment(rec) : undefined;
-      return await sendEmailViaScript({
-        webAppUrl: config.webAppUrl,
-        token: config.token,
+      return await sendEmail({
         to: rec.email!.trim(),
         subject: interpolateEmailVariables(config.subject, rec),
         htmlBody: ensureHtmlEmailBody(

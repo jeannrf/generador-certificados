@@ -3,7 +3,7 @@ import { Recipient, TemplateData, FieldBox, GenerationProgress } from '../../dom
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { ProgressBar } from '../../ui/ProgressBar';
-import { composeCertificatePdf, composeCombinedCertificatePdf } from '../../infra/pdfComposer';
+import { composeCertificatePdf } from '../../infra/pdfComposer';
 import { formatCertificateFileName } from '../../domain/validation';
 import { TemplateFileError } from '../../domain/templatePages';
 import { createZipArchive, triggerDownload, FileToZip } from '../../infra/zipExporter';
@@ -19,7 +19,6 @@ import {
   RefreshCw,
   ChevronLeft,
   Sparkles,
-  FileText,
   Settings2,
 } from 'lucide-react';
 
@@ -145,22 +144,12 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
     setPregeneratedPdfs(pdfsMap);
 
-    // Empaquetar ZIP y compilar PDF multipágina consolidado
+    // Empaquetar ZIP
     setProgress((prev) => ({ ...prev, status: 'zipping' }));
     await new Promise((res) => setTimeout(res, 50));
 
     try {
       const zipBlob = createZipArchive(results);
-
-      // Crear versión consolidada multipágina (todas las hojas en un solo PDF)
-      const combinedBytes = await composeCombinedCertificatePdf(
-        template,
-        fields,
-        validRecipients,
-        undefined,
-        (rec) => drive.contextFor(rec.id)
-      );
-      const pdfBlob = new Blob([combinedBytes as BlobPart], { type: 'application/pdf' });
 
       // Esperar a que terminen las subidas a Drive que sigan en curso
       await drive.finish();
@@ -171,7 +160,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
         status: 'completed',
         generatedCount: results.length,
         zipBlob,
-        pdfBlob,
       });
 
       // Disparar confetti
@@ -198,15 +186,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   const handleDownloadZip = () => {
     if (progress.zipBlob) {
       triggerDownload(progress.zipBlob, `Certificados_Individuales_${Date.now()}.zip`);
-    }
-  };
-
-  const handleDownloadCombinedPdf = () => {
-    if (progress.pdfBlob) {
-      triggerDownload(
-        progress.pdfBlob,
-        `Certificados_Consolidados_Todas_Las_Paginas_${Date.now()}.pdf`
-      );
     }
   };
 
@@ -309,7 +288,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
               <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-[#f0faf9] border border-[#b2e5df] rounded-full text-xs font-semibold text-[#208077] animate-pulse">
                 <Sparkles className="w-3.5 h-3.5" />
                 {progress.status === 'zipping'
-                  ? 'Empaquetando ZIP y PDF multipágina...'
+                  ? 'Empaquetando ZIP...'
                   : 'Generando certificados...'}
               </div>
               <h3 className="text-lg font-bold text-slate-900">
@@ -349,7 +328,7 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                 <span>1. Descargar en tu equipo</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className={`grid grid-cols-1 gap-4 ${drive.active ? 'sm:grid-cols-2' : ''}`}>
                 {/* Opción A: Archivo ZIP */}
                 <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-4">
                   <div className="flex items-center gap-3">
@@ -376,38 +355,13 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
                   </Button>
                 </div>
 
-                {/* Opción B: PDF Consolidado todas las páginas */}
-                <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-emerald-600 shadow-xs shrink-0">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-slate-900 block">
-                        PDF Consolidado
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        Un solo PDF con todas las páginas ({progress.generatedCount * template.pages.length} págs)
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<Download className="w-4 h-4" />}
-                    onClick={handleDownloadCombinedPdf}
-                    className="w-full justify-center bg-white hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
-                  >
-                    Descargar PDF Único
-                  </Button>
-                </div>
+                {/* Opción B: Google Drive, junto al ZIP */}
+                <DriveUploadResult
+                  drive={drive}
+                  total={validRecipients.length}
+                  onRetry={() => drive.retryPending(pregeneratedPdfs)}
+                />
               </div>
-
-              <DriveUploadResult
-                drive={drive}
-                total={validRecipients.length}
-                onRetry={() => drive.retryPending(pregeneratedPdfs)}
-              />
             </div>
 
             {/* 2. Envío por correo (ahora sí, porque ya están generados) */}

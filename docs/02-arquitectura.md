@@ -2,89 +2,79 @@
 
 ## Visión general
 
-SPA (Single Page Application) estática. Toda la lógica corre en el navegador. Una única pieza externa, opcional y propiedad del usuario, envía correos: un Google Apps Script desplegado en su propia cuenta.
+SPA estática (Vite + React) desplegada en Vercel. La generación de PDFs, la lectura de listas y la subida a Google Drive ocurren en el navegador. La única pieza de servidor es una función de Vercel que envía los correos por Gmail.
 
 ```
-┌───────────────────────── Navegador del usuario ─────────────────────────┐
-│  UI (React)  ──►  Features  ──►  Dominio (TS puro)                      │
-│                       │                                                 │
-│                       ▼                                                 │
-│               Adaptadores (infra)                                       │
-│   pdf.js · pdf-lib · PapaParse · SheetJS · JSZip · IndexedDB            │
-│                       │                                                 │
-│        Web Worker (generación de PDFs, parseo pesado)                   │
-└───────────────────────┬─────────────────────────────────────────────────┘
-                        │ HTTPS (solo Fase 2, opcional)
-                        ▼
-         Google Apps Script (cuenta Gmail del organizador) ──► Gmail
+┌──────────────────────────── Navegador del usuario ────────────────────────────┐
+│  UI (React) ──► features/* ──► domain/ (TS puro)                              │
+│                      │                                                        │
+│                      ▼                                                        │
+│                   infra/                                                      │
+│   pdf.js · pdf-lib + fontkit · PapaParse · SheetJS · fflate · localStorage   │
+└───────┬───────────────────────────────┬───────────────────────────┬───────────┘
+        │ POST /api/send-email          │ OAuth (drive.file)        │ fuentes
+        ▼                               ▼                           ▼
+  Función de Vercel ──► Gmail     Google Drive del organizador   Google Fonts / jsDelivr
+  (api/send-email.ts, nodemailer)
 ```
 
 ## Principios
 
-1. **Dominio puro**: la lógica de negocio no importa React, DOM ni librerías de PDF.
-2. **Puertos y adaptadores (hexagonal)**: el dominio define interfaces; la infraestructura las implementa.
-3. **Features verticales**: cada funcionalidad agrupa su UI, estado y lógica.
-4. **Trabajo pesado fuera del hilo principal**: Web Workers.
-5. **Sin estado oculto**: un único store tipado por feature, flujo de datos unidireccional.
+1. **Dominio puro**: `src/domain` no importa React, DOM, `fetch` ni librerías de PDF.
+2. **Features verticales**: cada paso del wizard agrupa su UI, estado y orquestación.
+3. **Adaptadores en `infra/`**: todo lo que toca librerías, red o almacenamiento.
+4. **Sin datos personales en servidores**: la función de correo solo reenvía; no guarda nada.
 
 ## Capas
 
 | Capa | Responsabilidad | Puede importar |
 |---|---|---|
-| `ui/` | Componentes visuales reutilizables, sin lógica de negocio | `shared` |
-| `features/*` | Casos de uso: UI de la feature + estado + orquestación | `domain`, `infra` (vía puertos), `ui`, `shared` |
-| `domain/` | Tipos, reglas, cálculos (layout, normalización, validación) | solo `shared` |
-| `infra/` | Adaptadores: PDF, parsers, ZIP, correo, almacenamiento | `domain` (interfaces) |
-| `workers/` | Tareas pesadas en segundo plano | `domain`, `infra` |
-| `shared/` | Utilidades genéricas, constantes, i18n | nada |
+| `ui/` | Componentes visuales reutilizables, sin lógica de negocio | `domain` (tipos) |
+| `features/*` | Pasos del wizard y servicios: UI + estado + orquestación | `domain`, `infra`, `ui`, `shared` |
+| `domain/` | Tipos y reglas: campos, páginas, fuentes, validación, layout, Drive, correo | `shared` |
+| `infra/` | PDF, parsers, ZIP, Drive, correo, almacenamiento local, fuentes | `domain` |
+| `shared/` | Utilidades genéricas (pool de tareas, historial de deshacer) | nada |
 
 ## Estructura de carpetas
 
 ```
 /
-├─ docs/                       # esta documentación
-├─ apps-script/                # código del script de correo + instrucciones
-│  ├─ Code.gs
-│  └─ README.md
-├─ public/fonts/               # fuentes TTF/OTF con licencia libre (OFL)
+├─ api/send-email.ts          # función de Vercel: envía correos con Gmail (nodemailer)
+├─ docs/                      # esta documentación
+├─ public/privacidad.html     # política de privacidad (estática)
+├─ samples/                   # certificado de ejemplo de 3 páginas
 ├─ src/
-│  ├─ app/                     # bootstrap, rutas/wizard, providers
-│  ├─ ui/                      # botones, inputs, modal, stepper, toasts…
+│  ├─ domain/                 # fields, templatePages, fonts, fontCatalog, drive, email, validation, layout…
 │  ├─ features/
-│  │  ├─ template/             # subir plantilla, vista previa, editor de campo
-│  │  ├─ recipients/           # subir lista, mapear columnas, validar, tabla
-│  │  ├─ generation/           # generar PDFs, progreso, ZIP
-│  │  ├─ mailing/              # (Fase 2) conexión, plantilla de correo, envío
-│  │  └─ project/              # (Fase 3) guardar/cargar proyecto
-│  ├─ domain/
-│  │  ├─ certificate/          # tipos, layout, autoajuste de texto
-│  │  ├─ recipient/            # tipos, normalización, validación
-│  │  └─ mailing/              # tipos, cola, estados
+│  │  ├─ landing/             # página de inicio
+│  │  ├─ wizard/              # orquesta los 5 pasos de certificados
+│  │  ├─ template/            # paso 1: páginas de la plantilla
+│  │  ├─ field/               # paso 2: editor de campos, fuentes, QR
+│  │  ├─ recipients/          # paso 3: lista y mapeo de columnas
+│  │  ├─ review/              # paso 4: revisión y vista previa
+│  │  ├─ generation/          # paso 5: generar, ZIP, Drive y envío por correo
+│  │  └─ mailer/              # servicio "Correos" (sin certificado)
 │  ├─ infra/
-│  │  ├─ pdf/                  # PdfRenderer (pdf.js), PdfComposer (pdf-lib)
-│  │  ├─ parsers/              # CsvParser, XlsxParser, TxtParser
-│  │  ├─ zip/                  # ZipExporter
-│  │  ├─ mail/                 # AppsScriptProvider (+ Brevo/Resend en Fase 3)
-│  │  └─ storage/              # IndexedDB / localStorage
-│  ├─ workers/                 # generator.worker.ts
-│  └─ shared/                  # utils, i18n, constantes, tipos comunes
-└─ tests/                      # unitarias, integración y e2e
+│  │  ├─ drive/               # googleAuth, driveClient, driveBatchStorage
+│  │  ├─ email/               # emailClient, campaignStorage, sendLog
+│  │  └─ …                    # pdfComposer, pdfRenderer, templateImport, parsers, qr, zipExporter, fontLoader, storage
+│  ├─ shared/                 # taskPool, undoHistory
+│  └─ ui/                     # Button, Stepper, Dropzone, FontPicker, PageTabs…
+└─ tests/                     # Vitest (*.test.ts), Playwright (e2e/), fixtures/
 ```
 
-## Flujo de datos (Fase 1)
+## Flujo de datos (certificados)
 
-1. `template` carga el archivo → `PdfRenderer` genera una vista previa → el usuario define `FieldBox`.
-2. `recipients` parsea el archivo (según extensión) → normaliza → valida → produce `Recipient[]`.
-3. `generation` envía al Worker: bytes de plantilla + `FieldBox` + `Recipient[]`.
-4. El Worker produce un PDF por destinatario, emite eventos de progreso y los entrega al `ZipExporter`.
-5. La UI descarga el ZIP y muestra el resumen.
+1. **Plantilla**: `templateImport` convierte cada archivo en `TemplatePage` (PDF de una página o imagen) y `pdfRenderer` genera su vista previa.
+2. **Campos**: el usuario ubica `FieldBox` con coordenadas normalizadas (0–1) por página.
+3. **Lista**: `parsers` lee CSV/XLSX/TXT → normaliza → valida → `Recipient[]`.
+4. **Generación**: `pdfComposer` arma una vez el PDF base de la plantilla y estampa los campos de cada persona. Si hay Drive, primero se reservan los IDs para el QR y cada PDF se sube al terminarlo.
+5. **Salida**: ZIP (`zipExporter`), carpeta de Drive y, opcionalmente, envío por correo.
 
-## Wizard como máquina de estados
-
-Pasos: `plantilla → campo → lista → revisión → generar → (enviar)`. Cada paso expone `canContinue` según su estado. Estado global mínimo; navegación hacia atrás sin perder datos.
+La sesión en curso se guarda en `localStorage` (`infra/storage.ts`) para no perder el trabajo al recargar.
 
 ## Gestión de errores
 
-- Errores de dominio tipados (`ParseError`, `ValidationError`, `RenderError`, `MailError`).
-- La UI traduce cada error a un mensaje comprensible con acción sugerida.
-- Un destinatario fallido no detiene el lote: se registra y se continúa.
+- Errores tipados donde importa (`TemplateFileError`, `DriveApiError`, `DriveAuthError`).
+- La UI traduce cada error a un mensaje con una acción sugerida.
+- Un destinatario fallido no detiene el lote: se registra y se puede reintentar.

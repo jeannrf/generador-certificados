@@ -1,5 +1,5 @@
 import { EmailCampaign } from '../../domain/types';
-import { EmailConfigVariant } from './googleAppsScript';
+import { EmailConfigVariant } from './emailClient';
 
 const campaignKey = (variant: EmailConfigVariant) => `${variant}_email_campaign_v1`;
 

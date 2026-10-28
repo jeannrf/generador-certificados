@@ -117,45 +117,48 @@ export const DriveUploadResult: React.FC<{
   if (!drive.active || drive.status === 'idle') return null;
   const pending = total - drive.uploadedCount;
 
+  const busy = drive.status === 'uploading' || drive.status === 'preparing';
+  const needsRetry = (drive.status === 'error' || drive.status === 'needsAuth') && pending > 0;
+
   return (
-    <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#208077] shadow-xs shrink-0">
-            {drive.status === 'uploading' || drive.status === 'preparing' ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <FolderUp className="w-5 h-5" />
-            )}
-          </div>
-          <div>
-            <span className="text-sm font-bold text-slate-900 block">Google Drive</span>
-            <span className="text-xs text-slate-500" aria-live="polite">
-              {drive.uploadedCount} de {total} guardados
-            </span>
-          </div>
+    <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#208077] shadow-xs shrink-0">
+          {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <FolderUp className="w-5 h-5" />}
         </div>
-        {drive.folderUrl && (
+        <div>
+          <span className="text-sm font-bold text-slate-900 block">Google Drive</span>
+          <span className="text-xs text-slate-500" aria-live="polite">
+            {drive.uploadedCount} de {total} guardados
+          </span>
+        </div>
+      </div>
+
+      {needsRetry ? (
+        <div role="alert" className="space-y-2">
+          <p className="text-xs text-amber-800">{drive.errorMessage ?? `Faltan ${pending} por subir.`}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            onClick={onRetry}
+            className="w-full justify-center bg-white"
+          >
+            {drive.status === 'needsAuth' ? 'Reconectar y continuar' : `Reintentar (${pending})`}
+          </Button>
+        </div>
+      ) : (
+        drive.folderUrl && (
           <a
             href={drive.folderUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#208077] hover:underline"
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-[#208077] hover:text-[#208077] transition-colors"
           >
             Abrir carpeta <ExternalLink className="w-3.5 h-3.5" />
           </a>
-        )}
-      </div>
-
-      {(drive.status === 'error' || drive.status === 'needsAuth') && pending > 0 && (
-        <div role="alert" className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex flex-wrap items-center justify-between gap-2">
-          <span>{drive.errorMessage ?? `Faltan ${pending} por subir.`}</span>
-          <Button variant="outline" size="sm" leftIcon={<RefreshCw className="w-3.5 h-3.5" />} onClick={onRetry}>
-            {drive.status === 'needsAuth' ? 'Reconectar y continuar' : `Reintentar (${pending})`}
-          </Button>
-        </div>
+        )
       )}
-
     </div>
   );
 };

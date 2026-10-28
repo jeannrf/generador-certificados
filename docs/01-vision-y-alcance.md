@@ -45,7 +45,7 @@ Una web donde el usuario:
 | RF-08 | Vista previa con el primer nombre y con el más largo | 1 |
 | RF-09 | Generar todos los PDFs y descargarlos en un ZIP | 1 |
 | RF-10 | Plantilla de correo editable con variables (`{nombre}`) | 2 |
-| RF-11 | Conectar con Google Apps Script mediante URL y token | 2 |
+| RF-11 | Enviar con Gmail a través de la función de Vercel (ADR-011) | 2 |
 | RF-12 | Envío de prueba antes del envío masivo | 2 |
 | RF-13 | Envío por lotes con progreso, pausas, reintentos y control de cuota | 2 |
 | RF-14 | Reporte descargable (enviado / falló / pendiente) | 2 |
@@ -56,7 +56,7 @@ Una web donde el usuario:
 
 ## Requisitos no funcionales (RNF)
 
-- **Rendimiento**: 500 certificados en menos de 60 s en un equipo de gama media, sin congelar la interfaz (Web Workers).
+- **Rendimiento**: 500 certificados en menos de 60 s en un equipo de gama media, sin congelar la interfaz.
 - **Responsive**: usable desde 360 px de ancho hasta escritorio.
 - **Accesibilidad**: WCAG 2.1 AA como meta (teclado, contraste, etiquetas).
 - **Compatibilidad**: últimas 2 versiones de Chrome, Edge, Firefox y Safari.

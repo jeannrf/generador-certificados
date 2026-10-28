@@ -76,20 +76,13 @@ export function ensureHtmlEmailBody(text: string): string {
 }
 
 /**
- * Valida la configuración de la conexión antes de enviar correos
+ * Valida la configuración del correo antes de enviarlo
  */
 export function validateEmailConfig(config: Partial<EmailConfig>): {
   isValid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
-
-  if (config.webAppUrl && config.webAppUrl.trim()) {
-    const url = config.webAppUrl.trim();
-    if (!url.startsWith('https://script.google.com/macros/s/') && !url.startsWith('/api/')) {
-      errors.push('La URL debe ser de Google Apps Script (https://script.google.com/macros/s/...) o una ruta de API local.');
-    }
-  }
 
   if (!config.subject || !config.subject.trim()) {
     errors.push('El asunto del correo no puede estar vacío.');
