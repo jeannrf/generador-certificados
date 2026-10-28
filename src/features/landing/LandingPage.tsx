@@ -574,8 +574,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => 
             <a href="#features" className="hover:text-white transition-colors">
               Características
             </a>
-            <a href="#security" className="hover:text-white transition-colors">
-              Privacidad
+            <a href="/privacidad.html" className="hover:text-white transition-colors">
+              Política de privacidad
             </a>
             <a href="#contacto" className="hover:text-white transition-colors">
               Contacto

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Política de privacidad — Uniautomate</title>
+    <meta name="description" content="Cómo Uniautomate trata tus datos al generar certificados, guardarlos en Google Drive y enviar correos." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #334155;
+        --heading: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --brand: #208077;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.7;
+      }
+      header {
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+      }
+      .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+      header .wrap { height: 64px; display: flex; align-items: center; }
+      header a { color: var(--heading); font-weight: 700; text-decoration: none; }
+      main .wrap { padding-top: 40px; padding-bottom: 64px; }
+      h1 { color: var(--heading); font-size: 30px; line-height: 1.25; margin: 0 0 4px; }
+      .updated { color: var(--muted); font-size: 13px; margin: 0 0 32px; }
+      h2 { color: var(--heading); font-size: 18px; margin: 36px 0 8px; }
+      p, ul { margin: 0 0 12px; }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 6px; }
+      a { color: var(--brand); }
+      code { background: #f1f5f9; border-radius: 4px; padding: 1px 5px; font-size: 13px; }
+      .summary {
+        background: #f0faf9;
+        border: 1px solid #b2e5df;
+        border-radius: 14px;
+        padding: 16px 20px;
+      }
+      .summary ul { margin: 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap"><a href="/">Uniautomate</a></div>
+    </header>
+    <main>
+      <div class="wrap">
+        <h1>Política de privacidad</h1>
+        <p class="updated">Última actualización: 27 de octubre de 2026</p>
+
+        <div class="summary">
+          <ul>
+            <li>Tus plantillas, listas y certificados se procesan <strong>en tu navegador</strong>. No los guardamos en ningún servidor.</li>
+            <li>Si conectas Google Drive, la app <strong>solo puede ver y modificar los archivos que ella misma crea</strong>, no el resto de tu Drive.</li>
+            <li>No vendemos, compartimos ni usamos tus datos para publicidad.</li>
+          </ul>
+        </div>
+
+        <h2>1. Quiénes somos</h2>
+        <p>
+          Uniautomate (<a href="https://uniautomate.vercel.app">uniautomate.vercel.app</a>) es una herramienta para generar
+          certificados en PDF y enviar correos personalizados a partir de una lista en Excel o CSV.
+          Para cualquier consulta sobre privacidad escríbenos a
+          <a href="mailto:jeanpierrf31@gmail.com">jeanpierrf31@gmail.com</a>.
+        </p>
+
+        <h2>2. Qué datos se usan y dónde quedan</h2>
+        <ul>
+          <li>
+            <strong>Plantillas y listas de participantes</strong> (nombres, correos y otras columnas que subas): se leen y
+            procesan en tu navegador para generar los certificados. No se envían a nuestros servidores.
+          </li>
+          <li>
+            <strong>Progreso y configuración</strong> (la sesión en curso, la configuración de correos y el registro de envíos):
+            se guardan en el almacenamiento local de tu navegador para que no pierdas tu trabajo al recargar. Puedes borrarlos
+            limpiando los datos del sitio en tu navegador.
+          </li>
+          <li>
+            <strong>Certificados en PDF</strong>: se generan en tu navegador y se descargan en tu equipo, o se guardan en tu
+            Google Drive si eliges esa opción.
+          </li>
+        </ul>
+
+        <h2>3. Google Drive y datos de Google</h2>
+        <p>
+          La opción "Guardar en mi Google Drive" usa el inicio de sesión de Google y pide un único permiso:
+          <code>drive.file</code>. Con él, la app solo puede crear archivos y acceder a los que ella misma creó. No puede
+          ver, leer ni modificar el resto de tu Drive.
+        </p>
+        <p>Con ese permiso, la app:</p>
+        <ul>
+          <li>lee el correo de la cuenta conectada, solo para mostrarte con qué cuenta estás guardando;</li>
+          <li>crea una carpeta con los certificados y la comparte como "cualquier persona con el enlace puede ver", para que el QR de cada certificado abra su PDF;</li>
+          <li>sube un PDF por participante a esa carpeta.</li>
+        </ul>
+        <p>
+          El acceso se hace directamente desde tu navegador a Google. El token de acceso se mantiene solo en la memoria de la
+          página y se descarta al cerrarla o recargarla; no lo guardamos ni lo enviamos a nuestros servidores. Puedes quitar el
+          acceso en cualquier momento desde
+          <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">myaccount.google.com/permissions</a>.
+          Los archivos creados siguen siendo tuyos y puedes borrarlos o dejar de compartirlos desde Google Drive.
+        </p>
+        <p>
+          El uso y la transferencia que hace Uniautomate de la información recibida de las API de Google cumple la
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Política de datos de usuario de los servicios de las API de Google</a>,
+          incluidos los requisitos de uso limitado.
+        </p>
+
+        <h2>4. Envío de correos</h2>
+        <p>
+          Cuando envías los certificados o correos por email, el destinatario, el asunto, el mensaje y el PDF adjunto se envían
+          a un servicio que los entrega a través de Gmail: nuestra función en Vercel o, si la configuras, tu propio
+          Google Apps Script. Ese servicio no guarda el contenido; como en cualquier envío por Gmail, queda una copia en la
+          carpeta "Enviados" de la cuenta de Gmail que envía el correo.
+        </p>
+
+        <h2>5. Servicios de terceros</h2>
+        <ul>
+          <li><strong>Vercel</strong>: aloja la app y la función de envío de correos.</li>
+          <li><strong>Google</strong>: inicio de sesión, Google Drive, Gmail y Google Fonts.</li>
+          <li><strong>jsDelivr / Fontsource</strong>: descarga de las fuentes tipográficas que eliges para los certificados.</li>
+        </ul>
+        <p>Estos servicios pueden registrar datos técnicos de las solicitudes, como la dirección IP, según sus propias políticas.</p>
+
+        <h2>6. Lo que no hacemos</h2>
+        <ul>
+          <li>No vendemos ni alquilamos datos.</li>
+          <li>No usamos tus datos ni los de Google para publicidad.</li>
+          <li>No usamos los datos de Google Drive para entrenar modelos de inteligencia artificial.</li>
+          <li>No creamos cuentas ni perfiles de usuario.</li>
+        </ul>
+
+        <h2>7. Cambios</h2>
+        <p>
+          Si esta política cambia, actualizaremos la fecha al inicio de esta página. Si en el futuro la app guarda datos en
+          servidores (por ejemplo, para cuentas de usuario), lo indicaremos aquí antes de hacerlo.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>
