@@ -304,14 +304,7 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 block">
-                      Columna de Correo{' '}
-                      {isMail ? (
-                        <span className="text-rose-500">*</span>
-                      ) : (
-                        <span className="text-slate-400 font-normal" title="Solo hace falta si vas a enviar los certificados por correo en el Paso 5">
-                          (para enviar por correo)
-                        </span>
-                      )}
+                      Columna de Correo {isMail && <span className="text-rose-500">*</span>}
                     </label>
                     <select
                       value={mapping.emailColumn || ''}
