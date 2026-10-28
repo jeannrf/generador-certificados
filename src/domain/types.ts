@@ -99,7 +99,6 @@ export interface GenerationProgress {
   errorMessage?: string;
   generatedCount: number;
   zipBlob?: Blob;
-  pdfBlob?: Blob;
 }
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5;

@@ -2,6 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
+import { unzipSync } from 'fflate';
 
 const fixture = (name: string) => path.resolve(process.cwd(), 'tests/fixtures', name);
 
@@ -96,14 +97,18 @@ test.describe('Plantillas multipágina', () => {
     await page.locator('button:has-text("Comenzar Generación")').click();
     await expect(page.locator('text=Certificados generados con éxito')).toBeVisible({ timeout: 30000 });
 
-    // El texto informa las páginas reales (personas × páginas de la plantilla)
+    // El ZIP trae un PDF de 3 páginas por persona
     const generated = Number((await page.locator('h2:has-text("generados con éxito")').textContent())!.match(/\d+/)![0]);
-    await expect(page.locator(`text=(${generated * 3} págs)`)).toBeVisible();
-
-    const combined = await downloadPdf(page, 'Descargar PDF Único');
-    expect(combined.getPageCount()).toBe(generated * 3);
-    expect(combined.getPageCount() % 3).toBe(0);
-    expect(combined.getPageCount()).toBeGreaterThanOrEqual(3 * 5);
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('button:has-text("Descargar Archivo ZIP")').click(),
+    ]);
+    const files = Object.values(unzipSync(readFileSync(await download.path())));
+    expect(files).toHaveLength(generated);
+    expect(generated).toBeGreaterThanOrEqual(5);
+    for (const file of files.slice(0, 3)) {
+      expect((await PDFDocument.load(file)).getPageCount()).toBe(3);
+    }
   });
 
   test('el paso 1 se ve bien en 360 px', async ({ page }) => {
