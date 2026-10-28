@@ -1,42 +1,40 @@
 # 03 · Stack tecnológico
 
-Criterios: gratuito, mantenido activamente, funciona en el navegador, buena calidad de salida.
+Criterios: gratuito, mantenido activamente, funciona en el navegador, buena calidad de salida. Las versiones exactas están en `package.json`.
 
 | Necesidad | Elección | Motivo |
 |---|---|---|
-| Build y desarrollo | **Vite** | Rápido, estándar, soporta Workers y TypeScript |
-| UI | **React 18+** | Ecosistema amplio, fácil de contratar y mantener |
+| Build y desarrollo | **Vite** | Rápido y estándar; separa en chunks las librerías pesadas |
+| UI | **React 19** | Ecosistema amplio |
 | Lenguaje | **TypeScript (strict)** | Seguridad de tipos, mejor contexto para agentes |
-| Estilos | **Tailwind CSS** | Responsive rápido y consistente; tokens de diseño |
-| Estado | **Zustand** | Ligero, sin boilerplate, un store por feature |
-| Validación de esquemas | **Zod** | Valida filas, configuración y proyectos guardados |
-| Vista previa de PDF | **pdfjs-dist (pdf.js)** | Renderiza el PDF en canvas |
-| Componer el PDF final | **pdf-lib** + **@pdf-lib/fontkit** | Edita PDFs y embebe fuentes propias (tildes, ñ) |
-| Leer CSV | **PapaParse** | Detecta delimitador (`,` / `;`) y maneja comillas |
-| Leer Excel | **SheetJS** (ver nota) | Soporta .xlsx y .xls |
-| ZIP | **fflate** o **JSZip** | Empaquetado en el navegador (fflate es más ligero y rápido) |
-| Persistencia local | **idb-keyval** (IndexedDB) | Guardar proyectos y cola de envío |
-| Formularios/estado de UI | Componentes propios + **Radix UI** | Accesibilidad lista (modal, tabs, tooltip) |
-| Pruebas unitarias | **Vitest** | Integrado con Vite |
-| Pruebas de componentes | **Testing Library** | Pruebas orientadas al usuario |
-| Pruebas e2e | **Playwright** | Flujo completo en navegadores reales |
-| Calidad de código | **ESLint + Prettier + Husky + lint-staged** | Consistencia automática |
-| Correo (Fase 2) | **Google Apps Script** | Gratis, cuenta propia del organizador |
-| Hosting | **Cloudflare Pages** (o Netlify / GitHub Pages) | Gratis, CDN, HTTPS |
+| Estilos | **Tailwind CSS 3** + `clsx` + `tailwind-merge` | Responsive rápido y consistente |
+| Iconos | **lucide-react** | Ligeros y consistentes |
+| Vista previa de PDF | **pdfjs-dist (pdf.js)** | Renderiza páginas PDF en canvas |
+| Componer el PDF final | **pdf-lib** + **@pdf-lib/fontkit** | Salida vectorial y fuentes reales con subconjunto de glifos |
+| Fuentes | **Google Fonts** (vista previa) y **Fontsource vía jsDelivr** (TTF para el PDF) | ~100 fuentes sin alojarlas en el repo |
+| Código QR | **qrcode** (solo la matriz) | El QR se dibuja como vector con pdf-lib |
+| Leer CSV | **PapaParse** | Detecta delimitador y maneja comillas |
+| Leer Excel | **SheetJS (`xlsx`)** | Soporta .xlsx y .xls |
+| ZIP | **fflate** | Ligero y rápido |
+| Persistencia local | **localStorage** | Sesión, campañas de correo y progreso de Drive |
+| Google Drive | **Google Identity Services** + API REST de Drive v3 | Sin SDK; permiso `drive.file` |
+| Correo | **Función de Vercel** + **nodemailer** con Gmail | Ver ADR-011 |
+| Pruebas | **Vitest** (unitarias) y **Playwright** (E2E) | Integrados con Vite / navegador real |
+| Hosting | **Vercel** | Sitio estático + función de correo, vista previa por PR |
+| CI | **GitHub Actions** | Tipos, tests, build y E2E en cada PR |
 
-## Notas importantes
+## Notas
 
-- **SheetJS**: la versión publicada en npm está desactualizada. Seguir las instrucciones oficiales de instalación (paquete desde `cdn.sheetjs.com`) y revisar su licencia. Alternativa si genera fricción: `read-excel-file` (más simple, solo lectura).
-- **Fuentes**: usar TTF/OTF con licencia libre (SIL OFL), guardadas en `public/fonts/`. Incluir un set inicial de 6–8 fuentes de aspecto formal y caligráfico (p. ej. Playfair Display, Cormorant Garamond, Montserrat, Great Vibes, Lora, Poppins). Verificar la licencia de cada una.
-- **pdf.js worker**: configurar `GlobalWorkerOptions.workerSrc` con el archivo local del paquete, no desde una CDN (compatible con la política CSP).
-- **Versiones**: fijar versiones exactas en `package.json` y mantener `package-lock.json` en el repositorio.
+- **SheetJS**: la versión de npm (`0.18.5`) es la última publicada ahí; las nuevas se distribuyen desde `cdn.sheetjs.com`. Revisar si se necesita una corrección de seguridad.
+- **pdf.js worker**: se carga desde el propio paquete, no desde una CDN.
+- **fontkit** se carga bajo demanda (chunk aparte) para no pesar en la primera visita.
 
 ## Alternativas descartadas
 
-| Alternativa | Motivo del descarte |
+| Alternativa | Motivo |
 |---|---|
-| Backend Node propio | Costo, mantenimiento y riesgo de privacidad |
 | Canvas → PNG → PDF | Pierde calidad vectorial y aumenta el peso |
 | Next.js / SSR | No se necesita renderizado en servidor |
-| SMTP directo desde el navegador | Imposible por seguridad del navegador |
-| Firebase / Supabase | Innecesarios en Fase 1–2; podrían evaluarse en Fase 3 |
+| Google Apps Script por organizador | Configuración difícil para usuarios no técnicos; reemplazado por la función de Vercel (ADR-011) |
+| Zustand, Zod, Web Workers, IndexedDB | Previstos en el diseño inicial; no hicieron falta con el volumen actual |
+| Firebase | Para la fase de backend se prefirió Supabase (Postgres, SQL, sin dependencia de un solo proveedor) |
