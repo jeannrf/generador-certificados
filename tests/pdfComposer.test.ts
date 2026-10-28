@@ -6,7 +6,6 @@ import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {
   buildTemplateBasePdf,
   composeCertificatePdf,
-  composeCombinedCertificatePdf,
   setFontBytesLoader,
 } from '../src/infra/pdfComposer';
 import type { FontBytesLoader } from '../src/infra/fontLoader';
@@ -286,25 +285,6 @@ describe('PDF composer - plantillas multipágina', () => {
     const all = (await readPdf(pdfBytes)).flatMap((p) => p.items.map((i) => i.str));
     expect(all.sort()).toEqual(['Ana', 'Reverso vectorial']);
   });
-
-  it('PDF combinado: N personas × páginas, reutilizando cada página de la plantilla', async () => {
-    const tpl = await threePageTemplate();
-    const fields = [createNameField('p_png')];
-    const people = ['Ana', 'Luis', 'Marta'].map((n) => recipient(n));
-
-    const combined = await composeCombinedCertificatePdf(tpl, fields, people);
-    const pages = await readPdf(combined);
-    expect(pages).toHaveLength(9);
-    expect(pages.map((p) => p.items.find((i) => i.str !== 'Reverso vectorial')?.str ?? null)).toEqual([
-      null, 'Ana', null,
-      null, 'Luis', null,
-      null, 'Marta', null,
-    ]);
-
-    // Las imágenes se incrustan una sola vez: 3 personas no triplican el peso
-    const single = (await composeCertificatePdf(tpl, fields, people[0])).pdfBytes;
-    expect(combined.length).toBeLessThan(single.length * 1.5);
-  });
 });
 
 describe('PDF composer - retrocompatibilidad con plantillas de 1 página', () => {
@@ -521,14 +501,6 @@ describe('PDF composer - enlaces de las páginas PDF', () => {
     expect(expected).toHaveLength(1);
     expect(await visibleLinks(out)).toEqual(expected);
   });
-
-  it('el PDF combinado repite el enlace en el certificado de cada persona', async () => {
-    const tpl: TemplateData = { id: 't', name: 't', pages: [await pdfPage('p1', await pdfWithLink())] };
-    const combined = await composeCombinedCertificatePdf(tpl, [createNameField('p1')], [recipient('Ana'), recipient('Luis')]);
-    for (const pageIndex of [0, 1]) {
-      expect((await visibleLinks(combined, pageIndex)).map((l) => l.url)).toEqual(['https://verificar.uni.pe/ABC123']);
-    }
-  });
 });
 
 describe('PDF composer - código QR', () => {
@@ -566,24 +538,6 @@ describe('PDF composer - código QR', () => {
     const plain = (await composeCertificatePdf(template, [createNameField('p1')], recipient('Ana'))).pdfBytes;
     const qrWithoutLink = (await composeCertificatePdf(template, [createNameField('p1'), createQrField(page, [])], recipient('Ana'))).pdfBytes;
     expect(await fillCount(qrWithoutLink)).toBe(await fillCount(plain));
-  });
-
-  it('en el PDF combinado cada persona lleva el QR de su propio archivo', async () => {
-    const { qrMatrix, qrDarkRuns } = await import('../src/infra/qr');
-    const { createQrField } = await import('../src/domain/fields');
-    const { template, page } = await qrTemplate();
-    const fields = [createNameField('p1'), createQrField(page, [])];
-    const people = [recipient('Ana'), recipient('Luis')];
-    const contextFor = vi.fn((rec: Recipient) => ({ driveUrl: urlFor(rec.id) }));
-
-    const combined = await composeCombinedCertificatePdf(template, fields, people, undefined, contextFor);
-    expect(contextFor.mock.calls.map(([rec]) => rec.id)).toEqual(['rec_Ana', 'rec_Luis']);
-
-    const base = await fillCount((await composeCertificatePdf(template, [createNameField('p1')], recipient('X'))).pdfBytes);
-    for (const [index, person] of people.entries()) {
-      const expected = qrDarkRuns(qrMatrix(urlFor(person.id))).length + 1;
-      expect((await fillCount(combined, index)) - base).toBe(expected);
-    }
   });
 });
 
@@ -631,14 +585,6 @@ describe('PDF composer - fuentes reales incrustadas', () => {
       warn.mockRestore();
       setFontBytesLoader(fixtureFontLoader);
     }
-  });
-
-  it('en el PDF combinado cada variante de fuente se incrusta una sola vez', async () => {
-    const name = { ...createNameField('p1'), fontFamily: '"Playfair Display", serif', isBold: true };
-    const people = ['Ana', 'Luis', 'Marta', 'Jorge'].map((n) => recipient(n));
-    const combined = await composeCombinedCertificatePdf(await onePage(), [name], people);
-    const fonts = await embeddedFontNames(combined);
-    expect(fonts.filter((f) => f.includes('PlayfairDisplay-Bold'))).toHaveLength(1);
   });
 
   it('mantiene los certificados livianos gracias al subconjunto de glifos', async () => {

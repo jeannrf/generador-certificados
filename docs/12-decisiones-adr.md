@@ -56,7 +56,7 @@ Formato: contexto → decisión → consecuencias. Añadir una entrada nueva por
   - `TemplateData.pages: TemplatePage[]` (máx. 5). Cada página PDF se guarda como un PDF de una sola página (`copyPages`, sigue vectorial); cada imagen, con sus bytes originales.
   - `FieldBox.pageId` apunta al `id` de la página (no al índice): reordenar no mueve los campos y reemplazar una página los conserva.
   - Varios campos de texto (`fields: FieldBox[]`): el de nombre (`field_name`) es obligatorio y es el único con ajustes individuales; los demás salen de una columna o de un texto fijo.
-  - Al generar se arma **una vez por lote** un PDF base con todas las páginas normalizadas (CropBox aplicado, `/Rotate` y orientación EXIF horneados, origen en 0,0). Cada certificado solo carga ese PDF y estampa sus textos. El PDF combinado reutiliza cada página como Form XObject.
+  - Al generar se arma **una vez por lote** un PDF base con todas las páginas normalizadas (CropBox aplicado, `/Rotate` y orientación EXIF horneados, origen en 0,0). Cada certificado solo carga ese PDF y estampa sus textos.
   - Las validaciones viven en `domain/templatePages.ts` y se ejecutan al subir y otra vez al generar. No hay backend de plantillas (ADR-001 sigue vigente).
   - Límites: 15 MB por archivo, 40 MB por plantilla, 8000 px por lado y 25 MP por imagen (el decodificador PNG de pdf-lib trabaja en memoria).
 - **Consecuencias**: (+) salida vectorial y sin recompresión; ~4 ms por certificado de 3 páginas. (−) Al incrustar la página como XObject solo se conservan los enlaces web (Link con URI), recolocados según el recorte y la rotación; los formularios, comentarios y enlaces internos se descartan. Las sesiones antiguas se migran al cargar (`migrateSession`).
