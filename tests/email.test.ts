@@ -10,7 +10,7 @@ import {
   summarizeDailyQuota,
   DAILY_WINDOW_MS,
 } from '../src/domain/email';
-import { uint8ArrayToBase64 } from '../src/infra/email/googleAppsScript';
+import { uint8ArrayToBase64 } from '../src/infra/email/emailClient';
 import { Recipient, EmailDeliveryRecord, EmailCampaign } from '../src/domain/types';
 
 describe('Domain - Email Interpolation & Validation', () => {
@@ -47,15 +47,12 @@ describe('Domain - Email Interpolation & Validation', () => {
   });
 
   it('should validate EmailConfig correctly', () => {
-    const invalidConfig = { webAppUrl: 'https://other-site.com', subject: '' };
+    const invalidConfig = { subject: '' };
     const validation1 = validateEmailConfig(invalidConfig);
     expect(validation1.isValid).toBe(false);
     expect(validation1.errors.length).toBeGreaterThan(0);
 
-    const validConfig = {
-      webAppUrl: 'https://script.google.com/macros/s/AKfycbx123/exec',
-      subject: 'Certificado de Asistencia',
-    };
+    const validConfig = { subject: 'Certificado de Asistencia' };
     const validation2 = validateEmailConfig(validConfig);
     expect(validation2.isValid).toBe(true);
     expect(validation2.errors.length).toBe(0);

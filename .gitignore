@@ -29,13 +29,10 @@ dist-ssr/
 build/
 *.local
 
-# Environment variables
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+# Environment variables (solo se sube el ejemplo)
+.env*
 *.env
+!.env.example
 
 # Editor & OS files
 .vscode/*
@@ -49,9 +46,11 @@ build/
 *.sw?
 Thumbs.db
 
-# Agent & temporary scratch files
+# Skill de diseño impeccable: binario descargado y archivos temporales
 .impeccable/
-.agents/skills/impeccable/scripts/bin/
+.claude/skills/impeccable/scripts/bin/
+# Ajustes locales de Claude Code
+.claude/settings.local.json
 
 # Playwright artifacts
 test-results/
@@ -64,5 +63,5 @@ playwright/.cache/
 .~lock.*
 *.tmp
 
+# Vercel CLI
 .vercel
-.env*
