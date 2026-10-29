@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, ChevronDown, Mail, Pause, Play } from 'lucide-react';
+import { ArrowRight, ChevronDown, Mail, Menu, Pause, Play, X } from 'lucide-react';
 import { BrandLogo } from '../../ui/BrandLogo';
 import { QrPreview } from '../../ui/QrPreview';
 import type { Service } from '../../App';
@@ -56,10 +56,17 @@ const DATA_ROWS: { data: string; where: string; stored: string }[] = [
   },
 ];
 
+const NAV_LINKS: { href: string; label: string }[] = [
+  { href: '#programa', label: 'Qué incluye' },
+  { href: '#cronograma', label: 'Cómo funciona' },
+  { href: '#datos', label: 'Tus datos' },
+  { href: '#preguntas', label: 'Preguntas' },
+];
+
 const FAQS: { q: string; a: string }[] = [
   {
     q: '¿Qué formatos de plantilla acepta?',
-    a: 'PDF, PNG o JPG, de 1 a 5 páginas y hasta 15 MB por archivo. Las páginas en PDF se mantienen vectoriales.',
+    a: 'PDF, PNG o JPG, de 1 a 5 páginas y hasta 15 MB por archivo. Las páginas en PDF conservan su calidad original.',
   },
   {
     q: '¿Qué pasa con los nombres muy largos?',
@@ -138,8 +145,8 @@ const RosterToCertificate: React.FC = () => {
   const swapClass = visible ? 'opacity-100 blur-0' : 'opacity-0 blur-[3px]';
 
   return (
-    <figure className="w-full">
-      <table className="w-full table-fixed overflow-hidden rounded-[6px] border border-[#0F2E2B]/15 bg-white text-left text-sm">
+    <figure className="flex w-full flex-col">
+      <table className="order-3 mt-4 w-full table-fixed lg:order-1 lg:mt-0 overflow-hidden rounded-[6px] border border-[#0F2E2B]/15 bg-white text-left text-sm">
         <caption className="sr-only">Lista de participantes de ejemplo</caption>
         <thead className="bg-[#E7F1EF] text-xs font-semibold uppercase tracking-[0.08em] [font-stretch:80%]">
           <tr>
@@ -177,23 +184,23 @@ const RosterToCertificate: React.FC = () => {
       </table>
 
       {/* Todo se mide en cqw (ancho del certificado) para que escale como un documento */}
-      <div className="relative mt-4 aspect-[1.414/1] w-full [container-type:inline-size] bg-white rounded-[6px] shadow-[0_24px_48px_-24px_rgba(15,46,43,0.35),0_2px_6px_rgba(15,46,43,0.08)] p-[3.5%]">
+      <div className="relative order-1 aspect-[1.414/1] w-full [container-type:inline-size] lg:order-2 lg:mt-4 bg-white rounded-[6px] shadow-[0_24px_48px_-24px_rgba(15,46,43,0.35),0_2px_6px_rgba(15,46,43,0.08)] p-[3.5%]">
         <div className="h-full w-full border-[1.5px] border-[#208077] rounded-[3px] p-[2.5%]">
           <div className="relative h-full w-full border border-[#208077]/35 flex flex-col items-center text-center px-[7%] pt-[6%] pb-[5%]">
-            <span className="font-display [font-stretch:80%] text-[2cqw] font-semibold tracking-[0.18em] uppercase text-[#208077]">
+            <span className="font-display [font-stretch:80%] text-[max(2cqw,7px)] font-semibold tracking-[0.18em] uppercase text-[#208077]">
               Instituto de Capacitación Ejemplo
             </span>
             <span className="mt-[4%] font-serif text-[5.6cqw] leading-none text-[#0F2E2B]">
               Certificado de participación
             </span>
-            <span className="mt-[5%] text-[2.1cqw] text-[#4B635F]">Otorgado a</span>
+            <span className="mt-[5%] text-[max(2.1cqw,8px)] text-[#4B635F]">Otorgado a</span>
             <span
               className={`mt-[1.5%] font-serif italic font-semibold leading-tight text-[#0F2E2B] transition-[opacity,filter] duration-300 ease-out ${swapClass} ${nameSizeClass(name)}`}
             >
               {name}
             </span>
             <span className="mt-[1.5%] h-px w-[62%] bg-[#0F2E2B]/25" aria-hidden="true" />
-            <span className="mt-[3.5%] max-w-[78%] text-[2.1cqw] leading-snug text-[#4B635F]">
+            <span className="mt-[3.5%] max-w-[78%] text-[max(2.1cqw,8px)] leading-snug text-[#4B635F]">
               por aprobar el curso <span className="text-[#0F2E2B] font-semibold">Seguridad y salud en el trabajo</span>,
               con una duración de 16 horas académicas.
             </span>
@@ -201,7 +208,7 @@ const RosterToCertificate: React.FC = () => {
             <div className="mt-auto flex w-full items-end justify-between gap-[3cqw]">
               <div className="flex-1 text-left">
                 <span className="block h-px w-full max-w-[150px] bg-[#0F2E2B]/40" aria-hidden="true" />
-                <span className="mt-[0.8cqw] block text-[1.8cqw] text-[#4B635F]">Dirección académica</span>
+                <span className="mt-[0.8cqw] block text-[max(1.8cqw,7px)] text-[#4B635F]">Dirección académica</span>
               </div>
               {/* QR de ejemplo distinto por participante; abre esta página en vez de un archivo inexistente */}
               <QrPreview
@@ -211,13 +218,13 @@ const RosterToCertificate: React.FC = () => {
               />
               <div className="flex-1 text-right">
                 <span className="ml-auto block h-px w-full max-w-[150px] bg-[#0F2E2B]/40" aria-hidden="true" />
-                <span className="mt-[0.8cqw] block text-[1.8cqw] text-[#4B635F]">Fecha de emisión</span>
+                <span className="mt-[0.8cqw] block text-[max(1.8cqw,7px)] text-[#4B635F]">Fecha de emisión</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <figcaption className="mt-3 flex items-center justify-between gap-4 text-xs text-[#4B635F]">
+      <figcaption className="order-2 mt-3 flex items-center justify-between gap-4 text-xs text-[#4B635F] lg:order-3">
         <span>
           Certificado <span className="tabular-nums font-semibold text-[#0F2E2B]">{index + 1}</span> de{' '}
           <span className="tabular-nums">{SAMPLE_ROSTER.length}</span> · Datos de ejemplo
@@ -243,6 +250,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const scrollToTop = () => {
     if (window.location.hash) window.history.pushState(null, '', window.location.pathname);
@@ -255,6 +263,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => 
     'inline-flex items-center justify-center gap-2 rounded-[6px] bg-[#208077] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#18655e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#208077] focus-visible:ring-offset-2 cursor-pointer';
   const secondaryButton =
     'inline-flex items-center justify-center gap-2 rounded-[6px] border border-[#0F2E2B]/25 bg-white px-5 py-3 text-sm font-semibold text-[#0F2E2B] transition-colors hover:border-[#208077] hover:text-[#208077] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#208077] focus-visible:ring-offset-2 cursor-pointer';
+  const footerLink =
+    'inline-flex min-h-11 items-center rounded-[4px] hover:text-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7ED1C7]';
   const sectionHeading =
     'font-display text-[28px] sm:text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-[#0F2E2B]';
 
@@ -265,15 +275,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => 
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <BrandLogo size="sm" onClick={scrollToTop} />
           <nav aria-label="Secciones" className="hidden items-center gap-7 text-sm text-[#4B635F] md:flex">
-            <a href="#programa" className={linkClass}>Qué incluye</a>
-            <a href="#cronograma" className={linkClass}>Cómo funciona</a>
-            <a href="#datos" className={linkClass}>Tus datos</a>
-            <a href="#preguntas" className={linkClass}>Preguntas</a>
+            {NAV_LINKS.map((link) => (
+              <a key={link.href} href={link.href} className={linkClass}>
+                {link.label}
+              </a>
+            ))}
           </nav>
-          <button type="button" onClick={() => onSelectService('certificates')} className={`${primaryButton} px-4 py-2`}>
-            Crear certificados
-          </button>
+          <div className="flex items-center gap-2">
+            {/* En móvil el botón de la portada queda a la vista; aquí ocuparía dos líneas */}
+            <button
+              type="button"
+              onClick={() => onSelectService('certificates')}
+              className={`${primaryButton} hidden px-4 py-2 sm:inline-flex`}
+            >
+              Crear certificados
+            </button>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-expanded={menuOpen}
+              aria-controls="menu-movil"
+              aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-[6px] text-[#0F2E2B] hover:bg-[#F4F8F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#208077] cursor-pointer md:hidden"
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
+        {menuOpen && (
+          <nav id="menu-movil" aria-label="Secciones" className="border-t border-[#0F2E2B]/10 px-4 pb-3 md:hidden">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="flex min-h-11 items-center border-b border-[#0F2E2B]/10 text-base font-semibold last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#208077]"
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        )}
       </header>
 
       <main>
@@ -341,27 +383,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => 
             <h2 className={sectionHeading}>Cómo funciona</h2>
 
             <div className="mt-10 overflow-hidden rounded-[6px] border border-[#0F2E2B]/15 bg-white">
-              <div className="hidden grid-cols-[4rem_12rem_1fr_16rem] bg-[#E7F1EF] text-xs font-semibold uppercase tracking-[0.08em] [font-stretch:80%] text-[#0F2E2B] md:grid">
-                <span className="px-5 py-3">Paso</span>
-                <span className="px-5 py-3">Etapa</span>
-                <span className="px-5 py-3">Qué haces</span>
-                <span className="px-5 py-3">Qué obtienes</span>
-              </div>
-              <ol>
-                {TIMETABLE.map((row, i) => (
-                  <li
-                    key={row.step}
-                    className="grid grid-cols-[3rem_1fr] border-t border-[#0F2E2B]/10 first:border-t-0 md:grid-cols-[4rem_12rem_1fr_16rem] md:items-baseline md:first:border-t"
-                  >
-                    <span className="row-span-3 px-5 py-4 text-2xl font-bold tabular-nums text-[#208077] md:row-span-1 md:text-xl">
-                      {i + 1}
-                    </span>
-                    <span className="px-5 pt-4 font-bold md:py-4">{row.step}</span>
-                    <span className="px-5 pt-1 text-[#4B635F] md:py-4">{row.action}</span>
-                    <span className="px-5 pt-1 pb-4 text-sm font-semibold text-[#0F2E2B] md:py-4">{row.result}</span>
-                  </li>
-                ))}
-              </ol>
+              <table className="block w-full text-left md:table">
+                <caption className="sr-only">Los cinco pasos para generar tus certificados</caption>
+                <thead className="hidden bg-[#E7F1EF] text-xs uppercase tracking-[0.08em] [font-stretch:80%] md:table-header-group">
+                  <tr>
+                    <th scope="col" className="w-16 px-5 py-3 font-semibold">Paso</th>
+                    <th scope="col" className="w-48 px-5 py-3 font-semibold">Etapa</th>
+                    <th scope="col" className="px-5 py-3 font-semibold">Qué haces</th>
+                    <th scope="col" className="w-64 px-5 py-3 font-semibold">Qué obtienes</th>
+                  </tr>
+                </thead>
+                <tbody className="block md:table-row-group">
+                  {TIMETABLE.map((row, i) => (
+                    <tr
+                      key={row.step}
+                      className="grid grid-cols-[3rem_1fr] border-t border-[#0F2E2B]/10 first:border-t-0 md:table-row md:first:border-t"
+                    >
+                      <td className="row-span-3 px-5 py-4 align-baseline text-2xl font-bold tabular-nums text-[#208077] md:text-xl">
+                        {i + 1}
+                      </td>
+                      <th scope="row" className="px-5 pt-4 text-left align-baseline font-bold md:py-4">{row.step}</th>
+                      <td className="px-5 pt-1 align-baseline text-[#4B635F] md:py-4">{row.action}</td>
+                      <td className="px-5 pt-1 pb-4 align-baseline text-sm font-semibold md:py-4">
+                        <span className="font-normal text-[#4B635F] md:hidden">Obtienes: </span>
+                        {row.result}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             <div className="mt-8">
@@ -386,21 +436,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => 
                 </a>
               </div>
               <div className="lg:col-span-8">
-                <div className="hidden grid-cols-[1fr_1.4fr_1fr] border-b-2 border-[#0F2E2B] pb-3 text-xs font-semibold uppercase tracking-[0.08em] [font-stretch:80%] md:grid">
-                  <span>Dato</span>
-                  <span>Dónde se procesa</span>
-                  <span>¿Lo guardamos?</span>
-                </div>
-                {DATA_ROWS.map((row) => (
-                  <div
-                    key={row.data}
-                    className="grid gap-1 border-b border-[#0F2E2B]/12 py-5 md:grid-cols-[1fr_1.4fr_1fr] md:gap-0 first:border-t-2 first:border-[#0F2E2B] md:first:border-t-0"
-                  >
-                    <span className="font-bold md:pr-6">{row.data}</span>
-                    <span className="text-[#4B635F] md:pr-6">{row.where}</span>
-                    <span className="text-sm font-semibold text-[#208077]">{row.stored}</span>
-                  </div>
-                ))}
+                <table className="block w-full text-left md:table">
+                  <caption className="sr-only">Dónde se procesa cada dato y si lo guardamos</caption>
+                  <thead className="hidden text-xs uppercase tracking-[0.08em] [font-stretch:80%] md:table-header-group">
+                    <tr className="border-b-2 border-[#0F2E2B]">
+                      <th scope="col" className="pb-3 pr-6 font-semibold">Dato</th>
+                      <th scope="col" className="pb-3 pr-6 font-semibold">Dónde se procesa</th>
+                      <th scope="col" className="pb-3 font-semibold">¿Lo guardamos?</th>
+                    </tr>
+                  </thead>
+                  <tbody className="block border-t-2 border-[#0F2E2B] md:table-row-group md:border-t-0">
+                    {DATA_ROWS.map((row) => (
+                      <tr key={row.data} className="grid gap-1 border-b border-[#0F2E2B]/12 py-5 md:table-row">
+                        <th scope="row" className="text-left align-top font-bold md:w-[28%] md:py-5 md:pr-6">{row.data}</th>
+                        <td className="align-top text-[#4B635F] md:py-5 md:pr-6">{row.where}</td>
+                        <td className="align-top text-sm font-semibold text-[#208077] md:w-[28%] md:py-5">{row.stored}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -464,26 +518,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => 
           </div>
         </section>
 
-        {/* Soporte */}
-        <section id="contacto" className="scroll-mt-16 border-t border-[#0F2E2B]/10">
-          <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6 md:flex-row md:items-center md:justify-between">
+        {/* Cierre */}
+        <section aria-labelledby="cierre-title" className="bg-[#F4F8F7] border-t border-[#0F2E2B]/10">
+          <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-20 sm:px-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl font-bold tracking-[-0.02em]">¿Necesitas ayuda?</h2>
-              <p className="mt-2 text-[#4B635F]">Escríbenos y te respondemos por correo.</p>
+              <div className="h-1 w-14 bg-[#208077]" aria-hidden="true" />
+              <h2 id="cierre-title" className={`mt-6 ${sectionHeading} sm:text-[40px]`}>
+                Prueba con tu propio diseño.
+              </h2>
+              <p className="mt-3 text-[#4B635F]">Gratis y sin registro. Nada se envía hasta que tú lo confirmes.</p>
             </div>
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-sm font-semibold">
-              <a href={`mailto:${SUPPORT_EMAIL}`} className={`inline-flex items-center gap-2 text-[#208077] ${linkClass}`}>
-                <Mail className="h-4 w-4" /> {SUPPORT_EMAIL}
-              </a>
-              <a
-                href={LINKEDIN_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex items-center gap-2 text-[#208077] ${linkClass}`}
-              >
-                <LinkedinIcon className="h-4 w-4" /> LinkedIn
-              </a>
-            </div>
+            <button type="button" onClick={() => onSelectService('certificates')} className={`${primaryButton} shrink-0`}>
+              Crear certificados <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </section>
       </main>
@@ -492,20 +539,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectService }) => 
       <footer className="bg-[#0F2E2B] text-sm text-[#B9D3CE]">
         <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-center md:justify-between">
           <BrandLogo size="sm" theme="dark" onClick={scrollToTop} />
-          <nav aria-label="Pie de página" className="flex flex-wrap gap-x-7 gap-y-3">
-            <button type="button" onClick={() => onSelectService('certificates')} className="hover:text-white cursor-pointer">
+          <nav aria-label="Pie de página" className="flex flex-wrap gap-x-7 gap-y-1">
+            <button type="button" onClick={() => onSelectService('certificates')} className={footerLink}>
               Crear certificados
             </button>
-            <button type="button" onClick={() => onSelectService('mailer')} className="hover:text-white cursor-pointer">
+            <button type="button" onClick={() => onSelectService('mailer')} className={footerLink}>
               Enviar correos
             </button>
-            <a href="/privacidad.html" className="hover:text-white">
+            <a href="/privacidad.html" className={footerLink}>
               Política de privacidad
             </a>
-            <a href="#contacto" className="hover:text-white">
-              Soporte
-            </a>
           </nav>
+        </div>
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex flex-wrap items-center gap-x-7 gap-y-1 border-t border-white/10 py-5">
+          <span className="text-[#B9D3CE]">Soporte:</span>
+          <a href={`mailto:${SUPPORT_EMAIL}`} className={`${footerLink} gap-2`}>
+            <Mail className="h-4 w-4" /> {SUPPORT_EMAIL}
+          </a>
+          <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" className={`${footerLink} gap-2`}>
+            <LinkedinIcon className="h-4 w-4" /> LinkedIn
+          </a>
+          </div>
         </div>
       </footer>
     </div>
