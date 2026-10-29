@@ -137,10 +137,13 @@ Flat. The single elevated object is the certificate sheet: `0 24px 48px -24px rg
 - Tertiary: brand-green text link with underline on hover (4px offset).
 
 ### Ruled table
-Header row in condensed uppercase labels (on `table-head` when framed, or above a 2px ink rule when open); rows separated by ink/12 hairlines. On mobile each row stacks into a block; the header row hides.
+Real `<table>` elements with `scope` headers and an `sr-only` caption. Header row in condensed uppercase labels (on `table-head` when framed, or above a 2px ink rule when open); rows separated by ink/12 hairlines. On mobile the table switches to `display: block` and each row stacks; the header row hides and stacked values get an inline label where meaning would be lost (e.g. "Obtienes:").
 
 ### Navigation
-Sticky white header (95% opacity, light blur) with the full logo (`public/brand/logo-claro.svg`; `logo-oscuro.svg` in the footer), four section links in ink-muted and a primary "Crear certificados" button. Footer on ink with `footer-text` links.
+Sticky white header (95% opacity, light blur) with the full logo (`public/brand/logo-claro.svg`), four section links in ink-muted and a primary "Crear certificados" button (from `sm` up). Below `md` the links move into a disclosure menu (hamburger, 44px rows); below `sm` the header button hides because the cover CTA sits right under it.
+
+### Closing band
+The page ends on a `wash` band: cover rule, "Prueba con tu propio diseño." heading, one reassurance line and the primary button. The footer (ink field, `logo-oscuro.svg`) carries links and a separate "Soporte" row; footer links are 44px tall with a mint focus ring.
 
 ### Roster → certificate (signature component)
 The cover's right column pairs a sample roster table (`#`, Nombre, Correo; `example.com` addresses) with the certificate generated for the active row. The active row gets the `wash` background and bold ink/brand text; clicking a name selects it and pauses the cycle.
