@@ -29,7 +29,7 @@ La política pública para usuarios está en [`public/privacidad.html`](../publi
 
 | Riesgo | Mitigación |
 |---|---|
-| La función `/api/send-email` acepta peticiones de cualquier origen (CORS `*`) | Pendiente: restringir el origen y añadir un límite de envíos por IP. Hoy cualquiera que conozca la URL podría usar la cuenta Gmail de la app. |
+| Terceros usando `/api/send-email` para mandar correos desde la cuenta Gmail de la app | Sin cabeceras CORS y con el `Origin` comprobado en el servidor (mismo host, `ALLOWED_ORIGINS` o localhost en desarrollo). Un solo destinatario por petición, asunto de una línea, mensaje ≤ 100 KB y adjunto solo PDF real ≤ 3 MB. Límite por IP de 60 envíos/minuto y 600/día por instancia (`api/_lib/emailGuard.ts`). Los errores de Gmail van a los logs, no al navegador. **Límite conocido:** un script puede falsificar el `Origin`, y el contador por IP vive en memoria de cada instancia; un límite global exacto requiere un almacén compartido (p. ej. Redis). |
 | La carpeta de Drive es pública por enlace | Pendiente: compartir cada PDF por separado (doc 04). |
 | QR falsificado (PDF falso en otro Drive) | Pendiente: página de verificación propia con backend (doc 04). |
 | Correos marcados como spam | Envío escalonado, contador de cupo, remitente reconocible |
