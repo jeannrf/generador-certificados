@@ -7,7 +7,7 @@ test.describe('Generador de Certificados — Flujo E2E Completo', () => {
   });
 
   test('debe cargar la aplicación con el encabezado y el paso 1 activo', async ({ page }) => {
-    await expect(page.locator('text=Uniautomate').first()).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Uniautomate' }).first()).toBeVisible();
     await expect(page.locator('text=Sube la plantilla de tu certificado')).toBeVisible();
     await expect(page.locator('text=Plantilla').first()).toBeVisible();
   });

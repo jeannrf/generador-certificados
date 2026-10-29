@@ -1,9 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#208077"/>
-  <g transform="translate(2 2.5)" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 4.5L3.5 10L14 15.5L24.5 10L14 4.5Z" stroke-width="2.3"/>
-    <path d="M6.5 12.5V18C6.5 18 9.5 21.5 14 21.5C18.5 21.5 21.5 18 21.5 18V12.5" stroke-width="2.2"/>
-    <path d="M24.5 10.5V19" stroke-width="2.2"/>
-  </g>
-  <circle cx="16" cy="21" r="1.2" fill="#fff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="16" fill="#208077"/>
+  <!-- hoja trasera (lote) -->
+  <rect x="21" y="12" width="26" height="32" rx="4" stroke="#fff" stroke-opacity=".45" stroke-width="3.5"/>
+  <!-- hoja frontal -->
+  <rect x="15" y="18" width="26" height="32" rx="4" fill="#208077" stroke="#fff" stroke-width="3.5"/>
+  <path d="M21 27h14M21 33h9" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- sello -->
+  <path d="M37 47l-2.5 9 4.5-2.5 4.5 2.5-2.5-9" fill="#fff"/>
+  <circle cx="41" cy="44" r="7.5" fill="#fff"/>
+  <path d="M37.8 44.2l2.2 2.2 4.4-4.6" stroke="#208077" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
