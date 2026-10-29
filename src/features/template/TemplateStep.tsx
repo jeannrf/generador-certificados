@@ -373,16 +373,14 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                     <FileText className="w-7 h-7 stroke-[1.25]" />
                   </div>
                   <p className="text-sm font-semibold text-slate-700">Sin plantilla cargada</p>
-                  <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                    Sube la primera página en PDF o imagen en la columna izquierda para ver la vista previa aquí.
-                  </p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xs">Aquí verás las páginas que subas.</p>
                 </div>
               )}
             </div>
 
             <div className="mt-6 pt-5 border-t border-slate-100 flex justify-end">
               <Button
-                variant="primary"
+                variant={template ? 'primary' : 'outline'}
                 size="lg"
                 disabled={isRendering}
                 onClick={() => {
@@ -392,7 +390,7 @@ export const TemplateStep: React.FC<TemplateStepProps> = ({
                     onContinue();
                   }
                 }}
-                className={`w-full ${!template ? 'opacity-85 hover:opacity-100 cursor-pointer shadow-xs' : ''}`}
+                className="w-full"
               >
                 Continuar al siguiente paso
               </Button>

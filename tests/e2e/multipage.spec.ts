@@ -7,7 +7,9 @@ import { unzipSync } from 'fflate';
 const fixture = (name: string) => path.resolve(process.cwd(), 'tests/fixtures', name);
 
 async function uploadTemplatePage(page: Page, file: string) {
-  // El primer input de archivo es el de la zona de carga; los demás son para reemplazar
+  // El primer input de archivo es el de la zona de carga; los demás son para reemplazar.
+  // Mientras se procesa la página anterior la zona está deshabilitada: esperar a que se libere.
+  await expect(page.getByRole('button', { name: /Arrastra/ }).first()).toBeEnabled({ timeout: 15000 });
   await page.locator('input[type="file"]').first().setInputFiles(fixture(file));
 }
 
@@ -27,6 +29,7 @@ test.describe('Plantillas multipágina', () => {
     await uploadTemplatePage(page, 'page1.jpg');
     await expect(page.locator('text=1 / 5 páginas')).toBeVisible();
     await uploadTemplatePage(page, 'page2.png');
+    await expect(page.locator('text=2 / 5 páginas')).toBeVisible();
     await uploadTemplatePage(page, 'page3.pdf');
     await expect(page.locator('text=3 / 5 páginas')).toBeVisible();
 
@@ -115,6 +118,7 @@ test.describe('Plantillas multipágina', () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto('/#certificados');
     await uploadTemplatePage(page, 'page1.jpg');
+    await expect(page.locator('text=1 / 5 páginas')).toBeVisible();
     await uploadTemplatePage(page, 'page3.pdf');
     await expect(page.locator('text=2 / 5 páginas')).toBeVisible();
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
