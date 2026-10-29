@@ -2,25 +2,17 @@ import React, { useState, useRef, useMemo } from 'react';
 import { Recipient, TemplateData, FieldBox, GenerationProgress } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
+import { StepActions } from '../../ui/StepActions';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { composeCertificatePdf } from '../../infra/pdfComposer';
 import { formatCertificateFileName } from '../../domain/validation';
 import { TemplateFileError } from '../../domain/templatePages';
 import { createZipArchive, triggerDownload, FileToZip } from '../../infra/zipExporter';
-import confetti from 'canvas-confetti';
 import { EmailDispatcherSection } from './EmailDispatcherSection';
 import { useDriveUpload } from './useDriveUpload';
-import { DriveUploadOptions, DriveUploadResult } from './DriveUploadPanel';
-import {
-  Download,
-  CheckCircle2,
-  AlertCircle,
-  FileArchive,
-  RefreshCw,
-  ChevronLeft,
-  Sparkles,
-  Settings2,
-} from 'lucide-react';
+import { DriveUploadOptions, DriveDeliveryRow } from './DriveUploadPanel';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
+import { Download, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface GenerationStepProps {
   recipients: Recipient[];
@@ -67,6 +59,8 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
   const [pregeneratedPdfs, setPregeneratedPdfs] = useState<
     Record<string, { fileName: string; pdfBytes: Uint8Array }>
   >({});
+
+  const [confirmingReset, setConfirmingReset] = useState<boolean>(false);
 
   const isCancelledRef = useRef(false);
 
@@ -161,14 +155,6 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
         generatedCount: results.length,
         zipBlob,
       });
-
-      // Disparar confetti
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#208077', '#38bdf8', '#10b981', '#f59e0b'],
-      });
     } catch (err) {
       console.error('Error empaquetando archivos:', err);
       setProgress((prev) => ({
@@ -191,222 +177,190 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
 
   const percentage =
     progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+  const certificateLabel = (n: number) => `${n} ${n === 1 ? 'certificado' : 'certificados'}`;
 
-  return (
-    <div className="space-y-6 animate-fadeIn mx-auto max-w-5xl transition-all duration-300">
-      {/* Encabezado según estado */}
-      {progress.status !== 'completed' ? (
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Generar Certificados
+  // Antes de generar: hoja de ajustes; durante: progreso; al terminar: entrega y correo
+  if (progress.status === 'completed') {
+    return (
+      <div className="mx-auto max-w-5xl space-y-8 animate-fadeIn">
+        <div>
+          <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
+            <CheckCircle2 className="h-6 w-6 shrink-0 text-[#208077]" aria-hidden="true" />
+            {progress.generatedCount} {progress.generatedCount === 1 ? 'certificado generado' : 'certificados generados'}
           </h2>
-          <p className="text-sm text-slate-600">
-            Revisa el formato de los archivos y genera los certificados de tus {validRecipients.length} participantes.
+          <p className="mt-1 text-sm text-slate-600">
+            Descárgalos, ábrelos en Drive o envíalos por correo a cada persona.
           </p>
         </div>
-      ) : (
-        <div className="text-center max-w-2xl mx-auto space-y-2 animate-fadeIn">
-          <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 border border-emerald-200 shadow-xs">
-            <CheckCircle2 className="w-8 h-8 stroke-[2.5]" />
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            ¡{progress.generatedCount} Certificados generados con éxito!
-          </h2>
-          <p className="text-sm text-slate-600">
-            Descárgalos directamente en tu equipo o envíalos automáticamente por correo con Gmail.
-          </p>
-        </div>
-      )}
 
-      <Card className="p-6 sm:p-8 space-y-6">
-        {/* Estado 1: Idle (Antes de generar) */}
-        {progress.status === 'idle' && (
-          <div className="py-4 space-y-6">
-            <div className="text-center">
-              <h3 className="text-lg font-bold text-slate-900">
-                Todo listo para generar {validRecipients.length} certificados
-              </h3>
-            </div>
-
-            {/* Custom File Naming Pattern Box */}
-            <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 max-w-xl mx-auto">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                <Settings2 className="w-4 h-4 text-[#208077]" />
-                <span>Formato de nombre de los archivos PDF</span>
-              </div>
-
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={fileNamePattern}
-                  onChange={(e) => setFileNamePattern(e.target.value)}
-                  placeholder="Ej: {nombre} - Certificado UNI"
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
-                />
-
-                <div className="space-y-1 pt-0.5">
-                  <span className="text-xs font-medium text-slate-500 block">
-                    Ejemplo de archivo resultante:
-                  </span>
-                  <p className="font-mono text-xs font-bold text-[#208077] break-all">
-                    {sampleFileName}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <DriveUploadOptions drive={drive} />
-
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-3 pt-2 w-full">
-              <Button
-                variant="outline"
-                size="md"
-                leftIcon={<ChevronLeft className="w-4 h-4" />}
-                onClick={onBack}
-                className="w-full sm:w-auto justify-center"
-              >
-                Volver a Revisión
-              </Button>
-              <Button
-                variant="primary"
-                size="lg"
-                leftIcon={<Sparkles className="w-5 h-5" />}
-                onClick={startGeneration}
-                disabled={drive.active && !drive.accountEmail}
-                className="w-full sm:w-auto px-8 shadow-md justify-center"
-              >
-                Comenzar Generación
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Estado 2: Generando o Zipping */}
-        {(progress.status === 'generating' || progress.status === 'zipping') && (
-          <div className="py-8 space-y-6 max-w-lg mx-auto text-center">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-[#f0faf9] border border-[#b2e5df] rounded-full text-xs font-semibold text-[#208077] animate-pulse">
-                <Sparkles className="w-3.5 h-3.5" />
-                {progress.status === 'zipping'
-                  ? 'Empaquetando ZIP...'
-                  : 'Generando certificados...'}
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">
-                {progress.status === 'zipping'
-                  ? 'Compilando archivos finales'
-                  : `Procesando: ${progress.currentName || '...'}`}
-              </h3>
-              {drive.active && (
-                <p className="text-xs text-slate-500" aria-live="polite">
-                  {drive.status === 'preparing'
-                    ? 'Preparando la carpeta en Google Drive...'
-                    : `Guardados en Google Drive: ${drive.uploadedCount} de ${validRecipients.length}`}
-                </p>
-              )}
-            </div>
-
-            <ProgressBar
-              progress={percentage}
-              label={`Certificado ${progress.current} de ${progress.total}`}
-            />
-
-            <div>
-              <Button variant="outline" size="sm" onClick={handleCancel}>
-                Cancelar proceso
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Estado 3: Completed (¡Certificados ya generados y listos para descargar o enviar!) */}
-        {progress.status === 'completed' && (
-          <div className="space-y-8 animate-fadeIn">
-            {/* 1. Opciones de descarga en tu equipo */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wide">
-                <Download className="w-4 h-4 text-[#208077]" />
-                <span>1. Descargar en tu equipo</span>
-              </div>
-
-              <div className={`grid grid-cols-1 gap-4 ${drive.active ? 'sm:grid-cols-2' : ''}`}>
-                {/* Opción A: Archivo ZIP */}
-                <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#208077] shadow-xs shrink-0">
-                      <FileArchive className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-slate-900 block">
-                        Archivo .ZIP
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {progress.generatedCount} certificados individuales en PDF
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<Download className="w-4 h-4" />}
-                    onClick={handleDownloadZip}
-                    className="w-full justify-center shadow-xs"
-                  >
-                    Descargar Archivo ZIP
-                  </Button>
-                </div>
-
-                {/* Opción B: Google Drive, junto al ZIP */}
-                <DriveUploadResult
+        <section aria-labelledby="entrega-title">
+          <h3 id="entrega-title" className="mb-3 text-base font-bold text-[#0F2E2B]">Entrega</h3>
+          <Card className="overflow-hidden p-0">
+            <table className="w-full text-sm">
+              <caption className="sr-only">Dónde quedaron los certificados</caption>
+              <thead className="bg-[#E7F1EF] text-left text-xs font-semibold uppercase tracking-[0.08em] [font-stretch:80%] text-[#0F2E2B]">
+                <tr>
+                  <th scope="col" className="px-4 py-2 font-semibold sm:px-5">Destino</th>
+                  <th scope="col" className="px-4 py-2 font-semibold">Estado</th>
+                  <th scope="col" className="px-4 py-2 sm:px-5">
+                    <span className="sr-only">Acción</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#0F2E2B]/[0.08]">
+                <tr className="align-top">
+                  <th scope="row" className="px-4 py-4 text-left font-semibold text-[#0F2E2B] sm:px-5">
+                    Tu equipo
+                    <span className="hidden text-sm font-normal text-slate-600 sm:block">Un .zip con un PDF por persona</span>
+                  </th>
+                  <td className="px-4 py-4 tabular-nums text-slate-700">{progress.generatedCount} PDF listos</td>
+                  <td className="px-4 py-4 text-right sm:px-5">
+                    <Button size="sm" className="whitespace-nowrap" leftIcon={<Download className="h-4 w-4" />} onClick={handleDownloadZip}>
+                      Descargar ZIP
+                    </Button>
+                  </td>
+                </tr>
+                <DriveDeliveryRow
                   drive={drive}
                   total={validRecipients.length}
                   onRetry={() => drive.retryPending(pregeneratedPdfs)}
                 />
+              </tbody>
+            </table>
+          </Card>
+        </section>
+
+        <EmailDispatcherSection
+          recipients={emailRecipients}
+          extraVariables={drive.active ? ['enlace'] : []}
+          buildAttachment={async (rec) =>
+            pregeneratedPdfs?.[rec.id] ??
+            composeCertificatePdf(template, fields, rec, fileNamePattern, drive.contextFor(rec.id))
+          }
+        />
+
+        <div className="border-t border-slate-200 pt-6">
+          <Button variant="outline" leftIcon={<RefreshCw className="h-4 w-4" />} onClick={() => setConfirmingReset(true)}>
+            Empezar otro lote
+          </Button>
+        </div>
+
+        <ConfirmDialog
+          isOpen={confirmingReset}
+          title="¿Empezar otro lote?"
+          confirmLabel="Empezar de cero"
+          tone="danger"
+          onCancel={() => setConfirmingReset(false)}
+          onConfirm={() => {
+            setConfirmingReset(false);
+            onResetAll();
+          }}
+        >
+          <p>
+            Se borran la plantilla, los campos y la lista de esta sesión. Si aún no descargaste el ZIP, hazlo antes.
+          </p>
+          {drive.active && <p className="mt-2 text-slate-600">Los PDF guardados en Google Drive se quedan allí.</p>}
+        </ConfirmDialog>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6 animate-fadeIn">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Genera los certificados</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          {validRecipients.length} {validRecipients.length === 1 ? 'persona' : 'personas'} en la lista. Revisa cómo se
+          guardarán antes de generarlos.
+        </p>
+      </div>
+
+      {progress.status === 'idle' && (
+        <>
+          <Card className="divide-y divide-[#0F2E2B]/[0.08] p-0">
+            <div className="grid gap-3 px-4 py-5 sm:grid-cols-[180px_1fr] sm:px-6">
+              <label htmlFor="file-name-pattern" className="text-sm font-semibold text-[#0F2E2B]">
+                Nombre de cada PDF
+              </label>
+              <div>
+                <input
+                  id="file-name-pattern"
+                  type="text"
+                  value={fileNamePattern}
+                  onChange={(e) => setFileNamePattern(e.target.value)}
+                  placeholder="{nombre} - Certificado"
+                  className="w-full rounded-[6px] border border-slate-300 bg-white px-3 py-2 text-sm text-[#0F2E2B] focus:border-[#208077] focus:outline-none focus:ring-2 focus:ring-[#208077]/20"
+                />
+                <p className="mt-1.5 text-sm text-slate-600">
+                  Así se verá: <span className="break-all font-mono text-sm text-[#0F2E2B]">{sampleFileName}</span>
+                </p>
               </div>
             </div>
-
-            {/* 2. Envío por correo (ahora sí, porque ya están generados) */}
-            <EmailDispatcherSection
-              recipients={emailRecipients}
-              extraVariables={drive.active ? ['enlace'] : []}
-              buildAttachment={async (rec) =>
-                pregeneratedPdfs?.[rec.id] ??
-                composeCertificatePdf(template, fields, rec, fileNamePattern, drive.contextFor(rec.id))
-              }
-            />
-
-            {/* Botón para reiniciar lote */}
-            <div className="pt-6 border-t border-slate-200 text-center">
-              <Button
-                variant="outline"
-                size="md"
-                leftIcon={<RefreshCw className="w-4 h-4" />}
-                onClick={onResetAll}
-              >
-                Crear Nuevo Lote de Certificados
-              </Button>
+            <div className="grid gap-3 px-4 py-5 sm:grid-cols-[180px_1fr] sm:px-6">
+              <span className="text-sm font-semibold text-[#0F2E2B]">Google Drive</span>
+              <DriveUploadOptions drive={drive} />
             </div>
-          </div>
-        )}
+          </Card>
 
-        {/* Estado 4: Cancelado o Error */}
-        {(progress.status === 'cancelled' || progress.status === 'error') && (
-          <div className="py-6 space-y-4 text-center">
-            <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto text-rose-600 border border-rose-200">
-              <AlertCircle className="w-7 h-7" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900">
-              {progress.status === 'cancelled'
-                ? 'Generación cancelada por el usuario'
-                : progress.errorMessage || 'Error durante la generación'}
+          <StepActions
+            onBack={onBack}
+            primaryLabel={`Generar ${certificateLabel(validRecipients.length)}`}
+            onPrimary={startGeneration}
+            primaryDisabled={drive.active && !drive.accountEmail}
+            disabledReason="Conecta tu cuenta de Google o desactiva Drive"
+          />
+        </>
+      )}
+
+      {(progress.status === 'generating' || progress.status === 'zipping') && (
+        <Card className="space-y-5 p-6 sm:p-8">
+          <div aria-live="polite">
+            <h3 className="text-lg font-bold text-[#0F2E2B]">
+              {progress.status === 'zipping' ? 'Preparando el ZIP…' : 'Generando certificados…'}
             </h3>
-            <div className="flex justify-center gap-3">
-              <Button variant="primary" size="sm" onClick={startGeneration}>
-                Reintentar
-              </Button>
+            {progress.status === 'generating' && progress.currentName && (
+              <p className="mt-1 truncate text-sm text-slate-600">{progress.currentName}</p>
+            )}
+            {drive.active && (
+              <p className="mt-1 text-sm text-slate-600">
+                {drive.status === 'preparing'
+                  ? 'Preparando la carpeta en Google Drive…'
+                  : `Guardados en Google Drive: ${drive.uploadedCount} de ${validRecipients.length}`}
+              </p>
+            )}
+          </div>
+          <ProgressBar progress={percentage} label={`Certificado ${progress.current} de ${progress.total}`} />
+          <Button variant="outline" size="sm" onClick={handleCancel}>
+            Cancelar
+          </Button>
+        </Card>
+      )}
+
+      {(progress.status === 'cancelled' || progress.status === 'error') && (
+        <Card className="p-6 sm:p-8">
+          <div role="alert" className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" aria-hidden="true" />
+            <div>
+              <h3 className="text-base font-bold text-[#0F2E2B]">
+                {progress.status === 'cancelled'
+                  ? 'Cancelaste la generación'
+                  : progress.errorMessage || 'No se pudieron generar los certificados'}
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">
+                No se descargó nada. Puedes intentarlo de nuevo con los mismos datos.
+              </p>
             </div>
           </div>
-        )}
-      </Card>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button size="sm" onClick={startGeneration}>
+              Generar de nuevo
+            </Button>
+            <Button variant="outline" size="sm" onClick={onBack}>
+              Volver a la revisión
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

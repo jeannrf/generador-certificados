@@ -143,7 +143,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-slate-700">Vista previa en tiempo real</span>
               {hasCustomOverrides && (
-                <span className="text-[10px] bg-[#f0faf9] text-[#208077] font-semibold px-2 py-0.5 rounded-full border border-[#b2e5df]">
+                <span className="text-xs bg-[#f0faf9] text-[#208077] font-semibold px-2 py-0.5 rounded-full border border-[#b2e5df]">
                   Ajustes personalizados activos
                 </span>
               )}
@@ -225,7 +225,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
                   <label className="font-bold text-slate-700">Tamaño de Fuente (pt)</label>
-                  <span className="font-mono font-bold text-[#208077]">
+                  <span className="tabular-nums font-bold text-[#208077]">
                     {effectiveField.maxFontSize} pt
                   </span>
                 </div>
@@ -368,12 +368,12 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                         const centeredX = (1 - effectiveField.width) / 2;
                         setCustomField((prev) => ({ ...prev, x: Math.max(0, centeredX) }));
                       }}
-                      className="text-[10px] text-[#208077] font-semibold hover:underline cursor-pointer"
+                      className="text-xs text-[#208077] font-semibold hover:underline cursor-pointer"
                       title="Centrar el recuadro horizontalmente"
                     >
                       Centrar
                     </button>
-                    <span className="font-mono font-bold text-[#208077]">
+                    <span className="tabular-nums font-bold text-[#208077]">
                       {Math.round(effectiveField.width * 100)}%
                     </span>
                   </div>
@@ -429,7 +429,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
                     <Maximize2 className="w-3.5 h-3.5 text-slate-500 rotate-90" />
                     <label className="font-bold text-slate-700">Alto del Recuadro</label>
                   </div>
-                  <span className="font-mono font-bold text-[#208077]">
+                  <span className="tabular-nums font-bold text-[#208077]">
                     {Math.round(effectiveField.height * 100)}%
                   </span>
                 </div>

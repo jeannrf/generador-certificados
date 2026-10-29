@@ -9,14 +9,14 @@ const MAIL_STORAGE_KEY = 'mail_email_config_v1';
 export type EmailConfigVariant = 'certificates' | 'mail';
 
 export const DEFAULT_EMAIL_CONFIG: EmailConfig = {
-  senderName: 'Emisión de Certificados',
-  subject: 'Tu Certificado — {nombre}',
+  senderName: 'Equipo de capacitación',
+  subject: 'Tu certificado — {nombre}',
   htmlBody: `Hola {nombre},
 
-¡Felicitaciones! Adjuntamos tu certificado oficial en formato PDF.
+Adjuntamos tu certificado del curso en PDF.
 
-Saludos cordiales,
-Comité Organizador`,
+Saludos,
+El equipo de capacitación`,
 };
 
 export const DEFAULT_MAIL_CONFIG: EmailConfig = {
@@ -24,9 +24,9 @@ export const DEFAULT_MAIL_CONFIG: EmailConfig = {
   subject: 'Hola {nombre}, tenemos novedades para ti',
   htmlBody: `Hola {nombre},
 
-Te escribimos para compartirte información importante.
+Te escribimos para contarte una novedad.
 
-Saludos cordiales,
+Saludos,
 El equipo`,
 };
 
@@ -132,7 +132,7 @@ export async function sendEmail(
         subject: params.subject,
         html: params.htmlBody,
         htmlBody: params.htmlBody,
-        senderName: params.senderName || 'Emisión de Certificados',
+        senderName: params.senderName || DEFAULT_EMAIL_CONFIG.senderName,
         attachment: params.attachment,
       }),
     });

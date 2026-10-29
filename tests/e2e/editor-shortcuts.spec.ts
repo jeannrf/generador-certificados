@@ -5,8 +5,8 @@ import path from 'path';
 test('Supr borra el campo seleccionado y Ctrl+Z / Ctrl+Shift+Z lo deshacen y rehacen', async ({ page }) => {
   await page.goto('/#certificados');
   await page.locator('input[type="file"]').first().setInputFiles(path.resolve(process.cwd(), 'tests/fixtures/page1.jpg'));
-  await page.locator('button:has-text("Continuar al siguiente paso")').click();
-  await expect(page.getByRole('heading', { name: 'Agregar campos' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Campos', exact: true })).toBeVisible();
 
   const campo = page.getByRole('button', { name: /^Campo 1/ });
   await page.getByRole('button', { name: 'Texto', exact: true }).click();

@@ -8,6 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -22,25 +23,25 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]';
+    'inline-flex items-center justify-center font-semibold rounded-[6px] transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none';
 
   const sizeStyles = {
     sm: 'text-xs px-3 py-1.5 gap-1.5',
-    md: 'text-sm px-4 py-2.5 gap-2 shadow-sm',
-    lg: 'text-base px-6 py-3.5 gap-2.5 shadow-md',
+    md: 'text-sm px-4 py-2.5 gap-2',
+    lg: 'text-base px-6 py-3 gap-2.5',
   };
 
   const variantStyles = {
     primary:
-      'bg-[#208077] text-white hover:bg-[#18655e] focus:ring-[#208077] shadow-sm',
+      'bg-[#208077] text-white hover:bg-[#18655e] focus-visible:ring-[#208077]',
     secondary:
-      'bg-slate-900 text-white hover:bg-slate-800 focus:ring-slate-900',
+      'bg-[#0F2E2B] text-white hover:bg-[#223D39] focus-visible:ring-[#0F2E2B]',
     outline:
-      'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-[#208077]',
+      'border border-[#0F2E2B]/25 bg-white text-[#0F2E2B] hover:border-[#208077] hover:text-[#208077] focus-visible:ring-[#208077]',
     ghost:
-      'text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-400',
+      'text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-[#208077]',
     danger:
-      'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500 shadow-rose-500/20 hover:shadow-lg',
+      'bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500',
   };
 
   return (

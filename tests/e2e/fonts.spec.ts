@@ -30,7 +30,7 @@ test('busca una fuente, respeta sus estilos disponibles y la incrusta en el PDF'
 
   await page.goto('/#certificados');
   await page.locator('input[type="file"]').first().setInputFiles(path.resolve(process.cwd(), 'tests/fixtures/page1.jpg'));
-  await page.locator('button:has-text("Continuar al siguiente paso")').click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
   // Abrir el selector y buscar
   await page.getByRole('button', { name: /^Fuente: / }).click();
@@ -52,10 +52,10 @@ test('busca una fuente, respeta sus estilos disponibles y la incrusta en el PDF'
   await expect(page.getByRole('button', { name: 'B', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'I', exact: true })).toBeDisabled();
 
-  await page.locator('button:has-text("Guardar y Continuar")').click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles(path.resolve(process.cwd(), 'tests/fixtures/destinatarios.csv'));
-  await expect(page.locator('text=registros detectados')).toBeVisible({ timeout: 10000 });
-  await page.locator('button:has-text("Revisar Destinatarios")').click();
+  await expect(page.locator('text=personas en la lista')).toBeVisible({ timeout: 10000 });
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
   const [download] = await Promise.all([
     page.waitForEvent('download'),
