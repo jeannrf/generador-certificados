@@ -138,7 +138,7 @@ export const Wizard: React.FC = () => {
     }
     if ((targetStep === 4 || targetStep === 5) && recipients.length === 0) {
       setPrereqModal({
-        title: 'Destinatarios requeridos',
+        title: 'Lista requerida',
         message: 'Para revisar o generar certificados, primero debes importar tu lista de destinatarios en el Paso 3.',
       });
       return;
@@ -250,10 +250,9 @@ export const Wizard: React.FC = () => {
     setRecipients((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const handleRemoveInvalid = () => {
-    setRecipients((prev) =>
-      prev.filter((r) => !r.issues.some((i) => i.severity === 'error'))
-    );
+  const handleRemoveRecipients = (ids: string[]) => {
+    const toRemove = new Set(ids);
+    setRecipients((prev) => prev.filter((r) => !toRemove.has(r.id)));
   };
 
   const handleResetAll = async () => {
@@ -274,7 +273,7 @@ export const Wizard: React.FC = () => {
         maxStepUnlocked={maxStepUnlocked}
       />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 sm:px-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 pt-8 pb-28 sm:px-6">
         {currentStep === 1 && (
           <TemplateStep
             template={template}
@@ -333,7 +332,7 @@ export const Wizard: React.FC = () => {
             fields={fields}
             onUpdateRecipient={handleUpdateRecipient}
             onRemoveRecipient={handleRemoveRecipient}
-            onRemoveInvalid={handleRemoveInvalid}
+            onRemoveRecipients={handleRemoveRecipients}
             onBack={() => setCurrentStep(3)}
             onContinue={() => unlockStep(5)}
           />

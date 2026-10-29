@@ -69,7 +69,7 @@ export const MailerWizard: React.FC = () => {
     <div className="flex-1 flex flex-col">
       <Stepper currentStep={currentStep} onStepClick={handleStepClick} steps={MAILER_STEPS} />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 sm:px-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 pt-8 pb-28 sm:px-6">
         {currentStep === 1 && savedCampaignSummary && (
           <div className="mb-6 p-4 rounded-2xl bg-sky-50 border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn">
             <div className="flex items-start gap-3">
@@ -192,7 +192,7 @@ export const MailerWizard: React.FC = () => {
                         {invalidRecipients.map((r) => (
                           <li key={r.id} className="px-4 py-2 flex items-center justify-between gap-3">
                             <span className="text-slate-700 truncate">
-                              <span className="font-mono text-slate-400 mr-2">Fila {r.rowNumber}</span>
+                              <span className="tabular-nums text-slate-400 mr-2">Fila {r.rowNumber}</span>
                               {r.email || r.name || '—'}
                             </span>
                             <span className="text-rose-600 shrink-0">

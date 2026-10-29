@@ -106,7 +106,7 @@ export const FontPicker: React.FC<FontPickerProps> = ({ value, onChange }) => {
                   type="button"
                   aria-pressed={category === cat}
                   onClick={() => setCategory(cat)}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-md text-xs font-semibold border cursor-pointer ${
                     category === cat
                       ? 'bg-[#208077] text-white border-[#208077]'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -135,7 +135,7 @@ export const FontPicker: React.FC<FontPickerProps> = ({ value, onChange }) => {
                       {font.family}
                     </span>
                     <span className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] text-slate-400">{FONT_CATEGORY_LABELS[font.category]}</span>
+                      <span className="text-xs text-slate-400">{FONT_CATEGORY_LABELS[font.category]}</span>
                       {isSelected && <Check className="w-3.5 h-3.5 text-[#208077]" />}
                     </span>
                   </button>

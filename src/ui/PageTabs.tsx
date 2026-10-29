@@ -49,7 +49,7 @@ export const PageTabs: React.FC<PageTabsProps> = ({
             Pág. {index + 1}
             {count !== undefined && (
               <span
-                className={`min-w-[1.25rem] px-1 rounded-full text-[10px] font-bold ${
+                className={`min-w-[1.25rem] px-1 rounded-full text-xs font-bold ${
                   isActive ? 'bg-white/25 text-white' : count > 0 ? 'bg-[#f0faf9] text-[#208077]' : 'bg-slate-100 text-slate-400'
                 }`}
                 aria-label={`${count} campos`}

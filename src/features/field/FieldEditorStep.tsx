@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TemplateData, FieldBox, TextAlign } from '../../domain/types';
 import { Card } from '../../ui/Card';
-import { Button } from '../../ui/Button';
+import { StepActions } from '../../ui/StepActions';
 import { PageTabs } from '../../ui/PageTabs';
 import { FieldTextOverlay } from '../../ui/FieldTextOverlay';
 import { transformTextCase } from '../../domain/normalization';
@@ -30,8 +30,6 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Sliders,
-  ChevronLeft,
   Minus,
   Plus,
   ListPlus,
@@ -52,6 +50,11 @@ interface FieldEditorStepProps {
   onBack: () => void;
   onContinue: () => void;
 }
+
+const toolButton =
+  'inline-flex min-h-8 items-center gap-1 rounded-[6px] border border-slate-300 bg-white px-2.5 text-xs font-semibold text-[#0F2E2B] transition-colors hover:border-[#208077] hover:text-[#208077] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#208077]';
+const iconToolButton =
+  'flex h-8 w-8 items-center justify-center rounded-[6px] border border-slate-300 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#0F2E2B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#208077] disabled:cursor-not-allowed disabled:opacity-40';
 
 export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
   template,
@@ -382,26 +385,18 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Define la ubicación y el estilo de los campos
-          </h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
-            Atrás
-          </Button>
-          <Button variant="primary" size="sm" onClick={onContinue}>
-            Guardar y Continuar
-          </Button>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Ubica los datos en tu diseño</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Arrastra el recuadro del nombre a su lugar. Agrega curso, fecha o un QR si tu certificado los lleva.
+        </p>
       </div>
+      <StepActions onBack={onBack} primaryLabel="Continuar" onPrimary={onContinue} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Interactive Canvas / Visual Template Editor */}
         <div className="lg:col-span-8">
-          <Card className="p-4 sm:p-6 overflow-hidden bg-slate-900/5">
+          <Card className="p-4 sm:p-5 overflow-hidden">
             {/* Pestañas de página a la izquierda y acciones a la derecha, en la misma fila */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 text-xs text-slate-500 font-medium">
               <PageTabs
@@ -417,9 +412,9 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   disabled={!historyRef.current.canUndo()}
                   title="Deshacer (Ctrl+Z)"
                   aria-label="Deshacer"
-                  className="p-1 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className={iconToolButton}
                 >
-                  <Undo2 className="w-3.5 h-3.5" />
+                  <Undo2 className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
@@ -427,15 +422,15 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   disabled={!historyRef.current.canRedo()}
                   title="Rehacer (Ctrl+Shift+Z)"
                   aria-label="Rehacer"
-                  className="p-1 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className={iconToolButton}
                 >
-                  <Redo2 className="w-3.5 h-3.5" />
+                  <Redo2 className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleCenterField}
-                  className="text-[11px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] px-2 py-0.5 rounded border border-[#b2e5df] transition-colors shadow-2xs cursor-pointer"
-                  title="Alinear automáticamente al centro horizontal del certificado"
+                  className={toolButton}
+                  title="Centrar el campo en el ancho de la página"
                 >
                   Centrar
                 </button>
@@ -443,7 +438,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 <button
                   type="button"
                   onClick={() => onFieldChange(resetNameFieldLayout(field, page))}
-                  className="text-[11px] font-semibold text-slate-700 bg-white hover:bg-slate-50 px-2 py-0.5 rounded border border-slate-200 transition-colors shadow-2xs cursor-pointer"
+                  className={toolButton}
                   title={`Restablecer al tamaño estándar para esta página (${defaultFontSize} pt, 90% de ancho)`}
                 >
                   Restablecer ({defaultFontSize} pt)
@@ -455,7 +450,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
             {/* Template Container with overlay box */}
             <div
               ref={containerRef}
-              className="relative w-full rounded-xl overflow-hidden shadow-lg border border-slate-300 bg-white select-none touch-none"
+              className="relative w-full rounded-[6px] overflow-hidden border border-slate-300 bg-white select-none touch-none"
               style={{ aspectRatio: `${page.widthPt} / ${page.heightPt}` }}
             >
               <img
@@ -488,13 +483,13 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
 
               {pageFields.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-                  <div className="pointer-events-auto bg-white/95 border border-slate-200 rounded-xl shadow-md px-4 py-3 text-center max-w-xs">
-                    <p className="text-xs font-semibold text-slate-800">Esta página no tiene campos</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Se incluirá tal cual en cada certificado (por ejemplo, un reverso fijo).</p>
+                  <div className="pointer-events-auto max-w-xs rounded-[6px] border border-slate-200 bg-white px-4 py-3 text-center shadow-[0_8px_24px_-12px_rgba(15,46,43,0.35)]">
+                    <p className="text-sm font-semibold text-[#0F2E2B]">Esta página no tiene campos</p>
+                    <p className="mt-0.5 text-sm text-slate-600">Se incluirá igual en cada certificado, como un reverso fijo.</p>
                     <button
                       type="button"
                       onClick={handleAddField}
-                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#208077] bg-[#f0faf9] hover:bg-[#b2e5df]/40 px-2 py-1 rounded-md border border-[#b2e5df] cursor-pointer"
+                      className={`mt-2 ${toolButton}`}
                     >
                       <ListPlus className="w-3.5 h-3.5" /> Agregar un campo aquí
                     </button>
@@ -504,13 +499,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
 
               {/* Red Vertical Snapping Guide Line (Guía de centro en rojo) */}
               {(isSnappedToCenterX || (isDragging && Math.abs(field.x + field.width / 2 - 0.5) < 0.005)) && (
-                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-rose-500 z-30 pointer-events-none shadow-[0_0_8px_rgba(244,63,94,0.6)] flex flex-col items-center justify-between py-2">
-                  <span className="bg-rose-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow tracking-wider uppercase">
-                    Centro
-                  </span>
-                  <span className="bg-rose-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow tracking-wider uppercase">
-                    Centro
-                  </span>
+                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-rose-500 z-30 pointer-events-none flex flex-col items-center py-2">
+                  <span className="rounded-[4px] bg-rose-600 px-1.5 py-0.5 text-xs font-semibold text-white">Centro</span>
                 </div>
               )}
 
@@ -594,22 +584,22 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'n')}
                   title="Ajustar altura (superior)"
-                  className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-white border border-[#208077] rounded-full cursor-ns-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
+                  className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-white border border-[#208077] rounded-full cursor-ns-resize hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 's')}
                   title="Ajustar altura (inferior)"
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-white border border-[#208077] rounded-full cursor-ns-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-white border border-[#208077] rounded-full cursor-ns-resize hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'w')}
                   title="Ajustar ancho (izquierda)"
-                  className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-6 bg-white border border-[#208077] rounded-full cursor-ew-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
+                  className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-6 bg-white border border-[#208077] rounded-full cursor-ew-resize hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
                 <div
                   onPointerDown={(e) => handlePointerDown(e, 'e')}
                   title="Ajustar ancho (derecha)"
-                  className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-6 bg-white border border-[#208077] rounded-full cursor-ew-resize shadow-xs hover:bg-[#b2e5df] hover:scale-110 transition-transform"
+                  className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-6 bg-white border border-[#208077] rounded-full cursor-ew-resize hover:bg-[#b2e5df] hover:scale-110 transition-transform"
                 />
               </div>
               )}
@@ -620,26 +610,24 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
         {/* Styling Controls Sidebar (Right Column) */}
         <div className="lg:col-span-4 space-y-5">
           <Card className="p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                Agregar campos
-              </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-[#0F2E2B]">Campos</h3>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={handleAddField}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] px-2 py-1 rounded-md border border-[#b2e5df] cursor-pointer"
+                  className={toolButton}
                   title="Agregar un campo de texto en la página visible"
                 >
-                  <ListPlus className="w-3.5 h-3.5" /> Texto
+                  <ListPlus className="w-4 h-4" aria-hidden="true" /> Texto
                 </button>
                 <button
                   type="button"
                   onClick={handleAddQr}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] px-2 py-1 rounded-md border border-[#b2e5df] cursor-pointer"
+                  className={toolButton}
                   title="Agregar un código QR en la página visible"
                 >
-                  <QrCode className="w-3.5 h-3.5" /> QR
+                  <QrCode className="w-4 h-4" aria-hidden="true" /> QR
                 </button>
               </div>
             </div>
@@ -654,21 +642,21 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                       type="button"
                       onClick={() => selectField(f)}
                       aria-pressed={isSelected}
-                      className={`flex-1 min-w-0 flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-left text-xs cursor-pointer transition-colors ${
-                        isSelected ? 'border-[#208077] bg-[#f0faf9] text-slate-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      className={`flex-1 min-w-0 flex items-center justify-between gap-2 px-3 py-2 rounded-[6px] border text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#208077] ${
+                        isSelected ? 'border-[#208077] bg-[#F4F8F7] text-[#0F2E2B]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       <span className="truncate font-semibold flex items-center gap-1.5">
                         {isQrField(f) && <QrCode className="w-3.5 h-3.5 shrink-0 text-slate-500" aria-hidden />}
                         {f.name}
                       </span>
-                      <span className="shrink-0 text-[10px] font-semibold text-slate-400">Pág. {pageNumber}</span>
+                      <span className="shrink-0 text-xs tabular-nums text-slate-500">Pág. {pageNumber}</span>
                     </button>
                     {!isNameField(f) && (
                       <button
                         type="button"
                         onClick={() => handleDeleteField(f)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                        className="flex h-8 w-8 items-center justify-center rounded-[6px] text-slate-500 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                         title={`Eliminar "${f.name}"`}
                         aria-label={`Eliminar campo ${f.name}`}
                       >
@@ -682,7 +670,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
 
             {/* Configuración del campo seleccionado (el nombre no tiene opciones aquí) */}
             {!isNameField(field) && (
-            <div className="space-y-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <div className="space-y-3 border-t border-slate-200 pt-4">
               {!isNameField(field) && (
                 <>
                   <label className="block space-y-1">
@@ -691,7 +679,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                       type="text"
                       value={field.name}
                       onChange={(e) => onFieldChange({ ...field, name: e.target.value })}
-                      className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
+                      className="w-full text-xs font-medium bg-white border border-slate-200 rounded-[6px] px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
                       placeholder="Curso, Fecha, Horas…"
                     />
                   </label>
@@ -699,7 +687,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   <div className="space-y-1">
                     <span className="text-xs font-semibold text-slate-700">{isQrField(field) ? 'Contenido del QR' : 'Texto'}</span>
                     <div
-                      className={`grid ${isQrField(field) ? 'grid-cols-3' : 'grid-cols-2'} gap-1 p-1 bg-white rounded-lg border border-slate-200`}
+                      className={`grid ${isQrField(field) ? 'grid-cols-3' : 'grid-cols-2'} gap-1 p-1 bg-white rounded-[6px] border border-slate-200`}
                       role="radiogroup"
                       aria-label={isQrField(field) ? 'Contenido del QR' : 'Origen del texto'}
                     >
@@ -723,7 +711,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                                 : { ...field, source: { type: 'fixed', value: isQrField(field) ? '' : field.name } }
                             )
                           }
-                          className={`px-2 py-1 rounded-md text-[11px] font-semibold cursor-pointer ${
+                          className={`px-2 py-1 rounded-md text-xs font-semibold cursor-pointer ${
                             field.source.type === option.type ? 'bg-[#208077] text-white' : 'text-slate-600 hover:bg-slate-50'
                           }`}
                         >
@@ -738,7 +726,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                             value={field.source.column}
                             onChange={(e) => onFieldChange({ ...field, source: { type: 'column', column: e.target.value } })}
                             aria-label="Columna de la lista"
-                            className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
+                            className="w-full text-xs font-medium bg-white border border-slate-200 rounded-[6px] px-2 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
                           >
                             <option value="">Elige una columna</option>
                             {availableColumns.map((c) => (
@@ -747,10 +735,10 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                               </option>
                             ))}
                           </select>
-                          <p className="text-[10px] text-slate-500">Cada certificado mostrará el valor de esta columna.</p>
+                          <p className="text-xs text-slate-500">Cada certificado mostrará el valor de esta columna.</p>
                         </>
                       ) : (
-                        <p className="text-[10px] text-slate-500 bg-white border border-dashed border-slate-300 rounded-lg px-2.5 py-2">
+                        <p className="text-xs text-slate-500 bg-white border border-dashed border-slate-300 rounded-[6px] px-2.5 py-2">
                           Elegirás qué columna usar cuando subas tu lista en el Paso 3.
                         </p>
                       ))}
@@ -759,13 +747,13 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                         type="text"
                         value={field.source.value}
                         onChange={(e) => onFieldChange({ ...field, source: { type: 'fixed', value: e.target.value } })}
-                        className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
+                        className="w-full text-xs font-medium bg-white border border-slate-200 rounded-[6px] px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
                         placeholder={isQrField(field) ? 'Enlace o texto, igual para todos' : 'Igual en todos los certificados'}
                         aria-label="Texto fijo"
                       />
                     )}
                     {field.source.type === 'driveLink' && (
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-xs text-slate-500">
                         Cada QR abrirá el PDF de esa persona. Se guarda en tu Google Drive en el Paso 5.
                       </p>
                     )}
@@ -778,7 +766,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                         type="color"
                         value={field.color}
                         onChange={(e) => onFieldChange({ ...field, color: e.target.value })}
-                        className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+                        className="w-8 h-8 rounded-[6px] border border-slate-200 cursor-pointer p-0.5 bg-white"
                         aria-label="Color del QR"
                       />
                     </label>
@@ -792,9 +780,8 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
 
           {!isQrField(field) && (
           <Card className="p-4 space-y-3.5">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2.5">
-              <Sliders className="w-4 h-4 text-[#208077]" />
-              Tipografía · <span className="font-semibold text-slate-500 truncate">{field.name}</span>
+            <h3 className="text-base font-bold text-[#0F2E2B] truncate">
+              Tipografía <span className="font-normal text-slate-600">· {field.name}</span>
             </h3>
 
             {/* Texto de prueba para previsualizar el nombre */}
@@ -805,14 +792,14 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                 onChange={(e) => setSampleName(e.target.value)}
                 aria-label="Texto de prueba"
                 title="Texto de prueba"
-                className="w-full text-xs font-semibold text-slate-900 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
+                className="w-full text-xs font-semibold text-slate-900 bg-white border border-slate-200 rounded-[6px] px-2.5 py-1.5 focus:ring-2 focus:ring-[#208077] focus:outline-none"
                 placeholder="Escribe un nombre de prueba"
               />
             )}
 
             {/* Font Family */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">Fuente tipográfica</label>
+              <label className="text-xs font-semibold text-slate-700">Fuente</label>
               <FontPicker
                 value={field.fontFamily}
                 onChange={(fontFamily) => onFieldChange({ ...field, fontFamily })}
@@ -822,20 +809,9 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
             {/* Compact Typography Toolbar: Style (B, I, Mayús) + Alignment */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700">Estilo y Alineación</label>
-                <span className="text-[10px] text-slate-500">
-                  {field.textCase === 'upper' ? (
-                    <span className="text-emerald-700 font-medium flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Mayús activado
-                    </span>
-                  ) : (
-                    <span className="text-slate-500 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> Normal
-                    </span>
-                  )}
-                </span>
+                <span className="text-xs font-semibold text-slate-700">Estilo y alineación</span>
               </div>
-              <div className="flex items-center justify-between gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between gap-1 p-1 bg-slate-100 rounded-[6px] border border-slate-200">
                 {/* Bold, Italic & Mayús Toggle */}
                 <div className="flex items-center gap-1.5">
                   <button
@@ -843,7 +819,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                     title={boldAvailable ? 'Negrita (Bold)' : 'Esta fuente no tiene negrita'}
                     disabled={!boldAvailable}
                     onClick={() => onFieldChange({ ...field, isBold: !field.isBold })}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                    className={`w-8 h-8 flex items-center justify-center rounded-[6px] text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                       field.isBold && boldAvailable
                         ? 'bg-[#208077] text-white font-extrabold shadow-sm'
                         : 'bg-white text-slate-700 hover:bg-slate-50 font-bold border border-slate-200'
@@ -857,7 +833,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                     title={italicAvailable ? 'Cursiva (Italic)' : 'Esta fuente no tiene cursiva'}
                     disabled={!italicAvailable}
                     onClick={() => onFieldChange({ ...field, isItalic: !field.isItalic })}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                    className={`w-8 h-8 flex items-center justify-center rounded-[6px] text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                       field.isItalic && italicAvailable
                         ? 'bg-[#208077] text-white font-serif italic font-bold shadow-sm'
                         : 'bg-white text-slate-700 hover:bg-slate-50 font-serif italic font-bold border border-slate-200'
@@ -866,34 +842,25 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                     I
                   </button>
 
-                  {/* Mayús Toggle Button with Red/Green border */}
+                  {/* Mayúsculas: mismo patrón de botón activable que negrita y cursiva */}
                   <button
                     type="button"
-                    title={
-                      field.textCase === 'upper'
-                        ? 'Mayúsculas ACTIVADAS (clic para volver a Normal)'
-                        : 'Mayúsculas DESACTIVADAS (clic para activar MAYÚSCULAS)'
-                    }
+                    aria-pressed={field.textCase === 'upper'}
+                    aria-label="Mayúsculas"
+                    title={field.textCase === 'upper' ? 'Mayúsculas activadas' : 'Escribir en mayúsculas'}
                     onClick={() =>
                       onFieldChange({
                         ...field,
                         textCase: field.textCase === 'upper' ? 'title' : 'upper',
                       })
                     }
-                    className={`relative w-8 h-8 flex items-center justify-center rounded-lg text-xs transition-all ${
+                    className={`w-8 h-8 flex items-center justify-center rounded-[6px] text-xs font-bold transition-all ${
                       field.textCase === 'upper'
-                        ? 'bg-emerald-50 text-emerald-700 font-extrabold border-2 border-emerald-500 shadow-xs ring-2 ring-emerald-400/20'
-                        : 'bg-white text-slate-600 hover:bg-rose-50/30 font-semibold border-2 border-rose-300 hover:border-rose-400'
+                        ? 'bg-[#208077] text-white'
+                        : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                     }`}
                   >
-                    <span className="text-[11px] font-extrabold leading-none">
-                      {field.textCase === 'upper' ? 'MAY' : 'Aa'}
-                    </span>
-                    <span
-                      className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${
-                        field.textCase === 'upper' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-400'
-                      }`}
-                    />
+                    {field.textCase === 'upper' ? 'AA' : 'Aa'}
                   </button>
 
                   <ColorPopover value={field.color} onChange={(color) => onFieldChange({ ...field, color })} />
@@ -917,7 +884,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                         type="button"
                         title={a.label}
                         onClick={() => onFieldChange({ ...field, align: a.value })}
-                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
+                        className={`w-8 h-8 flex items-center justify-center rounded-[6px] transition-all ${
                           isSelected
                             ? 'bg-[#208077] text-white shadow-sm'
                             : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
@@ -935,7 +902,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <label className="font-semibold text-slate-700">Tamaño de fuente</label>
-                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 shadow-xs focus-within:ring-2 focus-within:ring-[#208077] focus-within:border-[#208077]">
+                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-[6px] px-2 py-0.5 focus-within:ring-2 focus-within:ring-[#208077] focus-within:border-[#208077]">
                   <input
                     type="number"
                     min={10}
@@ -951,7 +918,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                     }}
                     className="w-10 text-xs font-bold text-[#208077] text-right focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  <span className="text-[11px] font-semibold text-slate-400">pt</span>
+                  <span className="text-xs font-semibold text-slate-400">pt</span>
                 </div>
               </div>
 
@@ -966,7 +933,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                       minFontSize: Math.min(nextVal, field.minFontSize),
                     });
                   }}
-                  className="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg transition-colors shadow-xs"
+                  className="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-[6px] transition-colors"
                   title="Reducir 1 pt"
                 >
                   <Minus className="w-3.5 h-3.5" />
@@ -996,7 +963,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                       minFontSize: Math.min(nextVal, field.minFontSize),
                     });
                   }}
-                  className="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg transition-colors shadow-xs"
+                  className="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-[6px] transition-colors"
                   title="Aumentar 1 pt"
                 >
                   <Plus className="w-3.5 h-3.5" />

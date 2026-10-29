@@ -9,6 +9,7 @@ import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { Badge } from '../../ui/Badge';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import {
   sendEmail,
   uint8ArrayToBase64,
@@ -30,20 +31,17 @@ import {
 } from '../../domain/email';
 import { triggerDownload } from '../../infra/zipExporter';
 import {
-  Mail,
   Send,
   CheckCircle2,
   AlertCircle,
   Download,
   Settings,
-  Flame,
   Pause,
   Play,
   RotateCcw,
   Eye,
   Paperclip,
   History,
-  Gauge,
 } from 'lucide-react';
 
 export interface EmailAttachmentFile {
@@ -90,28 +88,30 @@ const STATUS_BADGE: Record<EmailDeliveryRecord['status'], 'success' | 'error' | 
 
 const COPY = {
   certificates: {
-    title: 'Envío Automático de Certificados por Correo',
-    subtitle: 'Despacha los certificados en PDF adjuntos a cada destinatario automáticamente con un solo clic.',
-    senderPlaceholder: 'Ej: Emisión de Certificados UNI',
-    subjectPlaceholder: 'Tu Certificado — {nombre}',
-    bodyPlaceholder: 'Hola {nombre},\n\n¡Felicitaciones! Adjuntamos tu certificado oficial en formato PDF...\n\nSaludos cordiales,\nComité Organizador',
-    testDescription: 'Envíate un certificado de muestra para confirmar que el diseño y el correo llegan perfectamente antes del despacho masivo.',
-    testSuccess: (to: string) => `¡Certificado de prueba enviado con éxito a ${to}! Revisa tu bandeja de entrada o spam.`,
-    massTitle: 'Envío Masivo de Certificados',
-    massButton: (n: number) => `Enviar ${n} Certificados por Correo`,
+    title: 'Enviar por correo',
+    subtitle: 'Cada persona recibe su certificado adjunto en un correo propio.',
+    senderPlaceholder: 'Ej: Equipo de capacitación',
+    subjectPlaceholder: 'Tu certificado — {nombre}',
+    bodyPlaceholder: 'Hola {nombre},\n\nAdjuntamos tu certificado del curso.\n\nSaludos,\nEl equipo de capacitación',
+    testDescription: 'Te llega igual que a la primera persona de la lista, con su certificado adjunto.',
+    testSuccess: (to: string) => `Prueba enviada a ${to}. Si no la ves, revisa la carpeta de spam.`,
+    massTitle: 'Después, envía a tu lista',
+    massButton: (n: number) => `Revisar y enviar a ${n} ${n === 1 ? 'persona' : 'personas'}`,
+    attachmentLabel: 'Su certificado en PDF',
     sending: 'Enviando certificados...',
     reportPrefix: 'Reporte_Envios_Certificados',
   },
   mail: {
-    title: 'Personaliza tu mensaje',
-    subtitle: 'Cada persona recibe un correo individual y personalizado con los datos de su fila.',
+    title: 'Tu mensaje',
+    subtitle: 'Cada persona recibe un correo propio con los datos de su fila.',
     senderPlaceholder: 'Ej: Equipo de Eventos UNI',
     subjectPlaceholder: 'Hola {nombre}, tenemos novedades para ti',
-    bodyPlaceholder: 'Hola {nombre},\n\nTe escribimos para compartirte información importante...\n\nSaludos cordiales,\nEl equipo',
-    testDescription: 'Envíate el correo a ti primero para revisar cómo se ve antes de mandarlo a toda la lista.',
-    testSuccess: (to: string) => `¡Correo de prueba enviado con éxito a ${to}! Revisa tu bandeja de entrada o spam.`,
-    massTitle: 'Envío Masivo de Correos',
-    massButton: (n: number) => `Enviar ${n} ${n === 1 ? 'Correo' : 'Correos'}`,
+    bodyPlaceholder: 'Hola {nombre},\n\nTe escribimos para contarte...\n\nSaludos,\nEl equipo',
+    testDescription: 'Te llega igual que a la primera persona de la lista.',
+    testSuccess: (to: string) => `Prueba enviada a ${to}. Si no la ves, revisa la carpeta de spam.`,
+    massTitle: 'Después, envía a tu lista',
+    massButton: (n: number) => `Revisar y enviar a ${n} ${n === 1 ? 'persona' : 'personas'}`,
+    attachmentLabel: '',
     sending: 'Enviando correos...',
     reportPrefix: 'Reporte_Envios_Correos',
   },
@@ -156,6 +156,16 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+  // Correo al que llegó la última prueba con el mensaje actual (se invalida si el mensaje cambia)
+  const [testSentTo, setTestSentTo] = useState<string | null>(null);
+  useEffect(() => {
+    setTestSentTo(null);
+  }, [config.subject, config.htmlBody, config.senderName]);
+
+  // Acción irreversible esperando confirmación del usuario
+  const [pendingAction, setPendingAction] = useState<
+    { kind: 'start' | 'retry'; targets: Recipient[] } | { kind: 'new'; unsent: number } | null
+  >(null);
 
   // Envío masivo
   const recipientsWithEmail = recipients.filter(
@@ -270,6 +280,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
       if (result.ok) {
         setSendLog(recordSentEmail());
+        setTestSentTo(testEmail.trim());
         setTestFeedback({
           type: 'success',
           text: copy.testSuccess(testEmail.trim()),
@@ -414,39 +425,42 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
     setCurrentRecipientName(undefined);
   };
 
-  // Avisa si la lista supera el cupo que queda hoy; lo que no alcance quedará pendiente
-  const confirmQuota = (count: number): boolean => {
-    const quota = summarizeDailyQuota(loadSendLog());
-    if (count <= quota.remaining) return true;
-    return window.confirm(
-      `Vas a enviar ${count} correos, pero hoy solo te quedan ${quota.remaining} de ${quota.limit}. ` +
-        `Se enviarán ${quota.remaining} y el envío se pausará; el resto quedará pendiente para cuando se libere el cupo. ¿Continuar?`
-    );
-  };
-
+  // Las acciones irreversibles abren una confirmación con el detalle (ver ConfirmDialog más abajo)
   const handleStartMassEmail = () => {
     if (!ensureValidConfig()) return;
     if (recipientsWithEmail.length === 0) return;
-    if (!confirmQuota(recipientsWithEmail.length)) return;
+    setPendingAction({ kind: 'start', targets: recipientsWithEmail });
+  };
 
+  const handleRetryUnsent = () => {
+    if (!campaignRef.current || !ensureValidConfig()) return;
+    setPendingAction({ kind: 'retry', targets: getUnsentRecipients(campaignRef.current) });
+  };
+
+  const startCampaign = (targets: Recipient[]) => {
     const now = new Date().toISOString();
     commitCampaign({
       id: `camp_${Date.now()}`,
       startedAt: now,
       updatedAt: now,
       subject: config.subject,
-      recipients: recipientsWithEmail,
+      recipients: targets,
       records: {},
     });
     setResultsFilter('all');
-    runSend(recipientsWithEmail);
+    runSend(targets);
   };
 
-  const handleRetryUnsent = () => {
-    if (!campaignRef.current || !ensureValidConfig()) return;
-    const unsent = getUnsentRecipients(campaignRef.current);
-    if (!confirmQuota(unsent.length)) return;
-    runSend(unsent);
+  const handleConfirmPending = () => {
+    const action = pendingAction;
+    setPendingAction(null);
+    if (!action) return;
+    if (action.kind === 'start') startCampaign(action.targets);
+    else if (action.kind === 'retry') runSend(action.targets);
+    else {
+      commitCampaign(null);
+      setAutoPauseReason(null);
+    }
   };
 
   const handleCancelSend = () => {
@@ -461,12 +475,8 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
   const handleNewCampaign = () => {
     const unsent = campaignRef.current ? getUnsentRecipients(campaignRef.current).length : 0;
-    if (
-      unsent > 0 &&
-      !window.confirm(
-        `Aún hay ${unsent} ${unsent === 1 ? 'persona' : 'personas'} sin enviar. Si empiezas un envío nuevo se borrará este registro. ¿Continuar?`
-      )
-    ) {
+    if (unsent > 0) {
+      setPendingAction({ kind: 'new', unsent });
       return;
     }
     commitCampaign(null);
@@ -484,6 +494,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
   const unsentCount = summary ? summary.failed + summary.unconfirmed + summary.pending : 0;
   const isRunning = runStatus !== 'idle';
   const dailyQuota = summarizeDailyQuota(sendLog);
+  const pendingCount = pendingAction && pendingAction.kind !== 'new' ? pendingAction.targets.length : 0;
   const quotaPercent = (dailyQuota.sent / dailyQuota.limit) * 100;
   const campaignRecords = campaign ? getCampaignRecords(campaign) : [];
   const filteredRecords = campaignRecords.filter((r) => {
@@ -499,69 +510,60 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
     <div className={variant === 'certificates' ? 'mt-8 pt-8 border-t border-slate-200 space-y-6' : 'space-y-6'}>
       {/* Header de la sección de correo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#f0faf9] border border-[#b2e5df] flex items-center justify-center text-[#208077] shadow-xs">
-            <Mail className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              {copy.title}
-            </h3>
-            <p className="text-xs text-slate-500">
-              {copy.subtitle}
-            </p>
-          </div>
+        <div>
+          <h3 className="text-base font-bold text-[#0F2E2B]">{copy.title}</h3>
+          <p className="text-sm text-slate-600">{copy.subtitle}</p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            leftIcon={<Settings className="w-4 h-4 text-[#208077]" />}
+            leftIcon={<Settings className="w-4 h-4" />}
             onClick={() => setIsConfigOpen(!isConfigOpen)}
           >
-            {isConfigOpen ? 'Cerrar Ajustes' : 'Personalizar Mensaje'}
+            {isConfigOpen ? 'Ocultar mensaje' : 'Editar mensaje'}
           </Button>
         </div>
       </div>
 
       {/* Configuración desplegable */}
       {isConfigOpen && (
-        <Card className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 animate-fadeIn">
+        <Card className="p-5 space-y-4 animate-fadeIn">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-              Personalización del Correo
-            </span>
+            <span className="text-base font-bold text-[#0F2E2B]">Mensaje</span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
             {/* Columna Izquierda: Remitente y Asunto */}
             <div className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">
-                  Nombre del Remitente
+                <label htmlFor="email-sender" className="text-sm font-semibold text-[#0F2E2B]">
+                  Nombre del remitente
                 </label>
                 <input
+                  id="email-sender"
                   type="text"
                   value={config.senderName}
                   onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
                   placeholder={copy.senderPlaceholder}
-                  className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
+                  className="w-full text-sm rounded-[6px] border border-slate-300 bg-white px-3 py-2 text-[#0F2E2B] focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">
-                  Asunto del Correo
+                <label htmlFor="email-subject" className="text-sm font-semibold text-[#0F2E2B]">
+                  Asunto
                 </label>
                 <input
+                  id="email-subject"
                   type="text"
                   value={config.subject}
                   onChange={(e) => setConfig({ ...config, subject: e.target.value })}
                   placeholder={copy.subjectPlaceholder}
-                  className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
+                  className="w-full text-sm rounded-[6px] border border-slate-300 bg-white px-3 py-2 text-[#0F2E2B] focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
                 />
-                <span className="text-[11px] text-slate-400 block pt-0.5">
+                <span className="text-xs text-slate-500 block pt-0.5">
                   Variables disponibles: <code className="text-slate-600 font-semibold">{'{nombre}'}</code>, <code className="text-slate-600 font-semibold">{'{correo}'}</code> y columnas del Excel.
                 </span>
               </div>
@@ -570,15 +572,15 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
             {/* Columna Derecha: Mensaje del Correo */}
             <div className="space-y-1 flex flex-col">
               <div className="flex items-center justify-between flex-wrap gap-2 pb-0.5">
-                <label className="text-xs font-semibold text-slate-700">
-                  Mensaje del Correo
+                <label htmlFor="email-body" className="text-sm font-semibold text-[#0F2E2B]">
+                  Mensaje
                 </label>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-slate-400 font-medium mr-0.5 hidden sm:inline">Insertar:</span>
+                  <span className="text-xs text-slate-400 font-medium mr-0.5 hidden sm:inline">Insertar:</span>
                   <button
                     type="button"
                     onClick={() => insertVariable('nombre')}
-                    className="text-[10px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer shadow-2xs"
+                    className="text-xs font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer"
                     title="Insertar {nombre} en la posición del cursor"
                   >
                     + {'{nombre}'}
@@ -586,7 +588,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => insertVariable('correo')}
-                    className="text-[10px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer shadow-2xs"
+                    className="text-xs font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer"
                     title="Insertar {correo} en la posición del cursor"
                   >
                     + {'{correo}'}
@@ -596,20 +598,20 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                       key={varName}
                       type="button"
                       onClick={() => insertVariable(varName)}
-                      className="text-[10px] font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer shadow-2xs"
+                      className="text-xs font-semibold text-[#208077] bg-white hover:bg-[#f0faf9] border border-[#b2e5df] px-2 py-0.5 rounded-md transition-colors cursor-pointer"
                       title={`Insertar {${varName}} en la posición del cursor`}
                     >
                       + {`{${varName}}`}
                     </button>
                   ))}
                   <div className="h-3.5 w-px bg-slate-200 mx-0.5" />
-                  <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs text-[11px]">
+                  <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
                     <button
                       type="button"
                       onClick={() => setEmailViewMode('write')}
                       className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
                         emailViewMode === 'write'
-                          ? 'bg-[#208077] text-white font-semibold shadow-2xs'
+                          ? 'bg-[#208077] text-white font-semibold'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
@@ -620,7 +622,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                       onClick={() => setEmailViewMode('preview')}
                       className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1 ${
                         emailViewMode === 'preview'
-                          ? 'bg-[#208077] text-white font-semibold shadow-2xs'
+                          ? 'bg-[#208077] text-white font-semibold'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
@@ -634,24 +636,22 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
               {emailViewMode === 'write' ? (
                 <>
                   <textarea
+                    id="email-body"
                     ref={textareaRef}
                     rows={7}
                     value={config.htmlBody}
                     onChange={(e) => setConfig({ ...config, htmlBody: e.target.value })}
                     placeholder={copy.bodyPlaceholder}
-                    className="w-full flex-1 min-h-[175px] text-xs font-sans rounded-xl border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077] resize-y leading-relaxed shadow-2xs"
+                    className="w-full flex-1 min-h-[175px] text-sm font-sans rounded-[6px] border border-slate-300 bg-white p-3 text-slate-900 focus:ring-2 focus:ring-[#208077] focus:border-[#208077] resize-y leading-relaxed"
                   />
-                  <span className="text-[11px] text-slate-500 leading-snug pt-0.5 flex items-start gap-1">
-                    <span>💡</span>
-                    <span>
-                      Escribe texto normal con saltos de línea (Enter). <strong>No necesitas saber HTML</strong>: el sistema le da formato elegante automáticamente al enviar.
-                    </span>
+                  <span className="text-xs text-slate-500 leading-snug pt-0.5">
+                    Escribe texto normal; los saltos de línea se respetan al enviar.
                   </span>
                 </>
               ) : (
-                <div className="w-full min-h-[195px] rounded-xl border border-slate-200 bg-white p-4 text-xs shadow-2xs flex flex-col justify-between animate-fadeIn">
+                <div className="w-full min-h-[195px] rounded-[6px] border border-slate-200 bg-white p-4 text-xs flex flex-col justify-between animate-fadeIn">
                   <div className="space-y-3">
-                    <div className="border-b border-slate-100 pb-2 text-[11px] text-slate-500 space-y-1">
+                    <div className="border-b border-slate-100 pb-2 text-xs text-slate-500 space-y-1">
                       <p>
                         <strong className="text-slate-700">De:</strong> {config.senderName || copy.senderPlaceholder}
                       </p>
@@ -681,7 +681,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                     />
                   </div>
                   {buildAttachment && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg">
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
                       <Paperclip className="w-3.5 h-3.5 text-[#208077]" />
                       <span className="font-semibold text-slate-800">Archivo adjunto:</span>
                       <span className="font-mono text-slate-500 truncate">
@@ -700,12 +700,9 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
       <Card className="p-4 sm:p-5 border border-slate-200 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#f0faf9] border border-[#b2e5df] text-[#208077] flex items-center justify-center shrink-0">
-              <Gauge className="w-4 h-4" />
-            </div>
             <div>
-              <h4 className="text-sm font-bold text-slate-900">Cupo diario de Gmail</h4>
-              <p className="text-[11px] text-slate-500">
+              <h4 className="text-sm font-bold text-[#0F2E2B]">Cupo diario de envío</h4>
+              <p className="text-xs text-slate-500">
                 {dailyQuota.sent} enviados en las últimas 24 h ·{' '}
                 <strong className={dailyQuota.remaining === 0 ? 'text-rose-600' : 'text-[#208077]'}>
                   te quedan {dailyQuota.remaining}
@@ -715,7 +712,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
             </div>
           </div>
           {dailyQuota.nextReleaseAt && (
-            <span className="text-[11px] text-slate-500">
+            <span className="text-xs text-slate-500">
               Próximo cupo libre: {formatDateTime(dailyQuota.nextReleaseAt)}
             </span>
           )}
@@ -728,9 +725,8 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
             style={{ width: `${Math.min(100, quotaPercent)}%` }}
           />
         </div>
-        <p className="text-[11px] text-slate-400 leading-snug">
-          Google cuenta 24 horas desde cada envío, no se reinicia a medianoche. Este contador solo incluye lo enviado
-          desde esta app en este navegador; los correos que mandes directamente desde Gmail también consumen el cupo.
+        <p className="text-xs text-slate-500 leading-snug">
+          Contado en este navegador. Cada envío libera su cupo 24 horas después.
         </p>
       </Card>
 
@@ -739,11 +735,13 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         {/* Bloque Izquierdo: Prueba Individual */}
         <Card className="p-5 sm:p-6 border border-slate-200 flex flex-col justify-between gap-4">
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shrink-0">
-                <Flame className="w-4 h-4" />
-              </div>
-              <h4 className="text-sm font-bold text-slate-900">Envío de Prueba Individual</h4>
+            <div className="flex items-center justify-between gap-2.5">
+              <h4 className="text-base font-bold text-slate-900">Primero, envíate una prueba</h4>
+              {testSentTo && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#208077]">
+                  <CheckCircle2 className="w-4 h-4" /> Prueba enviada
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500">
               {copy.testDescription}
@@ -757,15 +755,15 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
                 placeholder="tu.correo@ejemplo.com"
-                className="flex-1 text-xs rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
+                className="flex-1 text-xs rounded-[6px] border border-slate-300 bg-slate-50/50 px-3 py-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#208077] focus:border-[#208077]"
               />
               <Button
-                variant="primary"
+                variant={testSentTo ? 'outline' : 'primary'}
                 size="md"
                 isLoading={isSendingTest}
                 leftIcon={<Send className="w-3.5 h-3.5" />}
                 onClick={handleSendTestEmail}
-                className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 px-4 py-2.5 text-xs font-semibold shadow-xs"
+                className="shrink-0"
               >
                 Enviar prueba
               </Button>
@@ -773,7 +771,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
             {testFeedback && (
               <div
-                className={`p-3 rounded-xl text-xs flex items-center justify-between gap-2 animate-fadeIn border ${
+                className={`p-3 rounded-[6px] text-xs flex items-center justify-between gap-2 animate-fadeIn border ${
                   testFeedback.type === 'success'
                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     : 'bg-rose-50 text-rose-800 border-rose-200'
@@ -806,12 +804,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           {!campaign && (
             <>
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#f0faf9] border border-[#b2e5df] text-[#208077] flex items-center justify-center shrink-0">
-                    <Send className="w-4 h-4" />
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-900">{copy.massTitle}</h4>
-                </div>
+                <h4 className="text-base font-bold text-slate-900">{copy.massTitle}</h4>
                 <p className="text-xs text-slate-500">
                   {recipientsWithEmail.length} de {recipients.length} personas tienen correo electrónico asignado.
                 </p>
@@ -819,12 +812,12 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
 
               <div className="pt-2">
                 <Button
-                  variant="primary"
+                  variant={testSentTo ? 'primary' : 'outline'}
                   size="md"
                   leftIcon={<Send className="w-4 h-4" />}
                   onClick={handleStartMassEmail}
                   disabled={recipientsWithEmail.length === 0}
-                  className="w-full bg-[#208077] hover:bg-[#18655e] shadow-sm justify-center py-2.5 text-xs font-semibold"
+                  className="w-full justify-center"
                 >
                   {copy.massButton(recipientsWithEmail.length)}
                 </Button>
@@ -845,7 +838,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                       ? '¡Envío completado!'
                       : 'Envío incompleto'}
                   </h4>
-                  <p className="text-[11px] text-slate-500 truncate">
+                  <p className="text-xs text-slate-500 truncate">
                     Iniciado el {formatDateTime(campaign.startedAt)}
                   </p>
                 </div>
@@ -874,24 +867,24 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
               </div>
 
               {isRunning && currentRecipientName && (
-                <p className="text-[11px] text-slate-500 font-mono truncate">{currentRecipientName}</p>
+                <p className="text-xs text-slate-500 tabular-nums truncate">{currentRecipientName}</p>
               )}
 
               {isRunning && (
-                <p className="text-[11px] text-slate-500 leading-snug">
+                <p className="text-xs text-slate-500 leading-snug">
                   Mantén esta pestaña abierta y visible. El progreso se guarda después de cada correo.
                 </p>
               )}
 
               {autoPauseReason && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2 animate-fadeIn">
+                <div className="p-3 rounded-[6px] bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2 animate-fadeIn">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <span className="leading-snug">{autoPauseReason}</span>
                 </div>
               )}
 
               {!isRunning && wasRestored && unsentCount > 0 && (
-                <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-start gap-2 animate-fadeIn">
+                <div className="p-3 rounded-[6px] bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-start gap-2 animate-fadeIn">
                   <History className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                   <span className="leading-snug">
                     Recuperamos tu envío anterior (último avance: {formatDateTime(campaign.updatedAt)}).
@@ -901,7 +894,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
               )}
 
               {!isRunning && summary.unconfirmed > 0 && (
-                <p className="text-[11px] text-amber-700 leading-snug">
+                <p className="text-xs text-amber-700 leading-snug">
                   {summary.unconfirmed === 1 ? '1 correo quedó' : `${summary.unconfirmed} correos quedaron`} sin
                   confirmar porque la página se cerró mientras se enviaba. Se incluirá en el reintento, así que esa
                   persona podría recibirlo dos veces.
@@ -965,7 +958,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         <Card className="p-5 sm:p-6 border border-slate-200 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h4 className="text-sm font-bold text-slate-900">Detalle del envío por persona</h4>
-            <div className="inline-flex flex-wrap rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[11px]">
+            <div className="inline-flex flex-wrap rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
               {([
                 ['all', `Todos (${summary.total})`],
                 ['sent', `Enviados (${summary.sent})`],
@@ -978,7 +971,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                   onClick={() => setResultsFilter(key)}
                   className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
                     resultsFilter === key
-                      ? 'bg-white text-slate-900 font-semibold shadow-2xs'
+                      ? 'bg-white text-slate-900 font-semibold'
                       : 'text-slate-500 hover:text-slate-900'
                   }`}
                 >
@@ -988,7 +981,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
             </div>
           </div>
 
-          <div className="overflow-auto rounded-xl border border-slate-200 max-h-80">
+          <div className="overflow-auto rounded-[6px] border border-slate-200 max-h-80">
             <table className="min-w-full divide-y divide-slate-200 text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0">
                 <tr>
@@ -1002,7 +995,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
               <tbody className="divide-y divide-slate-100 bg-white">
                 {filteredRecords.map((r, idx) => (
                     <tr key={r.recipientId}>
-                      <td className="px-3 py-1.5 text-slate-400 font-mono text-[11px]">{idx + 1}</td>
+                      <td className="px-3 py-1.5 text-slate-400 tabular-nums text-xs">{idx + 1}</td>
                       <td className="px-3 py-1.5 text-slate-800 truncate max-w-[180px]">{r.name}</td>
                       <td className="px-3 py-1.5 text-slate-600 truncate max-w-[220px]">{r.email}</td>
                       <td className="px-3 py-1.5">
@@ -1010,7 +1003,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
                           {r.status === 'sending' && isRunning ? 'Enviando…' : STATUS_LABEL[r.status]}
                         </Badge>
                       </td>
-                      <td className="px-3 py-1.5 text-rose-600 text-[11px] max-w-[260px] truncate" title={r.errorMessage}>
+                      <td className="px-3 py-1.5 text-rose-600 text-xs max-w-[260px] truncate" title={r.errorMessage}>
                         {r.errorMessage || ''}
                       </td>
                     </tr>
@@ -1027,6 +1020,95 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
           </div>
         </Card>
       )}
+
+      <ConfirmDialog
+        isOpen={pendingAction !== null}
+        title={
+          pendingAction?.kind === 'new'
+            ? '¿Empezar un envío nuevo?'
+            : `¿Enviar a ${pendingCount} ${pendingCount === 1 ? 'persona' : 'personas'}?`
+        }
+        confirmLabel={
+          pendingAction?.kind === 'new'
+            ? 'Borrar registro y empezar'
+            : `Enviar a ${pendingCount} ${pendingCount === 1 ? 'persona' : 'personas'}`
+        }
+        tone={pendingAction?.kind === 'new' ? 'danger' : 'primary'}
+        onConfirm={handleConfirmPending}
+        onCancel={() => setPendingAction(null)}
+      >
+        {pendingAction?.kind === 'new' && (
+          <p className="text-slate-600">
+            Aún {pendingAction.unsent === 1 ? 'hay 1 persona' : `hay ${pendingAction.unsent} personas`} sin enviar. Se
+            borrará el registro de este envío y no podrás reintentarlo.
+          </p>
+        )}
+        {pendingAction && pendingAction.kind !== 'new' && pendingAction.targets[0] && (
+          <SendSummary
+            targets={pendingAction.targets}
+            config={config}
+            attachmentLabel={copy.attachmentLabel}
+            testSentTo={testSentTo}
+            remainingQuota={dailyQuota.remaining}
+          />
+        )}
+      </ConfirmDialog>
     </div>
   );
 };
+
+/** Resumen de lo que se va a enviar, con el correo de la primera persona tal como lo recibirá. */
+const SendSummary: React.FC<{
+  targets: Recipient[];
+  config: EmailConfig;
+  attachmentLabel: string;
+  testSentTo: string | null;
+  remainingQuota: number;
+}> = ({ targets, config, attachmentLabel, testSentTo, remainingQuota }) => {
+  const first = targets[0];
+  const body = interpolateEmailVariables(config.htmlBody, first, { escapeForHtml: false });
+  const rows: [string, string][] = [
+    ['Para', `${targets.length} ${targets.length === 1 ? 'persona' : 'personas'}, empezando por ${first.name || first.email}`],
+    ['Remitente', `${config.senderName || 'Uniautomate'} · desde el Gmail de Uniautomate`],
+    ['Asunto', interpolateEmailVariables(config.subject, first)],
+  ];
+  if (attachmentLabel) rows.push(['Adjunto', attachmentLabel]);
+
+  return (
+    <div className="space-y-4">
+      <dl className="border-t border-[#0F2E2B]/12">
+        {rows.map(([label, value]) => (
+          <div key={label} className="grid grid-cols-[6.5rem_1fr] gap-3 border-b border-[#0F2E2B]/12 py-2">
+            <dt className="text-xs font-semibold uppercase leading-5 tracking-[0.08em] [font-stretch:80%] text-[#208077]">
+              {label}
+            </dt>
+            <dd className="min-w-0 break-words">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div>
+        <p className="text-xs font-semibold text-slate-600">Así lo recibirá {first.name || first.email}:</p>
+        <p className="mt-1.5 max-h-36 overflow-auto whitespace-pre-line rounded-[6px] border border-[#0F2E2B]/12 bg-slate-50 p-3 text-sm leading-relaxed">
+          {body}
+        </p>
+      </div>
+      {testSentTo ? (
+        <p className="flex items-center gap-1.5 text-sm text-[#208077]">
+          <CheckCircle2 className="h-4 w-4 shrink-0" /> Ya te enviaste una prueba a {testSentTo}.
+        </p>
+      ) : (
+        <p className="flex items-start gap-1.5 text-sm text-amber-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> Aún no te enviaste una prueba con este mensaje.
+        </p>
+      )}
+      {targets.length > remainingQuota && (
+        <p className="flex items-start gap-1.5 text-sm text-amber-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          Hoy te quedan {remainingQuota} envíos: se enviarán {remainingQuota} y el resto quedará pendiente para cuando se
+          libere el cupo.
+        </p>
+      )}
+    </div>
+  );
+};
+

@@ -3,9 +3,11 @@ import { ColumnMapping, FieldBox } from '../../domain/types';
 import { columnFields, isQrField, unassignedColumnFields } from '../../domain/fields';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
+import { StepActions } from '../../ui/StepActions';
 import { Dropzone } from '../../ui/Dropzone';
 import { parseCSV, parseTXT, parseExcel, detectColumns, ParsedTableData } from '../../infra/parsers';
-import { ChevronLeft, FileSpreadsheet, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, Trash2, QrCode } from 'lucide-react';
+import { triggerDownload } from '../../infra/zipExporter';
+import { FileSpreadsheet, AlertCircle, AlertTriangle, RefreshCw, Trash2, QrCode, Download } from 'lucide-react';
 
 interface RecipientsStepProps {
   tableData: ParsedTableData | null;
@@ -40,6 +42,16 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
   const [error, setError] = useState<string | null>(null);
   const fieldsWithColumn = columnFields(fields);
   const missingColumns = tableData ? unassignedColumnFields(fields, tableData.headers) : [];
+  // Primer motivo por el que todavía no se puede continuar (se muestra junto al botón)
+  const continueBlocker = !tableData
+    ? 'Sube tu lista de participantes'
+    : !keyColumn
+    ? isMail
+      ? 'Elige la columna de correos'
+      : 'Elige la columna de nombres'
+    : missingColumns.length > 0
+    ? `Elige la columna para «${missingColumns[0].name}»`
+    : undefined;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileSelect = async (file: File) => {
@@ -125,322 +137,233 @@ export const RecipientsStep: React.FC<RecipientsStepProps> = ({
     return null;
   }, [tableData, mapping.nameColumn]);
 
+  const handleDownloadSample = () => {
+    const sample = isMail
+      ? 'nombre,correo\nAna María Pérez,ana.perez@example.com\nLuis Fernando Quispe,luis.quispe@example.com\n'
+      : 'nombre,correo\nAna María Pérez Rodríguez,ana.perez@example.com\nLuis Fernando Quispe,luis.quispe@example.com\n';
+    // BOM para que Excel abra las tildes correctamente
+    triggerDownload(new Blob(['﻿' + sample], { type: 'text/csv;charset=utf-8' }), 'ejemplo-lista.csv');
+  };
+
+  const selectClass = (warn: boolean) =>
+    `w-full rounded-[6px] border bg-white px-3 py-2 text-sm text-[#0F2E2B] focus:border-[#208077] focus:outline-none focus:ring-2 focus:ring-[#208077]/20 ${
+      warn ? 'border-amber-400' : 'border-slate-300'
+    }`;
+
+  const columnHint = (text: string) => <span className="ml-1 font-normal text-slate-500">{text}</span>;
+
+  const fieldWarning = (message: string) => (
+    <p className="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-amber-700">
+      <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {message}
+    </p>
+  );
+
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            {isMail ? 'Carga tu base de contactos' : 'Carga la lista de destinatarios'}
-          </h2>
-          <p className="text-sm text-slate-600 mt-1">
-            {isMail
-              ? 'Sube tu archivo Excel o CSV con los correos de las personas a quienes quieres escribir.'
-              : 'Sube tu archivo de Excel con los nombres de las personas a quienes se emitirá el certificado.'}
-          </p>
-        </div>
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
-          {onBack && (
-            <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
-              Atrás
-            </Button>
-          )}
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={!tableData || !(isMail ? mapping.emailColumn : mapping.nameColumn) || missingColumns.length > 0}
-            onClick={onContinue}
-            className="flex-1 sm:flex-none justify-center"
-          >
-            {isMail ? 'Continuar a Redactar' : 'Revisar Destinatarios'}
-          </Button>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+          {isMail ? 'Carga tus contactos' : 'Carga la lista de participantes'}
+        </h2>
+        <p className="text-sm text-slate-600 mt-1">
+          {isMail
+            ? 'Un Excel o CSV con una columna de correos. Si tiene nombres, podrás saludar a cada persona.'
+            : 'Un Excel o CSV con una columna de nombres. Si tiene correos, podrás enviar los certificados.'}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Upload Column (Left - 33% / 4 cols) */}
-        <div className="lg:col-span-4 flex flex-col gap-4 h-full">
-          <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-center">
-            <Dropzone
-              accept=".xlsx,.xls,.csv"
-              acceptLabel="Excel o CSV"
-              maxSizeMB={10}
-              title="Arrastra tu archivo Excel aquí"
-              description="o haz clic para explorar en tu equipo"
-              icon={<FileSpreadsheet className="w-6 h-6 stroke-[1.75]" />}
-              onFileSelect={handleFileSelect}
-              compact
-              hideBadge
-              className="flex-1 h-full"
-            />
+      <StepActions
+        onBack={onBack}
+        primaryLabel="Continuar"
+        onPrimary={onContinue}
+        primaryDisabled={!!continueBlocker}
+        disabledReason={continueBlocker}
+      />
 
-            {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2 mt-3 shrink-0">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-          </Card>
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-[6px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
+      )}
 
-          {/* Tarjeta de requisitos de formato del archivo */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 text-xs shrink-0">
-            <div className="flex items-center gap-2 font-bold text-slate-800">
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Formato admitido del Excel</span>
-            </div>
-            <p className="text-[12px] text-slate-600 leading-relaxed">
-              Para que el sistema funcione correctamente, tu archivo debe incluir al menos:
+      {!tableData ? (
+        <Card className="p-4 sm:p-6">
+          <Dropzone
+            accept=".xlsx,.xls,.csv"
+            acceptLabel="Excel o CSV"
+            maxSizeMB={10}
+            title="Arrastra tu Excel o CSV aquí"
+            description="o haz clic para elegirlo"
+            icon={<FileSpreadsheet className="w-6 h-6 stroke-[1.75]" />}
+            onFileSelect={handleFileSelect}
+            hideBadge
+            className="min-h-[220px]"
+          />
+          <p className="mt-4 text-sm text-slate-600">
+            La primera fila debe tener los títulos de las columnas.{' '}
+            <button
+              type="button"
+              onClick={handleDownloadSample}
+              className="inline-flex items-center gap-1 font-semibold text-[#208077] underline underline-offset-2 hover:text-[#18655E]"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              Descargar ejemplo
+            </button>
+          </p>
+        </Card>
+      ) : (
+        <Card className="p-0 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+            <p className="text-sm text-slate-700">
+              <span className="font-bold tabular-nums text-[#0F2E2B]">{tableData.rows.length}</span>{' '}
+              {tableData.rows.length === 1 ? 'persona en la lista' : 'personas en la lista'}
+              <span className="text-slate-500">
+                {' · '}
+                {tableData.headers.length} {tableData.headers.length === 1 ? 'columna' : 'columnas'}
+              </span>
             </p>
-            <div className="space-y-2 pt-1 text-[11px] text-slate-600">
-              <div className="flex items-start gap-2.5 bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-[#208077] mt-1 shrink-0" />
-                <div>
-                  <strong className="text-slate-900 block text-xs">Columna de Nombres</strong>
-                  <span className="text-slate-500">
-                    {isMail
-                      ? 'Opcional. Te permite saludar a cada persona por su nombre con {nombre}.'
-                      : 'Obligatoria para personalizar el texto en cada certificado.'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5 bg-white p-2.5 rounded-xl border border-slate-100 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-[#208077] mt-1 shrink-0" />
-                <div>
-                  <strong className="text-slate-900 block text-xs">Columna de Correos</strong>
-                  <span className="text-slate-500">
-                    {isMail
-                      ? 'Obligatoria. Es la dirección a la que llegará cada correo.'
-                      : 'Necesaria si vas a enviar los certificados por correo electrónico.'}
-                  </span>
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                  e.target.value = '';
+                }}
+              />
+              <Button variant="outline" size="sm" leftIcon={<RefreshCw className="h-4 w-4" />} onClick={() => fileInputRef.current?.click()}>
+                Cambiar archivo
+              </Button>
+              <Button variant="ghost" size="sm" leftIcon={<Trash2 className="h-4 w-4" />} onClick={onClearData}>
+                Quitar
+              </Button>
             </div>
           </div>
-        </div>
 
-        {/* Column Mapping & Data Preview (Right - 67% / 8 cols) */}
-        <div className="lg:col-span-8 flex flex-col h-full">
-          {tableData ? (
-            <Card className="p-6 flex flex-col justify-between h-full space-y-5">
-              <div className="space-y-4 flex-1 flex flex-col min-h-0">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-sm font-bold text-slate-900">
-                      {tableData.rows.length} registros detectados
-                    </span>
-                    <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-mono">
-                      {tableData.headers.length} {tableData.headers.length === 1 ? 'columna' : 'columnas'}
-                    </span>
-                  </div>
+          {/* Qué columna alimenta cada dato del certificado */}
+          <fieldset className="px-4 py-4 sm:px-5">
+            <legend className="sr-only">Columnas</legend>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label htmlFor="col-name" className="mb-1.5 block text-sm font-semibold text-[#0F2E2B]">
+                  Nombres{isMail ? columnHint('opcional') : null}
+                </label>
+                <select
+                  id="col-name"
+                  value={mapping.nameColumn}
+                  onChange={(e) => onMappingChange({ ...mapping, nameColumn: e.target.value })}
+                  className={selectClass(Boolean(nameWarning))}
+                >
+                  {isMail && <option value="">Ninguna</option>}
+                  {tableData.headers.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+                {nameWarning && fieldWarning(nameWarning)}
+              </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileSelect(file);
-                        e.target.value = '';
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-[#208077] bg-[#f0faf9] hover:bg-[#b2e5df]/40 border border-[#b2e5df] rounded-lg transition-colors shadow-2xs cursor-pointer"
-                      title="Seleccionar otro archivo Excel o CSV"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Cambiar documento</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onClearData}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors shadow-2xs cursor-pointer"
-                      title="Quitar este documento y limpiar los registros"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Quitar</span>
-                    </button>
-                  </div>
-                </div>
+              <div>
+                <label htmlFor="col-email" className="mb-1.5 block text-sm font-semibold text-[#0F2E2B]">
+                  Correos{isMail ? null : columnHint('opcional')}
+                </label>
+                <select
+                  id="col-email"
+                  value={mapping.emailColumn || ''}
+                  onChange={(e) => onMappingChange({ ...mapping, emailColumn: e.target.value || undefined })}
+                  className={selectClass(Boolean(emailWarning))}
+                >
+                  <option value="">{isMail ? 'Elige una columna' : 'Ninguna'}</option>
+                  {tableData.headers.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+                {emailWarning && fieldWarning(emailWarning)}
+              </div>
 
-                {/* Mapping Selectors */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shrink-0">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 block">
-                      Columna de Nombres{' '}
-                      {isMail ? (
-                        <span className="text-slate-400 font-normal">(Opcional)</span>
-                      ) : (
-                        <span className="text-rose-500">*</span>
-                      )}
-                    </label>
-                    <select
-                      value={mapping.nameColumn}
-                      onChange={(e) => onMappingChange({ ...mapping, nameColumn: e.target.value })}
-                      className={`w-full text-xs font-semibold rounded-xl border p-2.5 focus:ring-2 focus:ring-[#208077] focus:bg-white transition-colors ${
-                        nameWarning
-                          ? 'border-amber-400 bg-amber-50/50 text-slate-900'
-                          : 'border-[#b2e5df] bg-[#f0faf9] text-slate-900'
-                      }`}
-                    >
-                      {isMail && <option value="">-- Ninguna --</option>}
-                      {tableData.headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
-
-                    {nameWarning && (
-                      <div className="p-2 bg-amber-50 border border-amber-200/90 rounded-lg text-amber-800 text-[11px] flex items-start gap-1.5 mt-1 animate-fadeIn">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                        <p className="leading-snug">{nameWarning}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 block">
-                      Columna de Correo {isMail && <span className="text-rose-500">*</span>}
-                    </label>
-                    <select
-                      value={mapping.emailColumn || ''}
-                      onChange={(e) =>
-                        onMappingChange({ ...mapping, emailColumn: e.target.value || undefined })
-                      }
-                      className={`w-full text-xs font-medium rounded-xl border p-2.5 focus:ring-2 focus:ring-[#208077] focus:bg-white transition-colors ${
-                        emailWarning
-                          ? 'border-amber-400 bg-amber-50/50 text-slate-800'
-                          : 'border-slate-200 bg-slate-50 text-slate-800'
-                      }`}
-                    >
-                      <option value="">{isMail ? '-- Selecciona una columna --' : '-- Ninguna --'}</option>
-                      {tableData.headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
-
-                    {emailWarning && (
-                      <div className="p-2 bg-amber-50 border border-amber-200/90 rounded-lg text-amber-800 text-[11px] flex items-start gap-1.5 mt-1 animate-fadeIn">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                        <p className="leading-snug">{emailWarning}</p>
-                      </div>
-                    )}
-                  </div>
-                
-                  {/* Columnas de los campos del certificado (curso, fecha, QR…), en la misma grilla */}
-                  {onFieldsChange &&
-                    fieldsWithColumn.map((f) => {
-                      const column = f.source.type === 'column' ? f.source.column : '';
-                      const isMissing = !tableData.headers.includes(column);
-                      return (
-                        <div key={f.id} className="space-y-1.5">
-                          <label htmlFor={`col-${f.id}`} className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            {isQrField(f) && <QrCode className="w-3.5 h-3.5 text-slate-500" aria-hidden />}
-                            {f.name} <span className="text-rose-500">*</span>
-                          </label>
-                          <select
-                            id={`col-${f.id}`}
-                            value={isMissing ? '' : column}
-                            onChange={(e) =>
-                              onFieldsChange(
-                                fields.map((x) =>
-                                  x.id === f.id ? { ...x, source: { type: 'column', column: e.target.value } } : x
-                                )
-                              )
-                            }
-                            aria-label={`Columna para ${f.name}`}
-                            className={`w-full text-xs font-medium rounded-xl border p-2.5 focus:ring-2 focus:ring-[#208077] focus:bg-white transition-colors ${
-                              isMissing ? 'border-amber-400 bg-amber-50/50 text-slate-800' : 'border-slate-200 bg-slate-50 text-slate-800'
-                            }`}
-                          >
-                            <option value="">-- Elige una columna --</option>
-                            {tableData.headers.map((h) => (
-                              <option key={h} value={h}>
-                                {h}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    })}
-                </div>
-
-                {missingColumns.length > 0 && onFieldsChange && (
-                  <p role="alert" className="-mt-2 text-[11px] text-amber-700 shrink-0">
-                    Elige la columna de {missingColumns.map((f) => `"${f.name}"`).join(', ')} para continuar.
-                  </p>
-                )}
-
-                {/* Data Preview Table */}
-                <div className="space-y-2 flex-1 flex flex-col min-h-0">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider shrink-0">
-                    <span>Vista previa del archivo ({tableData.rows.length} filas):</span>
-                    <span className="text-[11px] font-normal normal-case text-slate-400">
-                      Desplaza para revisar todos los registros
-                    </span>
-                  </div>
-                  <div className="overflow-auto rounded-xl border border-slate-200 flex-1 min-h-[220px] max-h-72 sm:max-h-80 shadow-xs">
-                    <table className="min-w-full divide-y divide-slate-200 text-xs">
-                      <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10 shadow-xs">
-                        <tr>
-                          <th className="px-3 py-2 text-left w-12 bg-slate-50">#</th>
-                          {tableData.headers.map((h) => (
-                            <th
-                              key={h}
-                              className={`px-3 py-2 text-left bg-slate-50 ${
-                                h === keyColumn ? 'text-[#208077] font-bold' : ''
-                              }`}
-                            >
-                              {h}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {tableData.rows.map((row, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-3 py-1.5 text-slate-400 font-mono text-[11px]">
-                              {idx + 1}
-                            </td>
-                            {tableData.headers.map((h) => (
-                              <td
-                                key={h}
-                                className={`px-3 py-1.5 truncate max-w-[180px] ${
-                                  h === keyColumn ? 'font-medium text-slate-900 bg-[#f0faf9]/80' : 'text-slate-600'
-                                }`}
-                              >
-                                {row[h] || '—'}
-                              </td>
-                            ))}
-                          </tr>
+              {/* Columnas de los campos del certificado (curso, fecha, QR…), en la misma grilla */}
+              {onFieldsChange &&
+                fieldsWithColumn.map((f) => {
+                  const column = f.source.type === 'column' ? f.source.column : '';
+                  const isMissing = !tableData.headers.includes(column);
+                  return (
+                    <div key={f.id}>
+                      <label htmlFor={`col-${f.id}`} className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#0F2E2B]">
+                        {isQrField(f) && <QrCode className="h-4 w-4 text-slate-500" aria-hidden />}
+                        {f.name}
+                      </label>
+                      <select
+                        id={`col-${f.id}`}
+                        value={isMissing ? '' : column}
+                        onChange={(e) =>
+                          onFieldsChange(
+                            fields.map((x) =>
+                              x.id === f.id ? { ...x, source: { type: 'column', column: e.target.value } } : x
+                            )
+                          )
+                        }
+                        aria-label={`Columna para ${f.name}`}
+                        className={selectClass(isMissing)}
+                      >
+                        <option value="">Elige una columna</option>
+                        {tableData.headers.map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+                      </select>
+                      {isMissing && fieldWarning('Falta elegir la columna.')}
+                    </div>
+                  );
+                })}
+            </div>
+          </fieldset>
 
-              <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
-                <span>Total cargado: {tableData.rows.length} filas</span>
-              </div>
-            </Card>
-          ) : (
-            <Card className="p-8 h-full flex flex-col items-center justify-center text-center text-slate-400 border-dashed">
-              <FileSpreadsheet className="w-12 h-12 mb-3 stroke-[1.25] text-slate-300" />
-              <p className="text-sm font-medium text-slate-600">Aún no has cargado ningún archivo</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                Sube tu archivo CSV o Excel en el panel de la izquierda para mapear columnas y ver la vista previa.
-              </p>
-            </Card>
-          )}
-        </div>
-      </div>
+          <div className="max-h-80 overflow-auto border-t border-slate-200">
+            <table className="w-full text-sm">
+              <caption className="sr-only">Contenido del archivo cargado</caption>
+              <thead className="sticky top-0 z-10 bg-[#E7F1EF] text-left text-xs font-semibold uppercase tracking-[0.08em] [font-stretch:80%] text-[#0F2E2B]">
+                <tr>
+                  <th scope="col" className="w-12 px-4 py-2 font-semibold">Fila</th>
+                  {tableData.headers.map((h) => (
+                    <th
+                      key={h}
+                      scope="col"
+                      className={`whitespace-nowrap px-4 py-2 font-semibold ${h === keyColumn ? 'text-[#208077]' : ''}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#0F2E2B]/[0.08]">
+                {tableData.rows.map((row, idx) => (
+                  <tr key={idx}>
+                    <td className="px-4 py-2 tabular-nums text-slate-500">{idx + 1}</td>
+                    {tableData.headers.map((h) => (
+                      <td
+                        key={h}
+                        className={`max-w-[220px] truncate px-4 py-2 ${
+                          h === keyColumn ? 'bg-[#F4F8F7] font-medium text-[#0F2E2B]' : 'text-slate-600'
+                        }`}
+                      >
+                        {row[h] || '—'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

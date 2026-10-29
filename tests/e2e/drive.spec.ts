@@ -125,26 +125,26 @@ async function fillCount(pdf: Uint8Array): Promise<number> {
 async function prepareBatchWithQr(page: Page) {
   await page.goto('/#certificados');
   await page.locator('input[type="file"]').first().setInputFiles(path.resolve(process.cwd(), 'tests/fixtures/page1.jpg'));
-  await page.locator('button:has-text("Continuar al siguiente paso")').click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
   // Paso 2: agregar el QR; por defecto abre el PDF en Drive
   await page.getByRole('button', { name: 'QR', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'PDF en Drive' })).toHaveAttribute('aria-checked', 'true');
   await page.screenshot({ path: 'test-results/drive-step2-qr.png', fullPage: true });
-  await page.locator('button:has-text("Guardar y Continuar")').click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
   await page.locator('input[type="file"]').setInputFiles(path.resolve(process.cwd(), 'tests/fixtures/destinatarios.csv'));
-  await expect(page.locator('text=registros detectados')).toBeVisible({ timeout: 10000 });
-  await page.locator('button:has-text("Revisar Destinatarios")').click();
-  await page.locator('button:has-text("Continuar a Generación")').click();
+  await expect(page.locator('text=personas en la lista')).toBeVisible({ timeout: 10000 });
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
   // Paso 5: Drive viene activado porque hay un QR que lo necesita
   await expect(page.getByRole('checkbox', { name: /Guardar en mi Google Drive/ })).toBeChecked();
   // Sin conectar la cuenta de Google no se puede empezar
-  await expect(page.locator('button:has-text("Comenzar Generación")')).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^Generar \d+ certificados?$/ })).toBeDisabled();
   await page.getByRole('button', { name: 'Conectar con Google' }).click();
   await expect(page.locator('text=Conectado como organizador@uni.pe')).toBeVisible();
-  await expect(page.locator('button:has-text("Comenzar Generación")')).toBeEnabled();
+  await expect(page.getByRole('button', { name: /^Generar \d+ certificados?$/ })).toBeEnabled();
 }
 
 test.describe('Certificados en Google Drive con QR', () => {
@@ -154,10 +154,10 @@ test.describe('Certificados en Google Drive con QR', () => {
 
     await page.getByRole('textbox', { name: 'Carpeta' }).fill('Certificados Software Week');
     await page.screenshot({ path: 'test-results/drive-step5-options.png', fullPage: true });
-    await page.locator('button:has-text("Comenzar Generación")').click();
+    await page.getByRole('button', { name: /^Generar \d+ certificados?$/ }).click();
 
-    await expect(page.locator('text=Certificados generados con éxito')).toBeVisible({ timeout: 30000 });
-    const total = Number((await page.locator('h2:has-text("generados con éxito")').textContent())!.match(/\d+/)![0]);
+    await expect(page.locator('text=certificados generados')).toBeVisible({ timeout: 30000 });
+    const total = Number((await page.locator('h2:has-text("certificados generados")').textContent())!.match(/\d+/)![0]);
     await expect(page.locator(`text=${total} de ${total} guardados`)).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('link', { name: 'Abrir carpeta' })).toHaveAttribute(
       'href',
@@ -194,10 +194,10 @@ test.describe('Certificados en Google Drive con QR', () => {
   test('si la sesión de Google vence a mitad, permite reconectar y sube solo lo que falta', async ({ page }) => {
     const mock = await mockGoogle(page, { failOnceWith401For: 'id-e2e-3' });
     await prepareBatchWithQr(page);
-    await page.locator('button:has-text("Comenzar Generación")').click();
+    await page.getByRole('button', { name: /^Generar \d+ certificados?$/ }).click();
 
-    await expect(page.locator('text=Certificados generados con éxito')).toBeVisible({ timeout: 30000 });
-    const total = Number((await page.locator('h2:has-text("generados con éxito")').textContent())!.match(/\d+/)![0]);
+    await expect(page.locator('text=certificados generados')).toBeVisible({ timeout: 30000 });
+    const total = Number((await page.locator('h2:has-text("certificados generados")').textContent())!.match(/\d+/)![0]);
     const reconnect = page.getByRole('button', { name: 'Reconectar y continuar' });
     await expect(reconnect).toBeVisible({ timeout: 15000 });
     await page.screenshot({ path: 'test-results/drive-needs-auth.png', fullPage: true });
@@ -221,9 +221,9 @@ test.describe('Certificados en Google Drive con QR', () => {
 
     await page.getByRole('button', { name: 'Cambiar cuenta' }).click();
     await expect(page.locator('text=Conectado como otra.cuenta@gmail.com')).toBeVisible();
-    await page.locator('button:has-text("Comenzar Generación")').click();
+    await page.getByRole('button', { name: /^Generar \d+ certificados?$/ }).click();
 
-    await expect(page.locator('text=Certificados generados con éxito')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('text=certificados generados')).toBeVisible({ timeout: 30000 });
     await expect(page.getByRole('link', { name: 'Abrir carpeta' })).toBeVisible({ timeout: 15000 });
     expect(mock.folders).toHaveLength(1);
     expect(mock.uploads.length).toBeGreaterThan(0);

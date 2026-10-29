@@ -11,8 +11,8 @@ export const Card: React.FC<CardProps> = ({ children, className, hoverEffect = f
     <div
       className={twMerge(
         clsx(
-          'bg-white border border-slate-200/80 rounded-2xl shadow-card transition-all duration-200',
-          hoverEffect && 'hover:shadow-lg hover:border-slate-300',
+          'bg-white border border-slate-200 rounded-[8px] shadow-card transition-colors duration-200',
+          hoverEffect && 'hover:border-slate-300',
           className
         )
       )}

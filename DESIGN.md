@@ -85,7 +85,10 @@ components:
 
 Structure comes from ruled tables and a typographic grid, never from rows of identical cards. The one physical object on the page is the certificate sheet, shown with real-looking content and labelled as sample data.
 
-Scope: this system is built on the landing (`src/features/landing/LandingPage.tsx`). The wizard and mailer screens still use the earlier Plus Jakarta Sans card UI; they inherit these colors and should move toward this system as they are rebuilt, not all at once.
+Scope: the system was built on the landing (`src/features/landing/LandingPage.tsx`) and is now applied app-wide at the token level:
+- `tailwind.config.js` sets Archivo as `sans`, redefines Tailwind's `slate` as ink-tinted neutrals and `emerald` as the brand-green ramp, so legacy `slate-*` / `emerald-*` classes in the wizard and mailer already render in this system.
+- Shared primitives follow it: `Button` (6px, flat), `Card` (8px, hairline), `Stepper`, `StepActions`, `ConfirmDialog`.
+- The wizard screens still keep their older card layouts inside; they are being rebuilt one step at a time (review → recipients → delivery → template → editor).
 
 ## Colors
 
@@ -138,6 +141,14 @@ Flat. The single elevated object is the certificate sheet: `0 24px 48px -24px rg
 
 ### Ruled table
 Real `<table>` elements with `scope` headers and an `sr-only` caption. Header row in condensed uppercase labels (on `table-head` when framed, or above a 2px ink rule when open); rows separated by ink/12 hairlines. On mobile the table switches to `display: block` and each row stacks; the header row hides and stacked values get an inline label where meaning would be lost (e.g. "Obtienes:").
+
+### App shell (wizard and mailer)
+- **Stepper:** real buttons with `aria-current="step"`; current step brand fill, completed `table-head` fill with a check, future hairline outline; below `sm` a "Paso n de N · Título" line replaces the hidden labels.
+- **StepActions:** fixed bottom bar on every step, "Atrás" (outline) left and the primary (brand, trailing arrow) right, sentence-case labels ("Continuar", "Generar 10 certificados"). When disabled it states why next to the button. Pages reserve `pb-28` for it.
+- **ConfirmDialog:** in-app alertdialog (portal, focus trapped, Esc closes, initial focus on "Cancelar") for irreversible actions; never `window.confirm`. Mass email shows recipients, sender, subject, attachment, the first recipient's rendered message, test-send status and quota impact before sending.
+- **Small text floor:** 12px (`text-xs`) for any interface text; nothing at 9–11px.
+- **Step pages:** left-aligned h2 plus one plain line of guidance; no recommendation cards. Data views (Lista, Revisión, Entrega) are ruled tables on `table-head`; status filters are a segmented button group (`aria-pressed`, counts in tabular numerals), never stat cards. Row actions are 32px icon buttons with a label naming the person or page.
+- **Step 5:** settings sheet before generating (PDF name, Google Drive); after generating, an "Entrega" table (Tu equipo / Google Drive) and the email flow as its own section. Every reset or bulk removal goes through ConfirmDialog.
 
 ### Navigation
 Sticky white header (95% opacity, light blur) with the full logo (`public/brand/logo-claro.svg`), four section links in ink-muted and a primary "Crear certificados" button (from `sm` up). Below `md` the links move into a disclosure menu (hamburger, 44px rows); below `sm` the header button hides because the cover CTA sits right under it.

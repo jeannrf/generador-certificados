@@ -54,10 +54,10 @@ test.describe('Plantillas multipágina', () => {
     await expect(pageList.locator('li').first()).toContainText('page1.jpg');
     await page.screenshot({ path: 'test-results/multipage-step1.png', fullPage: true });
 
-    await page.locator('button:has-text("Continuar al siguiente paso")').click();
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
     // 2. PASO 2: el nombre queda en la página 1; la página 3 empieza vacía
-    await expect(page.locator('text=Define la ubicación y el estilo de los campos')).toBeVisible();
+    await expect(page.locator('text=Ubica los datos en tu diseño')).toBeVisible();
     await expect(page.getByRole('tab', { name: /Pág\. 1/ })).toHaveAttribute('aria-selected', 'true');
     await page.getByRole('tab', { name: /Pág\. 3/ }).click();
     await expect(page.locator('text=Esta página no tiene campos')).toBeVisible();
@@ -72,17 +72,17 @@ test.describe('Plantillas multipágina', () => {
     await page.screenshot({ path: 'test-results/multipage-step2.png', fullPage: true });
 
     // La página 3 queda sin campos (reverso fijo)
-    await page.locator('button:has-text("Guardar y Continuar")').click();
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
     // 3. PASO 3: lista
     await page.locator('input[type="file"]').setInputFiles(path.resolve(process.cwd(), 'tests/fixtures/destinatarios.csv'));
-    await expect(page.locator('text=registros detectados')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=personas en la lista')).toBeVisible({ timeout: 10000 });
     // El campo "Curso" se asignó solo a la columna "Curso" de la lista
     await expect(page.getByRole('combobox', { name: 'Columna para Curso' })).toHaveValue('Curso');
-    await page.locator('button:has-text("Revisar Destinatarios")').click();
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
 
     // 4. PASO 4: la vista previa navega por páginas y muestra el curso en la página 2
-    await expect(page.locator('text=Revisión y validación de datos')).toBeVisible();
+    await expect(page.locator('text=Revisa los nombres')).toBeVisible();
     await page.getByRole('tab', { name: /Pág\. 2/ }).click();
     await expect(page.locator('text=Inteligencia Artificial Aplicada').first()).toBeVisible();
     await page.screenshot({ path: 'test-results/multipage-step4.png', fullPage: true });
@@ -96,15 +96,15 @@ test.describe('Plantillas multipágina', () => {
     ]);
 
     // 5. PASO 5: generación masiva
-    await page.locator('button:has-text("Continuar a Generación")').click();
-    await page.locator('button:has-text("Comenzar Generación")').click();
-    await expect(page.locator('text=Certificados generados con éxito')).toBeVisible({ timeout: 30000 });
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await page.getByRole('button', { name: /^Generar \d+ certificados?$/ }).click();
+    await expect(page.locator('text=certificados generados')).toBeVisible({ timeout: 30000 });
 
     // El ZIP trae un PDF de 3 páginas por persona
-    const generated = Number((await page.locator('h2:has-text("generados con éxito")').textContent())!.match(/\d+/)![0]);
+    const generated = Number((await page.locator('h2:has-text("certificados generados")').textContent())!.match(/\d+/)![0]);
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.locator('button:has-text("Descargar Archivo ZIP")').click(),
+      page.locator('button:has-text("Descargar ZIP")').click(),
     ]);
     const files = Object.values(unzipSync(readFileSync(await download.path())));
     expect(files).toHaveLength(generated);

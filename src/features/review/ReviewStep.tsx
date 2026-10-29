@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Recipient, TemplateData, FieldBox } from '../../domain/types';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
+import { StepActions } from '../../ui/StepActions';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { Badge } from '../../ui/Badge';
 import { transformTextCase } from '../../domain/normalization';
 import { calculateScreenFontSize } from '../../domain/layout';
@@ -25,18 +27,9 @@ import { PageTabs } from '../../ui/PageTabs';
 import { composeCertificatePdf } from '../../infra/pdfComposer';
 import { triggerDownload } from '../../infra/zipExporter';
 import { IndividualFieldModal } from './IndividualFieldModal';
-import {
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Trash2,
-  ChevronLeft,
-  Eye,
-  ChevronRight,
-  Filter,
-  Sliders,
-  FileDown,
-} from 'lucide-react';
+import { AlertTriangle, XCircle, Trash2, ChevronLeft, ChevronRight, Sliders, FileDown } from 'lucide-react';
+
+type StatusFilter = 'all' | 'valid' | 'warnings' | 'errors';
 
 interface ReviewStepProps {
   recipients: Recipient[];
@@ -44,7 +37,7 @@ interface ReviewStepProps {
   fields: FieldBox[];
   onUpdateRecipient: (updated: Recipient) => void;
   onRemoveRecipient: (id: string) => void;
-  onRemoveInvalid: () => void;
+  onRemoveRecipients: (ids: string[]) => void;
   onBack: () => void;
   onContinue: () => void;
 }
@@ -55,16 +48,17 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   fields,
   onUpdateRecipient,
   onRemoveRecipient,
-  onRemoveInvalid,
+  onRemoveRecipients,
   onBack,
   onContinue,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'valid' | 'warnings' | 'errors'>('all');
+  const [filter, setFilter] = useState<StatusFilter>('all');
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [customizingRecipient, setCustomizingRecipient] = useState<Recipient | null>(null);
   const [downloadingSample, setDownloadingSample] = useState<boolean>(false);
+  const [confirmingRemoveErrors, setConfirmingRemoveErrors] = useState<boolean>(false);
   const nameField = getNameField(fields) ?? createNameField(template.pages[0].id, template.pages[0]);
   const namePage = getPageForField(template, nameField);
   const [previewPageId, setPreviewPageId] = useState<string>(namePage.id);
@@ -106,14 +100,14 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  const hasError = (r: Recipient) => r.issues.some((i) => i.severity === 'error');
+  const hasOnlyWarnings = (r: Recipient) => !hasError(r) && r.issues.some((i) => i.severity === 'warning');
+
   // Estadísticas en tiempo real
   const totalCount = validatedRecipients.length;
-  const errorCount = validatedRecipients.filter((r) => r.issues.some((i) => i.severity === 'error')).length;
-  const warningCount = validatedRecipients.filter(
-    (r) =>
-      r.issues.some((i) => i.severity === 'warning') &&
-      !r.issues.some((i) => i.severity === 'error')
-  ).length;
+  const errorRecipients = validatedRecipients.filter(hasError);
+  const errorCount = errorRecipients.length;
+  const warningCount = validatedRecipients.filter(hasOnlyWarnings).length;
   const validCount = validatedRecipients.filter((r) => r.issues.length === 0).length;
 
   // Encontrar el nombre más largo
@@ -129,15 +123,17 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
 
   const filteredRecipients = validatedRecipients.filter((r) => {
     if (filter === 'valid') return r.issues.length === 0;
-    if (filter === 'warnings') {
-      return (
-        r.issues.some((i) => i.severity === 'warning') &&
-        !r.issues.some((i) => i.severity === 'error')
-      );
-    }
-    if (filter === 'errors') return r.issues.some((i) => i.severity === 'error');
+    if (filter === 'warnings') return hasOnlyWarnings(r);
+    if (filter === 'errors') return hasError(r);
     return true;
   });
+
+  const filterOptions: { value: StatusFilter; label: string; count: number; dot?: string }[] = [
+    { value: 'all', label: 'Todos', count: totalCount },
+    { value: 'valid', label: 'Listos', count: validCount, dot: 'bg-[#208077]' },
+    { value: 'warnings', label: 'Con aviso', count: warningCount, dot: 'bg-amber-500' },
+    { value: 'errors', label: 'Con error', count: errorCount, dot: 'bg-rose-500' },
+  ];
 
   // Todos los campos de la página visible, con el texto y los ajustes de la persona seleccionada
   const previewOverlays = currentPreviewRecipient
@@ -172,407 +168,309 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     }
   };
 
+  const selectRecipient = (id: string) => {
+    const idx = validatedRecipients.findIndex((r) => r.id === id);
+    if (idx !== -1) setPreviewIndex(idx);
+  };
+
+  const hasCustomField = (r: Recipient | undefined) => Boolean(r?.customField && Object.keys(r.customField).length > 0);
+  const overflowIssue = currentPreviewRecipient?.issues.find((i) => i.code === 'TEXT_OVERFLOW');
+  const segmentClass = (active: boolean) =>
+    `inline-flex min-h-9 items-center gap-2 rounded-[6px] px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#208077] focus-visible:ring-offset-1 ${
+      active ? 'bg-[#E7F1EF] font-semibold text-[#0F2E2B]' : 'text-slate-600 hover:bg-slate-50 hover:text-[#0F2E2B]'
+    }`;
+
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Revisión y validación de datos
-          </h2>
-          <p className="text-sm text-slate-600 mt-1">
-            Verifica los nombres antes de generar los PDFs y prueba cómo queda el nombre más largo.
-          </p>
-        </div>
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
-            Atrás
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={validCount + warningCount === 0}
-            onClick={onContinue}
-            className="flex-1 sm:flex-none justify-center"
-          >
-            <span className="hidden sm:inline">Continuar a Generación</span>
-            <span className="sm:hidden">Continuar</span> ({validCount + warningCount})
-          </Button>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Revisa los nombres</h2>
+        <p className="text-sm text-slate-600 mt-1">
+          Corrige lo que haga falta y mira cómo queda cada certificado antes de generarlo.
+        </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Total Lista */}
-        <div
-          onClick={() => setFilter('all')}
-          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-            filter === 'all'
-              ? 'bg-slate-100 border-slate-400 shadow-xs ring-2 ring-slate-300/80'
-              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
-          }`}
-        >
-          <span
-            className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
-              filter === 'all' ? 'text-slate-800' : 'text-slate-500'
-            }`}
-          >
-            Total Lista
-          </span>
-          <span className="text-2xl font-bold font-mono text-slate-900 transition-colors">
-            {totalCount}
-          </span>
-        </div>
+      <StepActions
+        onBack={onBack}
+        primaryLabel="Continuar"
+        onPrimary={onContinue}
+        primaryDisabled={validCount + warningCount === 0}
+        disabledReason="No hay personas listas para generar"
+      />
 
-        {/* Listos ✔ */}
-        <div
-          onClick={() => setFilter('valid')}
-          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-            filter === 'valid'
-              ? 'bg-slate-100 border-emerald-500 shadow-xs ring-2 ring-emerald-500/20'
-              : 'bg-white border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/20'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
-                filter === 'valid' ? 'text-emerald-800' : 'text-slate-500'
-              }`}
-            >
-              Listos ✔
-            </span>
-            <CheckCircle className="w-4 h-4 text-emerald-500 transition-colors" />
-          </div>
-          <span className="text-2xl font-bold font-mono text-emerald-600 transition-colors">
-            {validCount}
-          </span>
-        </div>
-
-        {/* Advertencias ⚠ */}
-        <div
-          onClick={() => setFilter('warnings')}
-          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-            filter === 'warnings'
-              ? 'bg-slate-100 border-amber-500 shadow-xs ring-2 ring-amber-500/20'
-              : 'bg-white border-slate-200 hover:border-amber-300 hover:bg-amber-50/20'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
-                filter === 'warnings' ? 'text-amber-800' : 'text-slate-500'
-              }`}
-            >
-              Advertencias ⚠
-            </span>
-            <AlertTriangle className="w-4 h-4 text-amber-500 transition-colors" />
-          </div>
-          <span className="text-2xl font-bold font-mono text-amber-600 transition-colors">
-            {warningCount}
-          </span>
-        </div>
-
-        {/* Errores ✖ */}
-        <div
-          onClick={() => setFilter('errors')}
-          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-            filter === 'errors'
-              ? 'bg-slate-100 border-rose-500 shadow-xs ring-2 ring-rose-500/20'
-              : 'bg-white border-slate-200 hover:border-rose-300 hover:bg-rose-50/20'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-xs uppercase tracking-wider font-semibold block transition-colors ${
-                filter === 'errors' ? 'text-rose-800' : 'text-slate-500'
-              }`}
-            >
-              Errores ✖
-            </span>
-            <XCircle className="w-4 h-4 text-rose-500 transition-colors" />
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold font-mono text-rose-600 transition-colors">
-              {errorCount}
-            </span>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Lista */}
+        <Card className="lg:col-span-7 p-0 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+            <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap gap-1">
+              {filterOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={filter === opt.value}
+                  onClick={() => setFilter(opt.value)}
+                  className={segmentClass(filter === opt.value)}
+                >
+                  {opt.dot && <span className={`h-2 w-2 rounded-full ${opt.dot}`} aria-hidden="true" />}
+                  {opt.label}
+                  <span className="tabular-nums text-slate-500">{opt.count}</span>
+                </button>
+              ))}
+            </div>
             {errorCount > 0 && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveInvalid();
-                }}
-                className={`text-[11px] font-semibold hover:underline transition-colors ${
-                  filter === 'errors'
-                    ? 'text-rose-300 hover:text-white'
-                    : 'text-rose-600 hover:text-rose-700'
-                }`}
+                type="button"
+                onClick={() => setConfirmingRemoveErrors(true)}
+                className="min-h-9 rounded-[6px] px-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
               >
-                Descartar errores
+                Quitar {errorCount === 1 ? 'el registro' : `los ${errorCount} registros`} con error
               </button>
             )}
           </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Recipients Table */}
-        <div className="lg:col-span-7 flex flex-col h-full">
-          <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between mb-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-slate-400" />
-                <span className="text-xs font-bold text-slate-700">Filtro actual:</span>
-                <span className="text-xs font-semibold text-[#208077] uppercase">
-                  {filter === 'all'
-                    ? 'Todos los registros'
-                    : filter === 'valid'
-                    ? 'Solo listos (válidos)'
-                    : filter === 'warnings'
-                    ? 'Solo advertencias'
-                    : 'Solo errores'}
-                </span>
-              </div>
-              <span className="text-xs text-slate-400 font-mono">
-                {filteredRecipients.length} de {totalCount}
-              </span>
-            </div>
-
-            <div className="overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 flex-1 min-h-[300px] max-h-[385px] lg:max-h-[395px] shadow-xs">
-              <table className="min-w-full divide-y divide-slate-200 text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-semibold sticky top-0 z-10">
+          <div className="max-h-[480px] overflow-auto">
+            <table className="w-full table-fixed text-sm">
+              <caption className="sr-only">
+                Personas de la lista. Selecciona una fila para ver su certificado.
+              </caption>
+              <thead className="sticky top-0 z-10 bg-[#E7F1EF] text-left text-xs font-semibold uppercase tracking-[0.08em] [font-stretch:80%] text-[#0F2E2B]">
+                <tr>
+                  <th scope="col" className="hidden w-12 px-4 py-2 font-semibold sm:table-cell">Fila</th>
+                  <th scope="col" className="px-4 py-2 font-semibold">Nombre</th>
+                  <th scope="col" className="hidden w-24 px-2 py-2 font-semibold sm:table-cell">Estado</th>
+                  <th scope="col" className="w-[72px] px-2 py-2 text-right font-semibold sm:w-24">
+                    <span className="sr-only">Acciones</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#0F2E2B]/[0.08]">
+                {filteredRecipients.length === 0 ? (
                   <tr>
-                    <th className="px-3 py-2 text-left w-10">#</th>
-                    <th className="px-3 py-2 text-left">Nombre del Destinatario</th>
-                    <th className="px-3 py-2 text-left w-28">Estado</th>
-                    <th className="px-3 py-2 text-center w-20">Acción</th>
+                    <td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-500">
+                      Nadie en este filtro.
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {filteredRecipients.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-slate-400 text-xs font-medium">
-                        No hay registros para este filtro.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredRecipients.map((rec) => {
-                    const hasError = rec.issues.some((i) => i.severity === 'error');
-                    const hasWarning = rec.issues.some((i) => i.severity === 'warning');
-                    const isSelectedInPreview = currentPreviewRecipient?.id === rec.id;
-                    const targetIdx = validatedRecipients.findIndex((r) => r.id === rec.id);
+                ) : (
+                  filteredRecipients.map((rec) => {
+                    const isSelected = currentPreviewRecipient?.id === rec.id;
+                    const label = rec.name.trim() || `fila ${rec.rowNumber}`;
 
                     return (
                       <tr
                         key={rec.id}
-                        onClick={() => {
-                          if (targetIdx !== -1) setPreviewIndex(targetIdx);
-                        }}
-                        className={`cursor-pointer transition-all ${
-                          isSelectedInPreview
-                            ? 'bg-[#f0faf9] ring-1 ring-inset ring-[#208077]/40 shadow-sm'
-                            : 'hover:bg-slate-50/80'
+                        aria-current={isSelected ? 'true' : undefined}
+                        onClick={() => selectRecipient(rec.id)}
+                        className={`cursor-pointer align-top transition-colors ${
+                          isSelected ? 'bg-[#F4F8F7]' : 'hover:bg-slate-50'
                         }`}
                       >
-                        <td className="px-3 py-2 text-slate-400 font-mono text-[11px]">
-                          <div className="flex items-center gap-1.5">
-                            {isSelectedInPreview && (
-                              <Eye className="w-3.5 h-3.5 text-[#208077] flex-shrink-0 animate-pulse" />
-                            )}
-                            <span>{rec.rowNumber}</span>
-                          </div>
+                        <td
+                          className={`hidden px-4 py-3 tabular-nums sm:table-cell ${
+                            isSelected ? 'font-semibold text-[#208077]' : 'text-slate-500'
+                          }`}
+                        >
+                          {rec.rowNumber}
                         </td>
-                        <td className="px-3 py-2 font-medium text-slate-900">
+                        <td className="min-w-0 px-4 py-2">
                           <input
                             type="text"
                             value={rec.name}
-                            onChange={(e) =>
-                              onUpdateRecipient({ ...rec, name: e.target.value })
-                            }
-                            onFocus={() => {
-                              if (targetIdx !== -1) setPreviewIndex(targetIdx);
-                            }}
-                            onClick={() => {
-                              if (targetIdx !== -1) setPreviewIndex(targetIdx);
-                            }}
-                            placeholder="Nombre del destinatario"
-                            title="Haz clic para editar el nombre o ver en el certificado"
-                            className="w-full bg-white/70 hover:bg-white focus:bg-white border border-slate-200 hover:border-slate-300 focus:border-[#208077] focus:ring-2 focus:ring-[#208077]/20 rounded-md px-2 py-1 transition-all text-xs font-semibold text-slate-900 shadow-xs"
+                            aria-label={`Nombre de la fila ${rec.rowNumber}`}
+                            onChange={(e) => onUpdateRecipient({ ...rec, name: e.target.value })}
+                            onFocus={() => selectRecipient(rec.id)}
+                            placeholder="Escribe el nombre"
+                            className="-mx-2 w-[calc(100%+1rem)] rounded-[6px] border border-transparent bg-transparent px-2 py-1 font-medium text-[#0F2E2B] transition-colors hover:border-slate-200 hover:bg-white focus:border-[#208077] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#208077]/20"
                           />
-                          {rec.email && (
-                            <span className="block text-[11px] text-slate-400 font-normal px-1 mt-0.5">
-                              {rec.email}
+                          {rec.email && <span className="block truncate text-xs text-slate-500">{rec.email}</span>}
+                          {rec.issues.map((issue, idx) => (
+                            <span
+                              key={idx}
+                              className={`mt-1 flex items-start gap-1 text-xs font-medium ${
+                                issue.severity === 'error' ? 'text-rose-700' : 'text-amber-700'
+                              }`}
+                            >
+                              {issue.severity === 'error' ? (
+                                <XCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              ) : (
+                                <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              )}
+                              {issue.message}
                             </span>
-                          )}
-                          {rec.issues.length > 0 && (
-                            <span className="block text-[10px] text-amber-600 mt-0.5 px-1 font-medium">
-                              {rec.issues.map((i) => i.message).join(' • ')}
-                            </span>
-                          )}
+                          ))}
                         </td>
-                        <td className="px-3 py-2">
-                          {hasError ? (
-                            <Badge variant="error" size="sm">
-                              Error
-                            </Badge>
-                          ) : hasWarning ? (
-                            <Badge variant="warning" size="sm">
-                              Aviso
-                            </Badge>
+                        <td className="hidden px-2 py-3 sm:table-cell">
+                          {hasError(rec) ? (
+                            <Badge variant="error" size="sm">Error</Badge>
+                          ) : hasOnlyWarnings(rec) ? (
+                            <Badge variant="warning" size="sm">Aviso</Badge>
                           ) : (
-                            <Badge variant="success" size="sm">
-                              Válido
-                            </Badge>
+                            <Badge variant="success" size="sm">Listo</Badge>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-1">
+                        <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-0.5 sm:gap-1">
                             <button
                               type="button"
                               onClick={() => setCustomizingRecipient(rec)}
-                              className={`p-1 rounded-lg transition-colors ${
-                                rec.customField && Object.keys(rec.customField).length > 0
-                                  ? 'text-[#208077] bg-[#f0faf9] hover:bg-[#b2e5df]/40 ring-1 ring-[#b2e5df]'
-                                  : 'text-slate-400 hover:text-[#208077] hover:bg-slate-100'
+                              aria-label={`Ajustar el nombre de ${label} en su certificado`}
+                              title="Ajustar tamaño y posición solo para esta persona"
+                              className={`flex h-8 w-8 items-center justify-center rounded-[6px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#208077] ${
+                                hasCustomField(rec)
+                                  ? 'bg-[#E7F1EF] text-[#208077]'
+                                  : 'text-slate-500 hover:bg-slate-100 hover:text-[#0F2E2B]'
                               }`}
-                              title="Ajuste individual de diseño (tamaño de fuente, posición)"
                             >
-                              <Sliders className="w-3.5 h-3.5" />
+                              <Sliders className="h-4 w-4" />
                             </button>
                             <button
                               type="button"
                               onClick={() => onRemoveRecipient(rec.id)}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                              title="Eliminar fila"
+                              aria-label={`Quitar a ${label} de la lista`}
+                              title="Quitar de la lista"
+                              className="flex h-8 w-8 items-center justify-center rounded-[6px] text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
                       </tr>
                     );
-                  }))}
-                </tbody>
-              </table>
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* Vista previa */}
+        <Card className="lg:col-span-5 p-4 sm:p-5 lg:sticky lg:top-24">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-[#0F2E2B]">Vista previa</h3>
+              <p className="truncate text-sm text-slate-600">
+                {currentPreviewRecipient
+                  ? `${currentPreviewRecipient.name || 'Sin nombre'} · fila ${currentPreviewRecipient.rowNumber}`
+                  : 'Sin personas en la lista'}
+                {hasCustomField(currentPreviewRecipient) && ' · ajustado a mano'}
+              </p>
             </div>
-          </Card>
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<FileDown className="h-4 w-4" />}
+              onClick={handleDownloadSamplePdf}
+              isLoading={downloadingSample}
+              disabled={!currentPreviewRecipient}
+            >
+              Descargar PDF de muestra
+            </Button>
+          </div>
 
-        {/* Live Preview & Longest Name Test */}
-        <div className="lg:col-span-5 flex flex-col h-full">
-          <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2 shrink-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <Eye className="w-4 h-4 text-[#208077]" />
-                  Vista previa real del certificado
-                </span>
-                {currentPreviewRecipient?.customField &&
-                  Object.keys(currentPreviewRecipient.customField).length > 0 && (
-                    <span className="text-[10px] bg-[#f0faf9] text-[#208077] font-semibold px-1.5 py-0.5 rounded border border-[#b2e5df]">
-                      Personalizado
-                    </span>
-                  )}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<FileDown className="w-3.5 h-3.5 text-[#208077]" />}
-                  onClick={handleDownloadSamplePdf}
-                  isLoading={downloadingSample}
-                  title="Descargar este certificado como archivo PDF para ver el resultado real"
-                >
-                  Descargar PDF
-                </Button>
-                <div className="h-4 w-px bg-slate-200 mx-0.5" />
-                <button
-                  onClick={() => setPreviewIndex(0)}
-                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
-                    safePreviewIndex === 0
-                      ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  Primero
-                </button>
-                <button
-                  onClick={() => setPreviewIndex(longestRecipientIndex)}
-                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
-                    safePreviewIndex === longestRecipientIndex
-                      ? 'bg-[#208077] text-white border-[#208077] shadow-xs'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  Más largo
-                </button>
-              </div>
-            </div>
+          <div role="group" aria-label="Elegir a quién ver" className="mt-3 flex gap-1">
+            <button
+              type="button"
+              aria-pressed={safePreviewIndex === 0}
+              onClick={() => setPreviewIndex(0)}
+              className={segmentClass(safePreviewIndex === 0)}
+            >
+              Primera fila
+            </button>
+            <button
+              type="button"
+              aria-pressed={safePreviewIndex === longestRecipientIndex}
+              onClick={() => setPreviewIndex(longestRecipientIndex)}
+              className={segmentClass(safePreviewIndex === longestRecipientIndex)}
+            >
+              Nombre más largo
+            </button>
+          </div>
 
-            <div className="flex-1 flex flex-col justify-center min-h-0 my-auto">
-              {/* Template with live stamped name */}
-              {currentPreviewRecipient?.issues.some((i) => i.code === 'TEXT_OVERFLOW') && (
-                <div className="mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-center justify-between gap-2 shadow-2xs animate-fadeIn shrink-0">
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>
-                      {currentPreviewRecipient.issues.find((i) => i.code === 'TEXT_OVERFLOW')?.message}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCustomizingRecipient(currentPreviewRecipient)}
-                    className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
-                  >
-                    Ajustar
-                  </button>
-                </div>
-              )}
-              <PageTabs
-                pages={template.pages}
-                currentPageId={previewPage.id}
-                onSelect={setPreviewPageId}
-                fieldCounts={Object.fromEntries(template.pages.map((p) => [p.id, fieldsForPage(fields, p.id).length]))}
-                className="mb-2 shrink-0"
-              />
-              <div
-                ref={previewContainerRef}
-                className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 shadow-md select-none"
-                style={{ aspectRatio: `${previewPage.widthPt} / ${previewPage.heightPt}` }}
-              >
-                <img
-                  src={previewPage.previewUrl}
-                  alt={`Vista previa de la página ${template.pages.indexOf(previewPage) + 1}`}
-                  className="w-full h-full object-contain pointer-events-none"
-                />
-
-                {previewOverlays.map(({ field, text, fontSizePx }) => (
-                  <FieldTextOverlay key={field.id} field={field} text={text || '—'} fontSizePx={fontSizePx} />
-                ))}
-              </div>
-            </div>
-
-            {/* Navigation controls */}
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-600 border-t border-slate-100 pt-3 shrink-0">
-              <button
-                disabled={safePreviewIndex === 0}
-                onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 font-medium"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" /> Anterior
-              </button>
-              <span className="font-mono text-slate-500 font-medium">
-                {validatedRecipients.length > 0 ? safePreviewIndex + 1 : 0} de {validatedRecipients.length}
+          {overflowIssue && currentPreviewRecipient && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-[6px] border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                {overflowIssue.message}
               </span>
               <button
-                disabled={safePreviewIndex >= validatedRecipients.length - 1}
-                onClick={() => setPreviewIndex((prev) => Math.min(validatedRecipients.length - 1, prev + 1))}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 font-medium"
+                type="button"
+                onClick={() => setCustomizingRecipient(currentPreviewRecipient)}
+                className="shrink-0 font-semibold underline underline-offset-2 hover:text-amber-950"
               >
-                Siguiente <ChevronRight className="w-3.5 h-3.5" />
+                Ajustar
               </button>
             </div>
-          </Card>
-        </div>
+          )}
+
+          <PageTabs
+            pages={template.pages}
+            currentPageId={previewPage.id}
+            onSelect={setPreviewPageId}
+            fieldCounts={Object.fromEntries(template.pages.map((p) => [p.id, fieldsForPage(fields, p.id).length]))}
+            className="mt-3"
+          />
+          <div
+            ref={previewContainerRef}
+            className="relative mt-3 w-full select-none overflow-hidden rounded-[6px] border border-slate-200 bg-slate-50"
+            style={{ aspectRatio: `${previewPage.widthPt} / ${previewPage.heightPt}` }}
+          >
+            <img
+              src={previewPage.previewUrl}
+              alt={`Certificado de ${currentPreviewRecipient?.name || 'ejemplo'}, página ${template.pages.indexOf(previewPage) + 1}`}
+              className="pointer-events-none h-full w-full object-contain"
+            />
+            {previewOverlays.map(({ field, text, fontSizePx }) => (
+              <FieldTextOverlay key={field.id} field={field} text={text || '—'} fontSizePx={fontSizePx} />
+            ))}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between text-sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<ChevronLeft className="h-4 w-4" />}
+              disabled={safePreviewIndex === 0}
+              onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
+            >
+              Anterior
+            </Button>
+            <span className="tabular-nums text-slate-600" aria-live="polite">
+              {validatedRecipients.length > 0 ? safePreviewIndex + 1 : 0} de {validatedRecipients.length}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              rightIcon={<ChevronRight className="h-4 w-4" />}
+              disabled={safePreviewIndex >= validatedRecipients.length - 1}
+              onClick={() => setPreviewIndex((prev) => Math.min(validatedRecipients.length - 1, prev + 1))}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </Card>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmingRemoveErrors}
+        title={errorCount === 1 ? '¿Quitar el registro con error?' : `¿Quitar los ${errorCount} registros con error?`}
+        confirmLabel="Quitar de la lista"
+        tone="danger"
+        onCancel={() => setConfirmingRemoveErrors(false)}
+        onConfirm={() => {
+          onRemoveRecipients(errorRecipients.map((r) => r.id));
+          setConfirmingRemoveErrors(false);
+          setFilter('all');
+        }}
+      >
+        <p>No se generará certificado para:</p>
+        <ul className="mt-2 space-y-1 text-slate-700">
+          {errorRecipients.slice(0, 5).map((r) => (
+            <li key={r.id}>
+              <span className="tabular-nums text-slate-500">Fila {r.rowNumber}:</span> {r.name || 'Sin nombre'}
+            </li>
+          ))}
+          {errorCount > 5 && <li className="text-slate-500">y {errorCount - 5} más</li>}
+        </ul>
+        <p className="mt-3 text-slate-600">Puedes volver a cargar la lista en el paso anterior si los necesitas.</p>
+      </ConfirmDialog>
 
       {/* Modal de ajuste individual para el destinatario */}
       <IndividualFieldModal
