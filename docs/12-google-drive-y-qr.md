@@ -5,10 +5,10 @@ Cada certificado puede llevar un **QR único** que abre su PDF guardado en el **
 ## Cómo funciona
 
 1. En el Paso 2 se agrega un campo **QR** (contenido por defecto: "PDF en Drive"). También puede codificar una columna de la lista o un texto fijo.
-2. En el Paso 5, con "Guardar en mi Google Drive" activado, el organizador pulsa **Conectar con Google**, elige su cuenta en la ventana de Google y la app muestra "Conectado como …" (`about.get`); "Cambiar cuenta" vuelve a abrir el selector. Al pulsar **Comenzar Generación**:
-   - se crea la carpeta en el Drive de esa cuenta, con "cualquier persona con el enlace puede ver";
+2. En el Paso 5, con "Guardar en mi Google Drive" activado, el organizador pulsa **Conectar con Google**, elige su cuenta en la ventana de Google y la app muestra "Conectado como …" (`about.get`); "Cambiar cuenta" vuelve a abrir el selector. Al pulsar **Generar N certificados**:
+   - se crea una carpeta **privada** en el Drive de esa cuenta;
    - se **reservan los IDs** de todos los archivos (`files.generateIds`), así el QR de cada PDF ya apunta a su URL definitiva;
-   - cada PDF se genera con su QR y se sube con su ID reservado (3 subidas en paralelo).
+   - cada PDF se genera con su QR, se sube con su ID reservado (3 subidas en paralelo) y se comparte **solo ese archivo** como "cualquier persona con el enlace puede ver".
 3. Los correos pueden incluir `{enlace}` con la URL del PDF de cada persona.
 
 ### Robustez
@@ -39,6 +39,7 @@ No se necesita "secreto de cliente": el flujo de token del navegador no lo usa.
 ## Privacidad
 
 - Los PDFs quedan en el Drive del organizador; la app no guarda copias.
-- Cualquiera con el enlace (o el QR) puede ver el certificado. Los IDs de Drive no se pueden adivinar.
-- La carpeta es de solo lectura: nadie más puede modificar ni agregar archivos en ella.
-- Aun así, el QR no es una verificación fuerte de autenticidad: un falsificador podría copiar el diseño, subir un PDF falso a **su propio** Drive y ponerle un QR que apunte ahí. Quien escanea solo ve "un PDF en Drive". La protección real es que el QR apunte a una página de verificación en un dominio de la app (fase con backend).
+- Cualquiera con el enlace (o el QR) de un certificado puede ver ese certificado, y nada más: la carpeta es privada, así que no se puede llegar a los demás. Los IDs de Drive no se pueden adivinar.
+- Nadie más puede modificar ni agregar archivos: los permisos son de solo lectura.
+- Si el permiso de un PDF falla, el archivo queda como pendiente y "Reintentar" lo vuelve a subir (Drive responde 409, sin duplicar) y lo comparte.
+- Aun así, el QR no es una verificación fuerte de autenticidad: un falsificador podría copiar el diseño, subir un PDF falso a **su propio** Drive y ponerle un QR que apunte ahí. Quien escanea solo ve "un PDF en Drive". Esta app no lo resuelve a propósito: es una herramienta libre, y la verificación formal corresponde a las plataformas a medida que se construyan para cada institución.

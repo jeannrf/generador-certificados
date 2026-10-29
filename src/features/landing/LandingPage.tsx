@@ -46,7 +46,7 @@ const DATA_ROWS: { data: string; where: string; stored: string }[] = [
   { data: 'Certificados en PDF', where: 'Se crean en tu navegador y se descargan en tu equipo', stored: 'No' },
   {
     data: 'PDF en tu Google Drive (opcional)',
-    where: 'En tu Drive, compartidos por enlace para que el QR los abra',
+    where: 'En tu Drive: la carpeta es privada y cada PDF se comparte por su enlace para que el QR lo abra',
     stored: 'No. Son tuyos y puedes dejar de compartirlos.',
   },
   {
@@ -78,7 +78,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: '¿Quién puede ver los PDF guardados en Drive?',
-    a: 'Quien tenga el enlace o escanee el QR. Los archivos quedan en tu Google Drive y puedes dejar de compartirlos cuando quieras.',
+    a: 'Cada PDF lo ve solo quien tenga su enlace o escanee su QR. La carpeta con todos queda privada en tu Google Drive, y puedes dejar de compartir cualquier archivo cuando quieras.',
   },
   {
     q: '¿Necesito crear una cuenta?',

@@ -25,6 +25,8 @@ Qué se construyó en cada fase y qué falta. Reemplaza a los antiguos planes po
 - **Editor**: deshacer/rehacer, atajos de teclado, centrar y restablecer.
 - **QR único por certificado** que abre su PDF en el Google Drive del organizador (ADR-010, doc 12).
 - Política de privacidad pública en `/privacidad.html`.
+- Drive: carpeta privada y cada PDF compartido por separado.
+- `/api/send-email` cerrado a la propia app (origen, validación y límite por IP).
 
 ### Retirado
 - **PDF consolidado** (todos los certificados en un solo archivo): se quitó por poco uso; el ZIP y Drive cubren la necesidad.
@@ -34,9 +36,7 @@ Qué se construyó en cada fase y qué falta. Reemplaza a los antiguos planes po
 
 | Prioridad | Tema | Notas |
 |---|---|---|
-| Alta | Compartir cada PDF de Drive por separado | Hoy la carpeta es pública por enlace: quien abre un PDF con su cuenta de Google puede llegar a los demás. Dejar la carpeta privada y compartir archivo por archivo. |
 | Alta | Backend con cuentas e historial | Supabase. Guardar plantilla, campos y lista (no los PDFs) y regenerar cuando se necesite. |
-| Media | Página de verificación propia | `/verificar/<id>` en el dominio de la app, para que el QR pruebe autenticidad y no solo "hay un PDF en Drive". Depende del backend. |
 | Media | Aviso de caracteres no soportados | Cuando un nombre usa glifos que la fuente elegida no tiene. |
 | Baja | Proveedores de correo alternativos | Brevo o Resend detrás de la función de Vercel, si el cupo de Gmail no alcanza. |
 | Baja | i18n, PWA, modo oscuro | Sin fecha. |

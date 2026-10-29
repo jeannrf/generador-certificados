@@ -148,7 +148,7 @@ async function prepareBatchWithQr(page: Page) {
 }
 
 test.describe('Certificados en Google Drive con QR', () => {
-  test('crea la carpeta, la comparte y sube cada PDF con un QR que apunta a su propio archivo', async ({ page }) => {
+  test('crea una carpeta privada y sube y comparte cada PDF con un QR que apunta a su propio archivo', async ({ page }) => {
     const mock = await mockGoogle(page);
     await prepareBatchWithQr(page);
 
@@ -171,7 +171,10 @@ test.describe('Certificados en Google Drive con QR', () => {
 
     // Carpeta y permisos
     expect(mock.folders).toEqual([{ name: 'Certificados Software Week', mimeType: 'application/vnd.google-apps.folder' }]);
-    expect(mock.permissions).toEqual([{ fileId: 'folder-e2e', body: { role: 'reader', type: 'anyone' } }]);
+    // La carpeta no se comparte; cada PDF sí, con permiso de lectura por enlace
+    expect(mock.permissions.some((p) => p.fileId === 'folder-e2e')).toBe(false);
+    expect(new Set(mock.permissions.map((p) => p.fileId))).toEqual(new Set(mock.generatedIds));
+    expect(mock.permissions.every((p) => p.body.role === 'reader' && p.body.type === 'anyone')).toBe(true);
 
     // Una subida por persona, cada una con un ID reservado distinto y dentro de la carpeta
     expect(mock.generatedIds).toHaveLength(total);

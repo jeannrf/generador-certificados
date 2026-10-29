@@ -104,7 +104,7 @@ export function createDriveClient(options: DriveClientOptions) {
     return { id: (await response.json()).id };
   }
 
-  /** "Cualquier persona con el enlace puede ver": los archivos de la carpeta lo heredan. */
+  /** "Cualquier persona con el enlace puede ver", aplicado a un solo archivo (la carpeta queda privada). */
   async function shareWithAnyoneReader(fileId: string): Promise<void> {
     await request(`${API}/files/${encodeURIComponent(fileId)}/permissions?fields=id`, {
       method: 'POST',
