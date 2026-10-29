@@ -40,7 +40,7 @@ export const DriveUploadOptions: React.FC<{ drive: DriveUpload }> = ({ drive }) 
         />
         <span className="text-sm">
           <span className="font-semibold text-[#0F2E2B]">Guardar en mi Google Drive</span>
-          <span className="mt-0.5 block text-slate-600">Cada QR abrirá su PDF. Cualquiera con el enlace podrá verlo.</span>
+          <span className="mt-0.5 block text-slate-600">Cada QR abrirá solo su PDF. La carpeta queda privada en tu Drive.</span>
         </span>
       </label>
 

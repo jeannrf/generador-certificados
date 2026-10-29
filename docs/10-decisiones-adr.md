@@ -68,7 +68,7 @@ Formato: contexto → decisión → consecuencias. Añadir una entrada nueva por
 - **Decisión**:
   - Los PDFs se suben desde el navegador al Drive **del organizador** (Google Identity Services, modelo de token, permiso `drive.file`). Sin backend, en línea con ADR-001.
   - Los IDs se reservan con `files.generateIds` antes de generar, para estampar en el QR la URL definitiva y subir cada PDF una sola vez con ese ID. Reintentar un ID existente devuelve 409 y se trata como subido (idempotente).
-  - La carpeta se comparte como "cualquiera con el enlace puede ver"; los archivos lo heredan.
+  - La carpeta queda privada; cada PDF se comparte por separado como "cualquiera con el enlace puede ver", justo después de subirlo.
   - El QR se dibuja como vector (librería `qrcode` solo para calcular la matriz).
   - El progreso (carpeta, IDs, subidos) se guarda en `localStorage` para reanudar sin duplicar.
 - **Consecuencias**: (+) gratis a escala, el organizador es dueño de sus archivos, la app no retiene datos personales. (−) Requiere un OAuth Client ID configurado por el dueño de la app; el QR no es una verificación fuerte de autenticidad.
@@ -78,7 +78,7 @@ Formato: contexto → decisión → consecuencias. Añadir una entrada nueva por
 - **Estado**: Aceptada (2026-10)
 - **Contexto**: desplegar un Apps Script por organizador (ADR-004) resultó difícil para usuarios no técnicos.
 - **Decisión**: `api/send-email.ts` (función de Vercel) envía con nodemailer usando una cuenta Gmail de la app (`GMAIL_USER` + contraseña de aplicación en variables de entorno). El navegador envía un correo por solicitud con el PDF en base64.
-- **Consecuencias**: (+) cero configuración para el usuario. (−) Todos los correos salen de la misma cuenta y comparten su cupo diario de Gmail; la función no guarda datos pero hoy acepta peticiones de cualquier origen (pendiente: restringir origen y limitar por IP, doc 08); el cuerpo de una petición tiene un máximo de 4,5 MB en Vercel.
+- **Consecuencias**: (+) cero configuración para el usuario. (−) Todos los correos salen de la misma cuenta y comparten su cupo diario de Gmail; la función no guarda datos y solo acepta peticiones de la propia app, con límite por IP (doc 08); el cuerpo de una petición tiene un máximo de 4,5 MB en Vercel.
 - **Alternativas descartadas**: Apps Script por usuario (ADR-004); Brevo/Resend (requieren dominio verificado; quedan como opción si el cupo no alcanza).
 
 ## Plantilla para nuevas ADR

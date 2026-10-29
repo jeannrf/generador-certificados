@@ -50,7 +50,7 @@ Una web donde el usuario:
 | RF-13 | Envío por lotes con progreso, pausas, reintentos y control de cuota | 2 |
 | RF-14 | Reporte descargable (enviado / falló / pendiente) | 2 |
 | RF-15 | Campos adicionales (curso, fecha, ID) | 3 |
-| RF-16 | Código QR / ID único y página de verificación | 3 |
+| RF-16 | Código QR que abre el PDF en el Drive del organizador (sin página de verificación propia: va en las plataformas a medida) | 3 |
 | RF-17 | Guardar y cargar proyectos (plantilla + configuración) | 3 |
 | RF-18 | Proveedores de correo alternativos | 3 |
 

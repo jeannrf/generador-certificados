@@ -30,8 +30,8 @@ La política pública para usuarios está en [`public/privacidad.html`](../publi
 | Riesgo | Mitigación |
 |---|---|
 | Terceros usando `/api/send-email` para mandar correos desde la cuenta Gmail de la app | Sin cabeceras CORS y con el `Origin` comprobado en el servidor (mismo host, `ALLOWED_ORIGINS` o localhost en desarrollo). Un solo destinatario por petición, asunto de una línea, mensaje ≤ 100 KB y adjunto solo PDF real ≤ 3 MB. Límite por IP de 60 envíos/minuto y 600/día por instancia (`api/_lib/emailGuard.ts`). Los errores de Gmail van a los logs, no al navegador. **Límite conocido:** un script puede falsificar el `Origin`, y el contador por IP vive en memoria de cada instancia; un límite global exacto requiere un almacén compartido (p. ej. Redis). |
-| La carpeta de Drive es pública por enlace | Pendiente: compartir cada PDF por separado (doc 04). |
-| QR falsificado (PDF falso en otro Drive) | Pendiente: página de verificación propia con backend (doc 04). |
+| Alguien con un enlace ve los certificados de otros | La carpeta de Drive es privada; cada PDF se comparte por separado («cualquiera con el enlace»), así un enlace o QR solo abre su propio PDF. Los IDs son aleatorios y no se pueden adivinar. |
+| QR falsificado (PDF falso en otro Drive) | Aceptado: Uniautomate es una herramienta libre y el QR solo prueba que el PDF está en el Drive del organizador. La verificación formal corresponde a las plataformas a medida para instituciones, no a esta app. |
 | Correos marcados como spam | Envío escalonado, contador de cupo, remitente reconocible |
 | Destinatario equivocado | Revisión previa + envío de prueba |
 | Cerrar la pestaña a mitad | Campaña y subida a Drive se reanudan sin duplicar |

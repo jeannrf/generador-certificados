@@ -134,8 +134,8 @@ export function useDriveUpload({ template, fields, recipients }: UseDriveUploadA
         updateBatch(saved);
       } else {
         const name = folderName.trim() || defaultFolderName(template.name, new Date());
+        // La carpeta queda privada: solo cada PDF se comparte, para que nadie vea la lista completa
         const folder = await client.createFolder(name);
-        await client.shareWithAnyoneReader(folder.id);
 
         const ids = await client.generateIds(recipientIds.length);
         updateBatch({
@@ -172,7 +172,10 @@ export function useDriveUpload({ template, fields, recipients }: UseDriveUploadA
       return;
     }
     try {
-      await client.uploadPdf({ id: current.fileIds[recipientId], name: fileName, folderId: current.folderId, bytes });
+      const fileId = current.fileIds[recipientId];
+      await client.uploadPdf({ id: fileId, name: fileName, folderId: current.folderId, bytes });
+      // Si esto falla, el reintento vuelve a subir (Drive responde 409 sin duplicar) y comparte de nuevo
+      await client.shareWithAnyoneReader(fileId);
       const latest = batchRef.current!;
       updateBatch({ ...latest, uploaded: [...latest.uploaded, recipientId] });
       setFailedIds((prev) => prev.filter((id) => id !== recipientId));
