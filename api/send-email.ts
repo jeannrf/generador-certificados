@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { clientIp } from './_lib/emailGuard';
-import { processSendEmail } from './_lib/sendEmailCore';
+// Con "type": "module", Node exige la extensión en imports relativos; sin ella la función falla con un 500
+import { clientIp } from './_lib/emailGuard.js';
+import { processSendEmail } from './_lib/sendEmailCore.js';
 
 // Sin cabeceras CORS: solo la propia app (mismo origen) puede llamar a esta función
 export default async function handler(req: VercelRequest, res: VercelResponse) {

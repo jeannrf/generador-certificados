@@ -31,16 +31,23 @@ interface IndividualFieldModalProps {
   onSave: (customField: Partial<FieldBox> | undefined) => void;
 }
 
-export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
-  isOpen,
+// Los hooks viven en el contenido: así un modal cerrado no cambia la cantidad de hooks entre renders
+export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({ isOpen, recipient, ...props }) => {
+  if (!isOpen || !recipient) return null;
+  return <IndividualFieldModalContent recipient={recipient} {...props} />;
+};
+
+type IndividualFieldModalContentProps = Omit<IndividualFieldModalProps, 'isOpen' | 'recipient'> & {
+  recipient: Recipient;
+};
+
+const IndividualFieldModalContent: React.FC<IndividualFieldModalContentProps> = ({
   recipient,
   baseField,
   page,
   onClose,
   onSave,
 }) => {
-  if (!isOpen || !recipient) return null;
-
   const [customField, setCustomField] = useState<Partial<FieldBox>>(
     recipient.customField || {}
   );
@@ -63,10 +70,9 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
     });
     observer.observe(previewRef.current);
     return () => observer.disconnect();
-  }, [isOpen]);
+  }, []);
 
   useEffect(() => {
-    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -74,7 +80,7 @@ export const IndividualFieldModal: React.FC<IndividualFieldModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
   const effectiveField: FieldBox = {
     ...baseField,

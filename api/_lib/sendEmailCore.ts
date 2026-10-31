@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { createRateLimiter, isAllowedOrigin, validateEmailRequest } from './emailGuard';
+import { createRateLimiter, isAllowedOrigin, validateEmailRequest } from './emailGuard.js';
 
 const DEFAULT_SENDER = 'Equipo de capacitación';
 const checkRate = createRateLimiter();
