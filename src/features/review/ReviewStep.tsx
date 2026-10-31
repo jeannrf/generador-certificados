@@ -23,6 +23,7 @@ import { SAMPLE_DRIVE_URL } from '../../domain/drive';
 const PREVIEW_CONTEXT = { driveUrl: SAMPLE_DRIVE_URL };
 import { FieldTextOverlay } from '../../ui/FieldTextOverlay';
 import { loadFieldFontsForPreview } from '../../infra/fontLoader';
+import { useRerenderOnFontLoad } from '../../shared/useRerenderOnFontLoad';
 import { PageTabs } from '../../ui/PageTabs';
 import { composeCertificatePdf } from '../../infra/pdfComposer';
 import { triggerDownload } from '../../infra/zipExporter';
@@ -56,6 +57,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
+  useRerenderOnFontLoad();
   const [customizingRecipient, setCustomizingRecipient] = useState<Recipient | null>(null);
   const [downloadingSample, setDownloadingSample] = useState<boolean>(false);
   const [confirmingRemoveErrors, setConfirmingRemoveErrors] = useState<boolean>(false);

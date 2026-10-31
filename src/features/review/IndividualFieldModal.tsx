@@ -5,6 +5,7 @@ import { transformTextCase } from '../../domain/normalization';
 import { calculateScreenFontSize } from '../../domain/layout';
 import { fieldFontVariant, findCatalogFont, supportsBold, supportsItalic } from '../../domain/fonts';
 import { FontPicker } from '../../ui/FontPicker';
+import { useRerenderOnFontLoad } from '../../shared/useRerenderOnFontLoad';
 import {
   X,
   RotateCcw,
@@ -53,6 +54,7 @@ const IndividualFieldModalContent: React.FC<IndividualFieldModalContentProps> = 
   );
   const previewRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
+  useRerenderOnFontLoad();
 
   useEffect(() => {
     setCustomField(recipient.customField || {});
@@ -176,7 +178,7 @@ const IndividualFieldModalContent: React.FC<IndividualFieldModalContentProps> = 
                 className="absolute flex pointer-events-none border-2 border-dashed border-[#208077]/70 bg-[#208077]/5 rounded-sm transition-all"
               >
                 <div
-                  className="w-full h-full flex px-[1%] py-0.5 overflow-hidden"
+                  className="w-full h-full flex px-[1%] overflow-hidden"
                   style={{
                     alignItems:
                       effectiveField.vAlign === 'top'

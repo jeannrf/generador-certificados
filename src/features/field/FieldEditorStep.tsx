@@ -22,6 +22,7 @@ import {
 import { SAMPLE_DRIVE_URL } from '../../domain/drive';
 import { fieldFontVariant, findCatalogFont, supportsBold, supportsItalic } from '../../domain/fonts';
 import { loadFieldFontsForPreview } from '../../infra/fontLoader';
+import { useRerenderOnFontLoad } from '../../shared/useRerenderOnFontLoad';
 import { FontPicker } from '../../ui/FontPicker';
 import { QrPreview } from '../../ui/QrPreview';
 import { ColorPopover } from '../../ui/ColorPopover';
@@ -142,6 +143,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
+  useRerenderOnFontLoad();
   const [sampleName, setSampleName] = useState('Jeanpier Alexander Robles Fabian');
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState<string | null>(null);
@@ -525,7 +527,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   </div>
                 ) : (
                 <div
-                  className="w-full h-full flex px-[1%] py-0.5 overflow-hidden pointer-events-none"
+                  className="w-full h-full flex px-[1%] overflow-hidden pointer-events-none"
                   style={{
                     alignItems:
                       field.vAlign === 'top'
@@ -542,7 +544,7 @@ export const FieldEditorStep: React.FC<FieldEditorStepProps> = ({
                   }}
                 >
                   <span
-                    className="w-full block truncate leading-normal select-none transition-all py-0.5 px-0.5"
+                    className="w-full block truncate leading-normal select-none transition-all px-0.5"
                     style={{
                       fontFamily: field.fontFamily,
                       fontWeight: fieldFontVariant(field).weight,
