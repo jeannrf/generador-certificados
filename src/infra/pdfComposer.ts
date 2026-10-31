@@ -96,6 +96,32 @@ export function getStandardFont(field: FieldBox): StandardFonts {
   return StandardFonts.Helvetica;
 }
 
+type EmbeddedFontMetrics = {
+  ascent?: number;
+  descent?: number;
+  unitsPerEm?: number;
+  bbox?: { maxY: number; minY: number };
+  Ascender?: number;
+  Descender?: number;
+  FontBBox?: number[];
+};
+
+/**
+ * Ascendente y descendente (ambos positivos, en pt) que usan los navegadores para ubicar la línea.
+ * pdf-lib no los expone por separado y su heightAtSize({ descender: false }) mezcla unidades
+ * en fuentes que no tienen 1000 unidades por em, así que se leen de la fuente embebida.
+ */
+export function fontVerticalMetrics(font: PDFFont, size: number): { ascent: number; descent: number } {
+  const metrics = (font as unknown as { embedder: { font: EmbeddedFontMetrics } }).embedder.font;
+  const unitsPerEm = metrics.unitsPerEm ?? 1000;
+  const ascentUnits = metrics.ascent || metrics.bbox?.maxY || metrics.Ascender || metrics.FontBBox?.[3] || 0;
+  const descentUnits = metrics.descent || metrics.bbox?.minY || metrics.Descender || metrics.FontBBox?.[1] || 0;
+  return {
+    ascent: (Math.abs(ascentUnits) / unitsPerEm) * size,
+    descent: (Math.abs(descentUnits) / unitsPerEm) * size,
+  };
+}
+
 /**
  * Estampa un texto en la página según el FieldBox
  */
@@ -121,7 +147,8 @@ function drawFieldText(
   const fontSize = optimal.fontSize;
 
   const textWidth = font.widthOfTextAtSize(transformedText, fontSize);
-  const textHeight = font.heightAtSize(fontSize);
+  const { ascent, descent } = fontVerticalMetrics(font, fontSize);
+  const textHeight = ascent + descent;
 
   // Posicionamiento horizontal
   let drawX = coords.xPt;
@@ -131,12 +158,13 @@ function drawFieldText(
     drawX = coords.xPt + (coords.widthPt - textWidth);
   }
 
-  // Posicionamiento vertical dentro de la caja
-  let drawY = coords.yPt;
+  // Posicionamiento vertical dentro de la caja. drawText recibe la línea base, así que se suma el descendente:
+  // el bloque ascendente–descendente queda donde lo pone el navegador en el editor y la vista previa
+  let drawY = coords.yPt + descent;
   if (field.vAlign === 'middle') {
-    drawY = coords.yPt + (coords.heightPt - textHeight) / 2;
+    drawY = coords.yPt + (coords.heightPt - textHeight) / 2 + descent;
   } else if (field.vAlign === 'top') {
-    drawY = coords.yPt + coords.heightPt - textHeight;
+    drawY = coords.yPt + coords.heightPt - ascent;
   }
 
   const textColor = hexToPdfRgb(field.color);

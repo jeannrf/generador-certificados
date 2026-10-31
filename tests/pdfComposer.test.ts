@@ -6,8 +6,10 @@ import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {
   buildTemplateBasePdf,
   composeCertificatePdf,
+  fontVerticalMetrics,
   setFontBytesLoader,
 } from '../src/infra/pdfComposer';
+import { transformTextCase } from '../src/domain/normalization';
 import type { FontBytesLoader } from '../src/infra/fontLoader';
 import { splitPdfPages } from '../src/infra/templateImport';
 import { createNameField, createTextField } from '../src/domain/fields';
@@ -94,7 +96,7 @@ function recipient(name: string, extra: Record<string, string> = {}): Recipient 
 interface PageText {
   width: number;
   height: number;
-  items: { str: string; x: number; y: number }[];
+  items: { str: string; x: number; y: number; size: number }[];
 }
 
 /** Lee con pdf.js (el mismo motor que el visor) el tamaño visible y los textos de cada página. */
@@ -110,7 +112,7 @@ async function readPdf(bytes: Uint8Array): Promise<PageText[]> {
       height: Math.round(viewport.height),
       items: content.items
         .filter((item): item is typeof item & { str: string; transform: number[] } => 'str' in item && item.str.trim() !== '')
-        .map((item) => ({ str: item.str, x: item.transform[4], y: item.transform[5] })),
+        .map((item) => ({ str: item.str, x: item.transform[4], y: item.transform[5], size: item.transform[3] })),
     });
   }
   return pages;
@@ -297,6 +299,13 @@ describe('PDF composer - retrocompatibilidad con plantillas de 1 página', () =>
     return rest as FieldBox;
   })();
 
+  // Única diferencia intencional: el composer anterior ponía la línea base al pie del texto centrado
+  // y lo dejaba un descendente más abajo que la vista previa (el campo por defecto cae en Times-Bold)
+  async function descentOfTimesBold(size: number) {
+    const font = await (await PDFDocument.create()).embedFont(StandardFonts.TimesRomanBold);
+    return fontVerticalMetrics(font, size).descent;
+  }
+
   async function compareWithLegacy(legacy: LegacyTemplateData, rec: Recipient) {
     const before = await composeLegacyCertificatePdf(legacy, legacyField, rec, '{nombre} - UNI');
 
@@ -307,15 +316,18 @@ describe('PDF composer - retrocompatibilidad con plantillas de 1 página', () =>
     expect(after.fileName).toBe(before.fileName);
     const [oldPages, newPages] = [await readPdf(before.pdfBytes), await readPdf(after.pdfBytes)];
     expect(newPages).toHaveLength(oldPages.length);
-    newPages.forEach((page, i) => {
+    for (const [i, page] of newPages.entries()) {
       expect([page.width, page.height]).toEqual([oldPages[i].width, oldPages[i].height]);
       expect(page.items.length).toBe(oldPages[i].items.length);
-      page.items.forEach((item, j) => {
-        expect(item.str).toBe(oldPages[i].items[j].str);
-        expect(item.x).toBeCloseTo(oldPages[i].items[j].x, 3);
-        expect(item.y).toBeCloseTo(oldPages[i].items[j].y, 3);
-      });
-    });
+      for (const [j, item] of page.items.entries()) {
+        const old = oldPages[i].items[j];
+        expect(item.str).toBe(old.str);
+        expect(item.size).toBeCloseTo(old.size, 3);
+        expect(item.x).toBeCloseTo(old.x, 3);
+        const shift = item.str === transformTextCase(rec.name, legacyField.textCase) ? await descentOfTimesBold(item.size) : 0;
+        expect(item.y).toBeCloseTo(old.y + shift, 3);
+      }
+    }
   }
 
   it('una sesión antigua con imagen genera exactamente el mismo certificado', async () => {
@@ -584,6 +596,33 @@ describe('PDF composer - fuentes reales incrustadas', () => {
     } finally {
       warn.mockRestore();
       setFontBytesLoader(fixtureFontLoader);
+    }
+  });
+
+  // Igual que el navegador: el bloque ascendente–descendente se alinea en la caja, no la línea base
+  it.each([
+    ['"Playfair Display", serif', 'playfair-display-700-normal', true],
+    ['"Great Vibes", cursive', 'great-vibes-400-normal', false],
+    ['"Plus Jakarta Sans", sans-serif', 'plus-jakarta-sans-400-normal', false],
+  ] as const)('ubica la línea base de %s como la vista previa', async (fontFamily, file, isBold) => {
+    const fontkit = (await import('@pdf-lib/fontkit')).default;
+    const metrics = fontkit.create(fixture(`fonts/${file}.ttf`) as unknown as Buffer);
+    for (const vAlign of ['top', 'middle', 'bottom'] as const) {
+      const name = { ...createNameField('p1'), fontFamily, isBold, vAlign, maxFontSize: 40 };
+      const { pdfBytes } = await composeCertificatePdf(await onePage(), [name], recipient('Ana'));
+      const [page] = await readPdf(pdfBytes);
+      const baseline = page.items.find((i) => i.str === 'Ana')!.y;
+
+      const ascent = (metrics.ascent / metrics.unitsPerEm) * 40;
+      const descent = (Math.abs(metrics.descent) / metrics.unitsPerEm) * 40;
+      const boxBottom = 595 - (name.y + name.height) * 595;
+      const boxHeight = name.height * 595;
+      const expected = {
+        top: boxBottom + boxHeight - ascent,
+        middle: boxBottom + (boxHeight - ascent - descent) / 2 + descent,
+        bottom: boxBottom + descent,
+      }[vAlign];
+      expect(baseline, vAlign).toBeCloseTo(expected, 1);
     }
   });
 

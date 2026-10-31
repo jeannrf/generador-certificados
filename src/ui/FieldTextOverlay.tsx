@@ -40,7 +40,7 @@ export const FieldTextOverlay: React.FC<FieldTextOverlayProps> = ({
     className={`absolute flex ${boxClassName}`}
   >
     <div
-      className={`w-full h-full flex overflow-hidden pointer-events-none ${isQrField(field) ? '' : 'px-[1%] py-0.5'}`}
+      className={`w-full h-full flex overflow-hidden pointer-events-none ${isQrField(field) ? '' : 'px-[1%]'}`}
       style={{
         alignItems: field.vAlign === 'top' ? 'flex-start' : field.vAlign === 'bottom' ? 'flex-end' : 'center',
         justifyContent: field.align === 'left' ? 'flex-start' : field.align === 'right' ? 'flex-end' : 'center',
@@ -50,7 +50,7 @@ export const FieldTextOverlay: React.FC<FieldTextOverlayProps> = ({
         <QrPreview text={text} color={field.color} className="h-full max-w-full aspect-square" />
       ) : (
         <span
-          className="w-full block leading-normal select-none transition-all py-0.5 px-0.5 whitespace-nowrap overflow-visible"
+          className="w-full block leading-normal select-none transition-all px-0.5 whitespace-nowrap overflow-visible"
           style={{
             fontFamily: field.fontFamily,
             fontWeight: fieldFontVariant(field).weight,
