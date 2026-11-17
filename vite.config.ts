@@ -85,5 +85,13 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
+    // `npm run test:coverage`. Los componentes (.tsx) los cubren los E2E de Playwright, no Vitest
+    coverage: {
+      provider: 'v8',
+      include: ['src/domain/**', 'src/infra/**', 'src/shared/**', 'api/**'],
+      exclude: ['**/*.tsx', 'src/domain/types.ts'],
+      reporter: ['text', 'html'],
+      reportsDirectory: 'coverage',
+    },
   },
 });

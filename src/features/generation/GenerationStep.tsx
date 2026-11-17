@@ -127,7 +127,8 @@ export const GenerationStep: React.FC<GenerationStepProps> = ({
           setProgress((prev) => ({ ...prev, status: 'error', errorMessage: err.message }));
           return;
         }
-        console.error(`Error generando certificado para ${rec.name}:`, err);
+        // Sin el nombre de la persona: los logs no llevan datos personales (docs/09)
+        console.error(`Error generando el certificado de la fila ${rec.rowNumber}:`, err);
       }
 
       // Dejar un pequeño respiro para que el hilo de UI renderice la animación y barra

@@ -134,7 +134,7 @@ async function countImagesOnPage(bytes: Uint8Array, pageIndex: number): Promise<
   const page = await doc.getPage(pageIndex + 1);
   const ops = await page.getOperatorList();
   const { OPS } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  return ops.fnArray.filter((fn) => fn === OPS.paintImageXObject || fn === OPS.paintJpegXObject).length;
+  return ops.fnArray.filter((fn) => fn === OPS.paintImageXObject).length;
 }
 
 describe('PDF composer - conversión de cada formato a página PDF', () => {

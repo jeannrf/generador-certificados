@@ -103,7 +103,7 @@ describe('Template pages - formatos', () => {
   it('la matriz EXIF lleva la esquina superior izquierda de la imagen a donde debe verse', () => {
     // Imagen codificada de 200×100 pt; esquina superior izquierda = (u=0, v=1) en el espacio de la imagen
     const topLeft = (o: number) => {
-      const [a, b, c, d, e, f] = exifImageMatrix(o, 200, 100);
+      const [, , c, d, e, f] = exifImageMatrix(o, 200, 100);
       return [c + e, d + f]; // (0·a + 1·c + e, 0·b + 1·d + f)
     };
     // Página visible: 200×100 para 1-4 y 100×200 para 5-8 (origen PDF abajo-izquierda)

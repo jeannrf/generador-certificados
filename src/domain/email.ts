@@ -5,6 +5,7 @@ import {
   EmailDeliveryRecord,
   Recipient,
 } from './types';
+import { replaceTokens } from './normalization';
 
 /**
  * Escapa caracteres HTML para evitar inyecciones al interpolar variables en el correo
@@ -27,25 +28,21 @@ export function interpolateEmailVariables(
   recipient: Recipient,
   options: { escapeForHtml?: boolean } = {}
 ): string {
-  let result = templateText;
-
-  const replaceVar = (key: string, val: string) => {
-    const finalVal = options.escapeForHtml ? escapeHtml(val) : val;
-    const regexCurly = new RegExp(`\\{${key}\\}`, 'gi');
-    const regexSquare = new RegExp(`\\[${key}\\]`, 'gi');
-    result = result.replace(regexCurly, finalVal).replace(regexSquare, finalVal);
-  };
-
-  replaceVar('nombre', recipient.name || '');
-  replaceVar('correo', recipient.email || '');
-
-  if (recipient.extra) {
-    for (const [key, value] of Object.entries(recipient.extra)) {
-      replaceVar(key, String(value ?? ''));
-    }
+  // {nombre} y {correo} tienen prioridad sobre una columna con el mismo encabezado
+  const values = new Map<string, string>([
+    ['nombre', recipient.name || ''],
+    ['correo', recipient.email || ''],
+  ]);
+  for (const [key, value] of Object.entries(recipient.extra ?? {})) {
+    const lower = key.toLowerCase();
+    if (!values.has(lower)) values.set(lower, String(value ?? ''));
   }
 
-  return result;
+  return replaceTokens(templateText, (key) => {
+    const value = values.get(key.toLowerCase());
+    if (value === undefined) return undefined;
+    return options.escapeForHtml ? escapeHtml(value) : value;
+  });
 }
 
 /**
@@ -98,13 +95,18 @@ export function validateEmailConfig(config: Partial<EmailConfig>): {
  * Genera el contenido CSV del reporte de entregas para auditoría
  */
 export function buildDeliveryReportCsv(records: EmailDeliveryRecord[]): string {
+  // Un texto que empieza con = + - @ se ejecutaría como fórmula al abrir el reporte en Excel
+  const cell = (text: string) => {
+    const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
   const headers = ['ID', 'Nombre', 'Correo', 'Estado', 'Error', 'Fecha y Hora'];
   const rows = records.map((rec) => [
     rec.recipientId,
-    `"${rec.name.replace(/"/g, '""')}"`,
-    `"${rec.email.replace(/"/g, '""')}"`,
+    cell(rec.name),
+    cell(rec.email),
     rec.status,
-    `"${(rec.errorMessage || '').replace(/"/g, '""')}"`,
+    cell(rec.errorMessage || ''),
     rec.sentAt || '',
   ]);
 

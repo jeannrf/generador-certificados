@@ -6,6 +6,21 @@ const SPANISH_PARTICLES = new Set([
 ]);
 
 /**
+ * Reemplaza los tokens {clave} y [clave] en una sola pasada. `lookup` devuelve el valor, o undefined
+ * para dejar el token como está. La clave nunca se usa como expresión regular (un encabezado puede
+ * ser "C++" o "Nota (final") y el valor se inserta literal, sin interpretar "$&" ni volver a leerse.
+ */
+export function replaceTokens(text: string, lookup: (key: string) => string | undefined): string {
+  return text.replace(/\{([^{}]+)\}|\[([^[\]]+)\]/g, (match: string, curly?: string, square?: string) => {
+    const key = (curly ?? square)!;
+    const value = lookup(key);
+    if (value !== undefined) return value;
+    // No es una variable: puede traer una dentro, como en "[{curso}] Tu certificado"
+    return `${match[0]}${replaceTokens(key, lookup)}${match[match.length - 1]}`;
+  });
+}
+
+/**
  * Limpia y normaliza caracteres invisibles, espacios redundantes y caracteres de control.
  */
 export function cleanString(input: string): string {
@@ -29,18 +44,12 @@ export function toTitleCase(input: string): string {
   const words = cleaned.split(' ');
   return words
     .map((word, index) => {
-      // Manejar apellidos compuestos con apóstrofe o guión (ej: O'Connor, Pérez-Gil)
-      if (word.includes("'")) {
+      // Apellidos compuestos con apóstrofo y/o guion: cada parte lleva mayúscula (O'Connor-Pérez)
+      if (/['’-]/.test(word)) {
         return word
-          .split("'")
+          .split(/(['’-])/)
           .map((part) => capitalizeWord(part))
-          .join("'");
-      }
-      if (word.includes("-")) {
-        return word
-          .split("-")
-          .map((part) => capitalizeWord(part))
-          .join("-");
+          .join('');
       }
 
       const lower = word.toLocaleLowerCase('es');

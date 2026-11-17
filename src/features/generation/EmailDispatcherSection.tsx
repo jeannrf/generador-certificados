@@ -262,8 +262,9 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
       const attachmentFile = buildAttachment ? await buildAttachment(testRecWithTargetEmail) : undefined;
 
       const interpolatedSubject = interpolateEmailVariables(config.subject, testRecWithTargetEmail);
+      // Los datos de la lista se escapan igual que en la vista previa: lo que se ve es lo que llega
       const interpolatedBody = interpolateEmailVariables(config.htmlBody, testRecWithTargetEmail, {
-        escapeForHtml: false,
+        escapeForHtml: true,
       });
 
       // 2. Enviar con Gmail a través de /api/send-email
@@ -337,7 +338,7 @@ export const EmailDispatcherSection: React.FC<EmailDispatcherSectionProps> = ({
         to: rec.email!.trim(),
         subject: interpolateEmailVariables(config.subject, rec),
         htmlBody: ensureHtmlEmailBody(
-          interpolateEmailVariables(config.htmlBody, rec, { escapeForHtml: false })
+          interpolateEmailVariables(config.htmlBody, rec, { escapeForHtml: true })
         ),
         senderName: config.senderName,
         attachment: attachmentFile && {
