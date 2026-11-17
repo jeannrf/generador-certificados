@@ -4,9 +4,12 @@
 
 | Nivel | Herramienta | Qué cubre | Meta |
 |---|---|---|---|
-| Unitarias | Vitest | Dominio, composición de PDF (incluida la comparación con el compositor antiguo), fuentes, Drive, QR, deshacer | Todo cambio de dominio con su prueba |
-| E2E | Playwright | Flujo completo, multipágina, fuentes, atajos del editor, columnas y Drive con Google simulado | Flujos principales en verde |
+| Unitarias | Vitest | Dominio, composición de PDF (incluida la comparación con el compositor antiguo), fuentes, Drive, QR, deshacer, lectura de listas (CSV, Excel, TXT), ZIP y datos guardados en el navegador | Todo cambio de dominio con su prueba |
+| Integración | Vitest | `/api/send-email` completo con Gmail simulado (`sendEmailCore.test.ts`), cliente de correo contra `fetch` simulado y la cadena lista → validación → PDF → ZIP (`generationPipeline.test.ts`) | Cada regla del servidor con su prueba |
+| E2E | Playwright | Flujo completo, multipágina, fuentes, atajos del editor, columnas, Drive con Google simulado, envío de correos (prueba, envío masivo, fallo con reintento y reanudación tras recargar) y recuperación de la sesión | Flujos principales en verde |
 | Rendimiento | Vitest | 300 certificados de 3 páginas sin reconstruir la plantilla | Dentro del test de `pdfComposer` |
+
+`npm run test:coverage` mide la cobertura de la lógica (`src/domain`, `src/infra`, `src/shared`, `api`) y deja el reporte en `coverage/`. Los componentes de React se prueban con los E2E.
 
 ## Casos de prueba imprescindibles
 
@@ -25,7 +28,7 @@
 `.github/workflows/ci.yml` corre en cada PR a `main` y en cada push a `main`:
 
 1. `npm ci`
-2. `tsc --noEmit`
+2. `tsc --noEmit` (revisa `src`, `api`, `tests` y los archivos de configuración)
 3. `npm run test:run` (Vitest)
 4. `npm run build`
 5. `npm run test:e2e` (Playwright, Chromium)

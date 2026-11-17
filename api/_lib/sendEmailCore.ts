@@ -1,8 +1,8 @@
 import nodemailer from 'nodemailer';
-import { createRateLimiter, isAllowedOrigin, validateEmailRequest } from './emailGuard.js';
+import { createRateLimiter, isAllowedOrigin, rateLimits, validateEmailRequest } from './emailGuard.js';
 
 const DEFAULT_SENDER = 'Equipo de capacitación';
-const checkRate = createRateLimiter();
+const checkRate = createRateLimiter(rateLimits(process.env.EMAIL_DAILY_LIMIT_PER_IP));
 
 export interface SendEmailInput {
   method?: string;

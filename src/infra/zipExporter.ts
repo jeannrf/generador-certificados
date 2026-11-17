@@ -10,17 +10,16 @@ export interface FileToZip {
  */
 export function createZipArchive(files: FileToZip[]): Blob {
   const zipObj: Record<string, Uint8Array> = {};
-  const seenNames = new Map<string, number>();
+  // Sin distinguir mayúsculas: "Ana.pdf" y "ana.pdf" se pisarían al descomprimir en Windows o macOS
+  const usedNames = new Set<string>();
 
   files.forEach(({ fileName, data }) => {
     let finalName = fileName;
-    if (seenNames.has(fileName)) {
-      const count = seenNames.get(fileName)! + 1;
-      seenNames.set(fileName, count);
-      finalName = fileName.replace(/\.pdf$/i, ` (${count}).pdf`);
-    } else {
-      seenNames.set(fileName, 1);
+    // Se prueba " (2)", " (3)"… hasta dar con un nombre libre, para no pisar un archivo que ya se llame así
+    for (let n = 2; usedNames.has(finalName.toLowerCase()); n++) {
+      finalName = /\.pdf$/i.test(fileName) ? fileName.replace(/\.pdf$/i, ` (${n}).pdf`) : `${fileName} (${n})`;
     }
+    usedNames.add(finalName.toLowerCase());
     zipObj[finalName] = data;
   });
 

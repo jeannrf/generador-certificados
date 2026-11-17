@@ -30,6 +30,7 @@ describe('Domain - Layout & Coordinates', () => {
     const box: FieldBox = {
       id: 'f1',
       name: 'Nombre',
+      pageId: 'p1',
       source: { type: 'column', column: 'nombre' },
       x: 0.1, // 10% from left
       y: 0.2, // 20% from top
@@ -99,6 +100,7 @@ describe('Domain - Validation & File Safety', () => {
     const field: FieldBox = {
       id: 'f1',
       name: 'Nombre',
+      pageId: 'p1',
       source: { type: 'column', column: 'nombre' },
       x: 0.15,
       y: 0.42,

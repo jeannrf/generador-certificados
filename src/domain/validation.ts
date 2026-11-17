@@ -1,9 +1,10 @@
 import { Recipient, Issue, FieldBox } from './types';
-import { cleanString, transformTextCase } from './normalization';
+import { cleanString, replaceTokens, transformTextCase } from './normalization';
 import { measureBrowserTextWidth, calculateOptimalFontSize } from './layout';
 import { fieldFontVariant } from './fonts';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// La misma regla que aplica /api/send-email (api/_lib/emailGuard.ts): lo que aquí pasa, el servidor lo acepta
+const EMAIL_REGEX = /^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]+$/;
 
 export interface ValidationOptions {
   field?: FieldBox;
@@ -176,18 +177,18 @@ export function formatCertificateFileName(
   let formatted = pattern?.trim() || '{nombre} - Certificado';
   const safeName = cleanString(name) || 'Sin Nombre';
 
-  // Reemplazar tokens {nombre}, [nombre], {name}, [name]
-  formatted = formatted.replace(/\{nombre\}|\{name\}|\[nombre\]|\[name\]/gi, safeName);
-
-  // Reemplazar variables adicionales del archivo si existen
-  if (extra) {
-    for (const [key, val] of Object.entries(extra)) {
-      if (val) {
-        const regex = new RegExp(`\\{${key}\\}|\\[${key}\\]`, 'gi');
-        formatted = formatted.replace(regex, cleanString(val));
-      }
-    }
+  // Columnas adicionales de la lista; las vacías dejan su token sin reemplazar
+  const extras = new Map<string, string>();
+  for (const [key, val] of Object.entries(extra ?? {})) {
+    const lower = key.toLowerCase();
+    if (val && !extras.has(lower)) extras.set(lower, cleanString(val));
   }
+
+  // Tokens {nombre}, [nombre], {name}, [name] y los de cada columna
+  formatted = replaceTokens(formatted, (key) => {
+    const lower = key.toLowerCase();
+    return lower === 'nombre' || lower === 'name' ? safeName : extras.get(lower);
+  });
 
   const sanitized = formatted
     .replace(/[/\\:*?"<>|]/g, '')

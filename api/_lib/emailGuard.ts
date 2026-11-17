@@ -12,11 +12,22 @@ export const LIMITS = {
   attachmentBytes: 3 * 1024 * 1024,
 };
 
-/** Envíos permitidos por IP. El cliente espera 1.5 s entre correos (~40 por minuto). */
-export const RATE_LIMITS = [
-  { windowMs: 60_000, max: 60 },
-  { windowMs: 24 * 60 * 60_000, max: 600 },
-];
+export const DEFAULT_DAILY_LIMIT_PER_IP = 600;
+
+/**
+ * Envíos permitidos por IP. El cliente espera 1.5 s entre correos (~40 por minuto).
+ * `dailyLimit` viene de EMAIL_DAILY_LIMIT_PER_IP; si falta o no es un entero positivo se usa el valor por defecto.
+ */
+export function rateLimits(dailyLimit?: string) {
+  const parsed = Number(dailyLimit?.trim());
+  const dailyMax = Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_DAILY_LIMIT_PER_IP;
+  return [
+    { windowMs: 60_000, max: 60 },
+    { windowMs: 24 * 60 * 60_000, max: dailyMax },
+  ];
+}
+
+export const RATE_LIMITS = rateLimits();
 
 const EMAIL_RE = /^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]+$/;
 

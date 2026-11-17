@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { clientIp, createRateLimiter, isAllowedOrigin, validateEmailRequest } from '../api/_lib/emailGuard';
+import {
+  DEFAULT_DAILY_LIMIT_PER_IP,
+  clientIp,
+  createRateLimiter,
+  isAllowedOrigin,
+  rateLimits,
+  validateEmailRequest,
+} from '../api/_lib/emailGuard';
 
 const PDF_BASE64 = Buffer.from('%PDF-1.7\n%fake').toString('base64');
 const valid = { to: 'ana@example.com', subject: 'Tu certificado', html: '<p>Hola</p>', senderName: 'Equipo' };
@@ -53,6 +60,20 @@ describe('createRateLimiter', () => {
     expect(blocked.ok).toBe(false);
     expect(check('otra-ip', 20).ok).toBe(true);
     expect(check('ip', 1001).ok).toBe(true);
+  });
+});
+
+describe('rateLimits', () => {
+  const dailyMax = (value?: string) => rateLimits(value)[1].max;
+
+  it('usa 600 por día si la variable falta o no es un entero positivo', () => {
+    for (const value of [undefined, '', '  ', 'abc', '0', '-5', '12.5', 'Infinity']) {
+      expect(dailyMax(value)).toBe(DEFAULT_DAILY_LIMIT_PER_IP);
+    }
+  });
+  it('toma el límite diario de EMAIL_DAILY_LIMIT_PER_IP sin tocar el límite por minuto', () => {
+    expect(dailyMax(' 1500 ')).toBe(1500);
+    expect(rateLimits('1500')[0]).toEqual({ windowMs: 60_000, max: 60 });
   });
 });
 
